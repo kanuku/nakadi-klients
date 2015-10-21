@@ -1,10 +1,14 @@
 package de.zalando.nakadi.client;
 
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import de.zalando.nakadi.client.domain.Event;
 import de.zalando.nakadi.client.domain.Topic;
 import de.zalando.nakadi.client.utils.NakadiTestService;
 import de.zalando.nakadi.client.utils.Request;
@@ -35,6 +39,9 @@ public class NakadiClientImplTest {
 
     public NakadiClientImplTest() {
         objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
     }
 
     @Before
@@ -56,7 +63,7 @@ public class NakadiClientImplTest {
     }
 
 
-    private void performStandardRequestChecks(final String expectedRequestPath, final HttpString expectedRequestMethod){
+    private Request performStandardRequestChecks(final String expectedRequestPath, final HttpString expectedRequestMethod){
 
         final Collection<Request> collectedRequests = service.getCollectedRequests();
         assertEquals("unexpected number of requests", 1, collectedRequests.size());
@@ -73,6 +80,8 @@ public class NakadiClientImplTest {
         headerValues = headerMap.get(Headers.AUTHORIZATION);
         final String authorizationHeaderValue = headerValues.getFirst();
         assertEquals("Authorization header in request is not set or invalid","Bearer " + TOKEN, authorizationHeaderValue);
+
+        return request;
     }
 
     @Test
@@ -157,5 +166,46 @@ public class NakadiClientImplTest {
         performStandardRequestChecks(requestPath, requestMethod);
     }
 
+
+    @Test
+    public void testPostEvent() throws Exception {
+        final Event event = new Event();
+        event.setEventType("http://test.zalando.net/my_type");
+        event.setOrderingKey("ARTICLE:123456");
+
+        final HashMap<String, String> bodyMap = Maps.newHashMap();
+        bodyMap.put("greeting", "hello");
+        bodyMap.put("target", "world");
+        event.setBody(bodyMap);
+
+        final HashMap<String, Object> metaDataMap = Maps.newHashMap();
+        metaDataMap.put("tenant-id","234567");
+        metaDataMap.put("flow-id", "123456789");
+        event.setMetadata(metaDataMap);
+
+        final String topic = "test-topic-1";
+        final HttpString requestMethod = new HttpString("POST");
+        final String requestPath = "/topics/" + topic + "/events";
+        final int responseStatusCode = 201;
+
+        final NakadiTestService.Builder builder = new NakadiTestService.Builder();
+        service = builder.withHost(HOST)
+                .withPort(PORT)
+                .withRequestPath(requestPath)
+                .withRequestMethod(requestMethod)
+                .withResponseContentType(MEDIA_TYPE)
+                .withResponseStatusCode(responseStatusCode)
+                .withResponsePayload("")
+                .build();
+        service.start();
+
+        client.postEvent(topic, event);
+
+        final Request request = performStandardRequestChecks(requestPath, requestMethod);
+        final String requestBody = request.getRequestBody();
+        final Event sentEvent = objectMapper.readValue(requestBody, Event.class);
+
+        assertEquals("something went wrong with the event transmission", event, sentEvent);
+    }
 
 }
