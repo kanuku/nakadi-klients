@@ -249,4 +249,37 @@ public class NakadiClientImplTest {
         performStandardRequestChecks(requestPath, requestMethod);
     }
 
+    @Test
+    public void testGetPartition() throws Exception {
+
+        final TopicPartition expectedPartition = new TopicPartition();
+        expectedPartition.setNewestAvailableOffset("0");
+        expectedPartition.setOldestAvailableOffset("0");
+        expectedPartition.setPartitionId("111");
+
+        final String expectedResponse = objectMapper.writeValueAsString(expectedPartition);
+
+
+        final String partitionId = "111";
+        final String topic = "test-topic-1";
+        final HttpString requestMethod = new HttpString("GET");
+        final String requestPath = "/topics/" + topic + "/partitions/" + partitionId;
+        final int responseStatusCode = 200;
+
+        final NakadiTestService.Builder builder = new NakadiTestService.Builder();
+        service = builder.withHost(HOST)
+                .withPort(PORT)
+                .withRequestPath(requestPath)
+                .withRequestMethod(requestMethod)
+                .withResponseContentType(MEDIA_TYPE)
+                .withResponseStatusCode(responseStatusCode)
+                .withResponsePayload(expectedResponse)
+                .build();
+        service.start();
+
+        final TopicPartition receivedPartition = client.getPartition(topic, partitionId);
+        assertEquals("partition data deserialization does not work properly", expectedPartition, receivedPartition);
+
+        performStandardRequestChecks(requestPath, requestMethod);
+    }
 }
