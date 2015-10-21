@@ -10,6 +10,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.zalando.nakadi.client.domain.Event;
 import de.zalando.nakadi.client.domain.Topic;
+import de.zalando.nakadi.client.domain.TopicPartition;
 import de.zalando.nakadi.client.utils.NakadiTestService;
 import de.zalando.nakadi.client.utils.Request;
 import io.undertow.util.HeaderMap;
@@ -206,6 +207,46 @@ public class NakadiClientImplTest {
         final Event sentEvent = objectMapper.readValue(requestBody, Event.class);
 
         assertEquals("something went wrong with the event transmission", event, sentEvent);
+    }
+
+    @Test
+    public void testGetPartitions() throws Exception {
+        final ArrayList<TopicPartition> expectedPartitions = Lists.newArrayList();
+        TopicPartition partition = new TopicPartition();
+        partition.setNewestAvailableOffset("0");
+        partition.setOldestAvailableOffset("0");
+        partition.setPartitionId("111");
+        expectedPartitions.add(partition);
+
+        partition = new TopicPartition();
+        partition.setNewestAvailableOffset("1");
+        partition.setOldestAvailableOffset("0");
+        partition.setPartitionId("222");
+        expectedPartitions.add(partition);
+
+        final String expectedResponse = objectMapper.writeValueAsString(expectedPartitions);
+
+
+        final String topic = "test-topic-1";
+        final HttpString requestMethod = new HttpString("GET");
+        final String requestPath = "/topics/" + topic + "/partitions";
+        final int responseStatusCode = 200;
+
+        final NakadiTestService.Builder builder = new NakadiTestService.Builder();
+        service = builder.withHost(HOST)
+                .withPort(PORT)
+                .withRequestPath(requestPath)
+                .withRequestMethod(requestMethod)
+                .withResponseContentType(MEDIA_TYPE)
+                .withResponseStatusCode(responseStatusCode)
+                .withResponsePayload(expectedResponse)
+                .build();
+        service.start();
+
+        final List<TopicPartition> receivedPartitions = client.getPartitions(topic);
+        assertEquals("partition data deserialization does not work properly", expectedPartitions, receivedPartitions);
+
+        performStandardRequestChecks(requestPath, requestMethod);
     }
 
 }

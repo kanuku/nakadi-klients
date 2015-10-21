@@ -3,6 +3,8 @@ package de.zalando.nakadi.client.domain;
 
 import com.google.common.base.MoreObjects;
 
+import java.util.Objects;
+
 public final class TopicPartition {
 
     private String partitionId;
@@ -33,6 +35,20 @@ public final class TopicPartition {
         this.newestAvailableOffset = newestAvailableOffset;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TopicPartition that = (TopicPartition) o;
+        return Objects.equals(partitionId, that.partitionId) &&
+                Objects.equals(oldestAvailableOffset, that.oldestAvailableOffset) &&
+                Objects.equals(newestAvailableOffset, that.newestAvailableOffset);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(partitionId, oldestAvailableOffset, newestAvailableOffset);
+    }
 
     @Override
     public String toString() {
