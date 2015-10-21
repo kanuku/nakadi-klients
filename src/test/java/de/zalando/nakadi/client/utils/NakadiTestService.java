@@ -2,6 +2,10 @@ package de.zalando.nakadi.client.utils;
 
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
@@ -11,10 +15,8 @@ import io.undertow.util.HttpString;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 
-import java.util.Collection;
-import java.util.Deque;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -24,32 +26,22 @@ public class NakadiTestService {
 
     private final String host;
     private final int port;
-    private final String requestPath;
-    private final HttpString requestMethod;
-    private final int responseStatusCode;
-    private final String responsePayload;
-    private final String responseContentType;
 
-    private ConcurrentLinkedDeque<Request> collectedRequests;
+    private ConcurrentHashMap<String, Handler> handlerMap;
+    private Multimap<String, Request> collectedRequests;
 
     private Undertow server;
 
     private NakadiTestService(final String host,
                               final int port,
-                              final String requestPath,
-                              final HttpString requestMethod,
-                              final int responseStatusCode,
-                              final String responsePayload,
-                              final String responseContentType) {
+                              final List<Handler> handlerList) {
         this.host = host;
         this.port = port;
-        this.requestPath = requestPath;
-        this.requestMethod = requestMethod;
-        this.responseStatusCode = responseStatusCode;
-        this.responsePayload = responsePayload;
-        this.responseContentType = responseContentType;
 
-        this.collectedRequests = new ConcurrentLinkedDeque<>();
+        this.handlerMap = new ConcurrentHashMap<>();
+        handlerList.forEach(h -> handlerMap.put(h.getRequestPath(), h));
+
+        this.collectedRequests = Multimaps.synchronizedListMultimap(ArrayListMultimap.create());
     }
 
 
@@ -61,16 +53,18 @@ public class NakadiTestService {
                     @Override
                     public void handleRequest(final HttpServerExchange exchange) throws Exception {
 
-                        final String expectedRequestPath = NakadiTestService.this.requestPath;
+
                         final String receivedRequestPath = exchange.getRequestPath();
-
-                        final HttpString expectedRequestMethod =  NakadiTestService.this.requestMethod;
-                        final HttpString receivedRequestMethod =  exchange.getRequestMethod();
+                        final HttpString receivedRequestMethod = exchange.getRequestMethod();
 
 
-                        if ( Objects.equals(expectedRequestMethod, receivedRequestMethod) &&
-                             Objects.equals(expectedRequestPath, receivedRequestPath)) {
-
+                        final Handler handler = handlerMap.get(receivedRequestPath);
+                        if(handler == null || ! Objects.equals(handler.getRequestMethod(), receivedRequestMethod)) {
+                            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+                            exchange.setResponseCode(HttpStatus.SC_NOT_FOUND);
+                            exchange.getResponseSender().send("invalid request: " + receivedRequestPath + " with request method: " + receivedRequestMethod);
+                        }
+                        else {
                             final HeaderMap requestHeaders = exchange.getRequestHeaders();
                             final Map<String, Deque<String>> requestQueryParameters = exchange.getQueryParameters();
                             final HttpString requestMethod = exchange.getRequestMethod();
@@ -78,20 +72,17 @@ public class NakadiTestService {
                             exchange.startBlocking();
                             final String requestBody = IOUtils.toString(exchange.getInputStream());
 
-                            final Request request = new Request(requestPath,
-                                                                requestHeaders,
-                                                                requestQueryParameters,
-                                                                requestMethod,
-                                                                requestBody);
-                            collectedRequests.add(request);
+                            final Request request = new Request(handler.getRequestPath(),
+                                    requestHeaders,
+                                    requestQueryParameters,
+                                    requestMethod,
+                                    requestBody);
 
-                            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, responseContentType);
-                            exchange.setResponseCode(responseStatusCode);
-                            exchange.getResponseSender().send(responsePayload);
-                        } else {
-                            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, responseContentType);
-                            exchange.setResponseCode(HttpStatus.SC_NOT_FOUND);
-                            exchange.getResponseSender().send("invalid request: " + receivedRequestPath + " with request methid: " + requestMethod);
+                            collectedRequests.put(receivedRequestPath, request);
+
+                            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, handler.responseContentType);
+                            exchange.setResponseCode(handler.getResponseStatusCode());
+                            exchange.getResponseSender().send(handler.getResponsePayload());
                         }
                     }
                 }).build();
@@ -99,8 +90,8 @@ public class NakadiTestService {
     }
 
 
-    public Collection<Request> getCollectedRequests() {
-        return new ConcurrentLinkedDeque<>(this.collectedRequests);
+    public Map<String, Collection<Request>> getCollectedRequests() {
+        return this.collectedRequests.asMap();
     }
 
     public void stop() {
@@ -114,13 +105,14 @@ public class NakadiTestService {
 
     public static class Builder {
 
+        private ArrayList<Handler> handlerList;
+
         private String host = "localhost";
         private int port = 8080;
-        private String requestPath = "/notSet";
-        private HttpString requestMethod;
-        private int responseStatusCode = 500;
-        private String responsePayload = "{ \"content\": \"nix\" }";
-        private String responseContentType = "application/json";
+
+        public Builder() {
+            this.handlerList = Lists.newArrayList();
+        }
 
 
         public Builder withHost(final String host) {
@@ -133,39 +125,82 @@ public class NakadiTestService {
             return this;
         }
 
+        public HandlerBuilder withHandler(final String requestPath) {
+            return new HandlerBuilder(this, requestPath);
+        }
 
-        public Builder withRequestPath(final String requestPath) {
-            this.requestPath = checkNotNull(requestPath);
+        public Builder finalizeHandler(final HandlerBuilder handlerBuilder) {
+            handlerList.add(handlerBuilder.buildHandler());
             return this;
         }
 
-        public Builder withRequestMethod(final HttpString requestMethod) {
+        public NakadiTestService build() {
+            return new NakadiTestService(host, port, handlerList);
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                    .add("host", host)
+                    .add("port", port)
+                    .add("handlerList", handlerList)
+                    .toString();
+        }
+    }
+
+    //----------------
+
+    public static final class HandlerBuilder{
+        private final String requestPath;
+        private final Builder mainBuilder;
+
+        private HttpString requestMethod;
+        private int responseStatusCode = 500;
+        private String responsePayload = "{ \"content\": \"nix\" }";
+        private String responseContentType = "application/json";
+
+        HandlerBuilder(final Builder mainBuilder, final String requestPath) {
+            this.mainBuilder = checkNotNull(mainBuilder);
+            this.requestPath = checkNotNull(requestPath);
+        }
+
+        public Builder getMainBuilder() {
+            return mainBuilder;
+        }
+
+        public HandlerBuilder withRequestMethod(final HttpString requestMethod) {
             this.requestMethod = checkNotNull(requestMethod);
             return this;
         }
 
-
-        public Builder withResponseStatusCode(final int responsStatusCode) {
+        public HandlerBuilder withResponseStatusCode(final int responsStatusCode) {
             checkArgument(responsStatusCode > 0 && responsStatusCode < 1000,
                     "invalid response status code %s", responsStatusCode);
             this.responseStatusCode = responsStatusCode;
             return this;
         }
 
-        public Builder withResponsePayload(final String responsePayload) {
+        public HandlerBuilder withResponsePayload(final String responsePayload) {
             this.responsePayload = checkNotNull(responsePayload);
             return this;
         }
 
-        public Builder withResponseContentType(final String responseContentType) {
+        public HandlerBuilder withResponseContentType(final String responseContentType) {
             this.responseContentType = checkNotNull(responseContentType);
             return this;
         }
 
+        public Builder and() {
+            return mainBuilder.finalizeHandler(this);
+        }
+
 
         public NakadiTestService build() {
-            return new NakadiTestService(host,
-                    port,
+            return mainBuilder.finalizeHandler(this).build();
+        }
+
+        public Handler buildHandler() {
+            return new Handler(
                     requestPath,
                     requestMethod,
                     responseStatusCode,
@@ -176,8 +211,56 @@ public class NakadiTestService {
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(this)
-                    .add("host", host)
-                    .add("port", port)
+                    .add("requestPath", requestPath)
+                    .add("requestMethod", requestMethod)
+                    .add("responseStatusCode", responseStatusCode)
+                    .add("responsePayload", responsePayload)
+                    .add("responseContentType", responseContentType)
+                    .toString();
+        }
+    }
+
+    //-----------
+
+    private static final class Handler {
+
+        private final String requestPath;
+        private final HttpString requestMethod;
+        private final int responseStatusCode;
+        private final String responsePayload;
+        private final  String responseContentType;
+
+        Handler(String requestPath, HttpString requestMethod, int responseStatusCode, String responsePayload, String responseContentType) {
+            this.requestPath = requestPath;
+            this.requestMethod = requestMethod;
+            this.responseStatusCode = responseStatusCode;
+            this.responsePayload = responsePayload;
+            this.responseContentType = responseContentType;
+        }
+
+        public String getRequestPath() {
+            return requestPath;
+        }
+
+        public HttpString getRequestMethod() {
+            return requestMethod;
+        }
+
+        public int getResponseStatusCode() {
+            return responseStatusCode;
+        }
+
+        public String getResponsePayload() {
+            return responsePayload;
+        }
+
+        public String getResponseContentType() {
+            return responseContentType;
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
                     .add("requestPath", requestPath)
                     .add("requestMethod", requestMethod)
                     .add("responseStatusCode", responseStatusCode)

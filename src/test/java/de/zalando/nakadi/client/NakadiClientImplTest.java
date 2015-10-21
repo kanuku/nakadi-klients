@@ -17,6 +17,7 @@ import io.undertow.util.HeaderMap;
 import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
+import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +25,7 @@ import org.junit.Test;
 import java.net.URI;
 import java.util.*;
 
+import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 
 public class NakadiClientImplTest {
@@ -66,9 +68,13 @@ public class NakadiClientImplTest {
 
     private Request performStandardRequestChecks(final String expectedRequestPath, final HttpString expectedRequestMethod){
 
-        final Collection<Request> collectedRequests = service.getCollectedRequests();
-        assertEquals("unexpected number of requests", 1, collectedRequests.size());
-        final Request request = Iterators.getLast(collectedRequests.iterator());
+        final Map<String, Collection<Request>> collectedRequestsMap = service.getCollectedRequests();
+        assertEquals("unexpected number of requests", 1, collectedRequestsMap.size());
+
+        final Collection<Request> requests = collectedRequestsMap.get(expectedRequestPath);
+        assertNotNull("request " + expectedRequestPath + " was not recorded", requests);
+
+        final Request request = Iterators.getLast(requests.iterator());
 
         assertEquals("invalid request path. test must be buggy", expectedRequestPath, request.getRequestPath());
         assertEquals("invalid request method used by request", expectedRequestMethod, request.getRequestMethod());
@@ -116,7 +122,7 @@ public class NakadiClientImplTest {
         final NakadiTestService.Builder builder = new NakadiTestService.Builder();
         service = builder.withHost(HOST)
                          .withPort(PORT)
-                         .withRequestPath(requestPath)
+                         .withHandler(requestPath)
                          .withRequestMethod(requestMethod)
                          .withResponseContentType(MEDIA_TYPE)
                          .withResponseStatusCode(responseStatusCode)
@@ -153,7 +159,7 @@ public class NakadiClientImplTest {
         final NakadiTestService.Builder builder = new NakadiTestService.Builder();
         service = builder.withHost(HOST)
                 .withPort(PORT)
-                .withRequestPath(requestPath)
+                .withHandler(requestPath)
                 .withRequestMethod(requestMethod)
                 .withResponseContentType(MEDIA_TYPE)
                 .withResponseStatusCode(responseStatusCode)
@@ -180,7 +186,7 @@ public class NakadiClientImplTest {
         event.setBody(bodyMap);
 
         final HashMap<String, Object> metaDataMap = Maps.newHashMap();
-        metaDataMap.put("tenant-id","234567");
+        metaDataMap.put("tenant-id", "234567");
         metaDataMap.put("flow-id", "123456789");
         event.setMetadata(metaDataMap);
 
@@ -192,7 +198,7 @@ public class NakadiClientImplTest {
         final NakadiTestService.Builder builder = new NakadiTestService.Builder();
         service = builder.withHost(HOST)
                 .withPort(PORT)
-                .withRequestPath(requestPath)
+                .withHandler(requestPath)
                 .withRequestMethod(requestMethod)
                 .withResponseContentType(MEDIA_TYPE)
                 .withResponseStatusCode(responseStatusCode)
@@ -235,7 +241,7 @@ public class NakadiClientImplTest {
         final NakadiTestService.Builder builder = new NakadiTestService.Builder();
         service = builder.withHost(HOST)
                 .withPort(PORT)
-                .withRequestPath(requestPath)
+                .withHandler(requestPath)
                 .withRequestMethod(requestMethod)
                 .withResponseContentType(MEDIA_TYPE)
                 .withResponseStatusCode(responseStatusCode)
@@ -269,7 +275,7 @@ public class NakadiClientImplTest {
         final NakadiTestService.Builder builder = new NakadiTestService.Builder();
         service = builder.withHost(HOST)
                 .withPort(PORT)
-                .withRequestPath(requestPath)
+                .withHandler(requestPath)
                 .withRequestMethod(requestMethod)
                 .withResponseContentType(MEDIA_TYPE)
                 .withResponseStatusCode(responseStatusCode)
@@ -282,4 +288,6 @@ public class NakadiClientImplTest {
 
         performStandardRequestChecks(requestPath, requestMethod);
     }
+
+
 }
