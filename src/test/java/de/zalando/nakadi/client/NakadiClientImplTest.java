@@ -8,9 +8,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import de.zalando.nakadi.client.domain.Event;
-import de.zalando.nakadi.client.domain.Topic;
-import de.zalando.nakadi.client.domain.TopicPartition;
+import de.zalando.nakadi.client.domain.*;
 import de.zalando.nakadi.client.utils.NakadiTestService;
 import de.zalando.nakadi.client.utils.Request;
 import io.undertow.util.HeaderMap;
@@ -24,8 +22,11 @@ import org.junit.Test;
 
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
 public class NakadiClientImplTest {
@@ -290,4 +291,114 @@ public class NakadiClientImplTest {
     }
 
 
+    @Test
+    public void testSubscibeToTopic() throws Exception {
+
+        final ArrayList<TopicPartition> partitions = Lists.newArrayList();
+        TopicPartition partition = new TopicPartition();
+        partition.setNewestAvailableOffset("0");
+        partition.setOldestAvailableOffset("0");
+        partition.setPartitionId("p1");
+        partitions.add(partition);
+
+        partition = new TopicPartition();
+        partition.setNewestAvailableOffset("1");
+        partition.setOldestAvailableOffset("1");
+        partition.setPartitionId("p2");
+        partitions.add(partition);
+
+        final String partitionsAsString = objectMapper.writeValueAsString(partitions);
+
+
+        final Event event = new Event();
+        event.setEventType("partition1");
+        event.setOrderingKey("ARTICLE:123456");
+        final HashMap<String, String> bodyMap = Maps.newHashMap();
+        bodyMap.put("greeting", "hello");
+        bodyMap.put("target", "world");
+        event.setBody(bodyMap);
+        final HashMap<String, Object> metaDataMap = Maps.newHashMap();
+        metaDataMap.put("tenant-id", "234567");
+        metaDataMap.put("flow-id", "123456789");
+        event.setMetadata(metaDataMap);
+
+        final Cursor cursor = new Cursor();
+        cursor.setPartition("p1");
+        cursor.setOffset("0");
+
+        final SimpleStreamEvent streamEvent1 = new SimpleStreamEvent();
+        streamEvent1.setEvents(Lists.newArrayList(event));
+        streamEvent1.setCursor(cursor);
+
+        final String streamEvent1AsString = objectMapper.writeValueAsString(streamEvent1)  + "\n";
+
+        //----
+
+        final Event event2 = new Event();
+        event2.setEventType("partition1");
+        event2.setOrderingKey("ARTICLE:123456");
+        final HashMap<String, String> bodyMap2 = Maps.newHashMap();
+        bodyMap2.put("greeting", "hello");
+        bodyMap2.put("target", "world");
+        event2.setBody(bodyMap2);
+        final HashMap<String, Object> metaDataMap2 = Maps.newHashMap();
+        metaDataMap2.put("tenant-id", "234567");
+        metaDataMap2.put("flow-id", "123456789");
+        event2.setMetadata(metaDataMap2);
+
+        final Cursor cursor2 = new Cursor();
+        cursor2.setPartition("p1");
+        cursor2.setOffset("0");
+
+        final SimpleStreamEvent streamEvent2 = new SimpleStreamEvent();
+        streamEvent1.setEvents(Lists.newArrayList(event2));
+        streamEvent1.setCursor(cursor2);
+
+        final String streamEvent2AsString = objectMapper.writeValueAsString(streamEvent2) + "\n";
+
+        //----
+
+        final NakadiTestService.Builder builder = new NakadiTestService.Builder();
+        service = builder.withHost(HOST)
+                .withPort(PORT)
+                .withHandler("/topics/test-topic-1/partitions")
+                .withRequestMethod(new HttpString("GET"))
+                .withResponseContentType(MEDIA_TYPE)
+                .withResponseStatusCode(200)
+                .withResponsePayload(partitionsAsString)
+                .and()
+                .withHandler("/topics/test-topic-1/partitions/p1/events")
+                .withRequestMethod(new HttpString("GET"))
+                .withResponseContentType(MEDIA_TYPE)
+                .withResponseStatusCode(200)
+                .withResponsePayload(streamEvent1AsString)
+                .and()
+                .withHandler("/topics/test-topic-1/partitions/p2/events")
+                .withRequestMethod(new HttpString("GET"))
+                .withResponseContentType(MEDIA_TYPE)
+                .withResponseStatusCode(200)
+                .withResponsePayload(streamEvent2AsString)
+                .build();
+        service.start();
+
+        final ArrayList<Event> receivedEvents = Lists.newArrayList();
+
+        final List<Future> futures = client.subscribeToTopic("test-topic-1", (c,e) -> receivedEvents.add(e)  );
+
+        futures.forEach(f -> {
+            try {
+                f.get();
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        assertTrue("one event got lost", receivedEvents.contains(event));
+        assertTrue("one event got lost", receivedEvents.contains(event2));
+        final Map<String, Collection<Request>> collectedRequests = service.getCollectedRequests();
+        assertEquals("unexpected number of requests", 3, collectedRequests.size());
+
+        // TODO check header and query parameters
+
+    }
 }
