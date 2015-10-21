@@ -30,7 +30,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-class NakadiClientClientImpl implements Client {
+class NakadiClientImpl implements Client {
 
     private final OAuth2TokenProvider tokenProvider;
     private final HttpHost host;
@@ -53,10 +53,10 @@ class NakadiClientClientImpl implements Client {
     private static final int DEFAULT_BATCH_LIMIT = 1;  // 1 event / batch
     private static final int DEFAULT_STREAM_LIMIT = 0; // stream forever
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(NakadiClientClientImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(NakadiClientImpl.class);
 
 
-    NakadiClientClientImpl(final URI endpoint, final OAuth2TokenProvider tokenProvider) {
+    NakadiClientImpl(final URI endpoint, final OAuth2TokenProvider tokenProvider) {
         this.tokenProvider = checkNotNull(tokenProvider, "OAuth2TokenProvider must not be null");
         checkNotNull(endpoint, "Nakadi endpoint must not be null");
         this.host = new HttpHost(endpoint.getHost(), endpoint.getPort(), endpoint.getScheme());

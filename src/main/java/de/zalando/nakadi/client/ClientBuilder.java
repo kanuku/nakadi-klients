@@ -33,7 +33,7 @@ public class ClientBuilder {
         checkState(tokenProvider != null, "no OAuth2 token provider set -> try withOAuth2TokenProvider(myProvider)");
         checkState(endpoint != null, "endpoint is set -> try withEndpoint(new URI(\"http://localhost:8080\"))");
 
-        return new NakadiClientClientImpl(endpoint, tokenProvider);
+        return new NakadiClientImpl(endpoint, tokenProvider);
     }
 
 }
