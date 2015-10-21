@@ -3,7 +3,9 @@ package de.zalando.nakadi.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import de.zalando.nakadi.client.domain.Topic;
 import de.zalando.nakadi.client.utils.NakadiTestService;
 import de.zalando.nakadi.client.utils.Request;
 import io.undertow.util.HeaderMap;
@@ -15,9 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URI;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -55,8 +55,28 @@ public class NakadiClientImplTest {
         }
     }
 
+
+    private void performStandardRequestChecks(final String expectedRequestPath, final HttpString expectedRequestMethod){
+
+        final Collection<Request> collectedRequests = service.getCollectedRequests();
+        assertEquals("unexpected number of requests", 1, collectedRequests.size());
+        final Request request = Iterators.getLast(collectedRequests.iterator());
+
+        assertEquals("invalid request path. test must be buggy", expectedRequestPath, request.getRequestPath());
+        assertEquals("invalid request method used by request", expectedRequestMethod, request.getRequestMethod());
+
+        final HeaderMap headerMap = request.getRequestHeaders();
+        HeaderValues headerValues = headerMap.get(Headers.CONTENT_TYPE);
+        final String mediaType = headerValues.getFirst();
+        assertEquals("invalid media type in request", mediaType, MEDIA_TYPE);
+
+        headerValues = headerMap.get(Headers.AUTHORIZATION);
+        final String authorizationHeaderValue = headerValues.getFirst();
+        assertEquals("Authorization header in request is not set or invalid","Bearer " + TOKEN, authorizationHeaderValue);
+    }
+
     @Test
-    public void test() throws Exception {
+    public void testGetMetrics() throws Exception {
 
         final HashMap<String, Object> expectedResponse = Maps.newHashMap();
 
@@ -99,26 +119,43 @@ public class NakadiClientImplTest {
         final Map<String, Object> receivedMetrics = client.getMetrics();
         assertEquals("metrics data deserialiazation is not correct", expectedResponse, receivedMetrics);
 
-        // check if the request was supplied correctly
-
-        final Collection<Request> collectedRequests = service.getCollectedRequests();
-        assertEquals("unexpected number of requests", 1, collectedRequests.size());
-
-        final Request request = Iterators.getLast(collectedRequests.iterator());
-
-        assertEquals("invalid request path. test must be buggy", requestPath,request.getRequestPath());
-        assertEquals("invalid request method used by request", requestMethod, request.getRequestMethod());
-
-        final HeaderMap headerMap = request.getRequestHeaders();
-        HeaderValues headerValues = headerMap.get(Headers.CONTENT_TYPE);
-        final String mediaType = headerValues.getFirst();
-        assertEquals("invalid media type in request", mediaType, MEDIA_TYPE);
-
-        headerValues = headerMap.get(Headers.AUTHORIZATION);
-        final String authorizationHeaderValue = headerValues.getFirst();
-        assertEquals("Authorization heaader in request is not set or invalid","Bearer " + TOKEN, authorizationHeaderValue);
+        performStandardRequestChecks(requestPath, requestMethod);
     }
 
+
+    @Test
+    public void testGetTopics() throws Exception {
+
+        final ArrayList<Topic> expectedResponse = Lists.newArrayList();
+        Topic topic = new Topic();
+        topic.setName("test-topic-1");
+        expectedResponse.add(topic);
+
+        topic = new Topic();
+        topic.setName("test-topic-2");
+        expectedResponse.add(topic);
+
+        final String expectedResponseAsString = objectMapper.writeValueAsString(expectedResponse);
+        final HttpString requestMethod = new HttpString("GET");
+        final String requestPath = "/topics";
+        final int responseStatusCode = 200;
+
+        final NakadiTestService.Builder builder = new NakadiTestService.Builder();
+        service = builder.withHost(HOST)
+                .withPort(PORT)
+                .withRequestPath(requestPath)
+                .withRequestMethod(requestMethod)
+                .withResponseContentType(MEDIA_TYPE)
+                .withResponseStatusCode(responseStatusCode)
+                .withResponsePayload(expectedResponseAsString)
+                .build();
+        service.start();
+
+        final List<Topic> receivedTopics = client.getTopics();
+        assertEquals("topics data deserialiazation is not correct", expectedResponse, new ArrayList<Topic>(receivedTopics));
+
+        performStandardRequestChecks(requestPath, requestMethod);
+    }
 
 
 }
