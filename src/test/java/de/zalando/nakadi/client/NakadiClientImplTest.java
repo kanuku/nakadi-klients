@@ -436,6 +436,4 @@ public class NakadiClientImplTest {
         checkQueryParameter(queryParameters, "batch_flush_timeout", "5");
     }
 
-
-
 }
