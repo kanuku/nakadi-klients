@@ -15,19 +15,15 @@ import io.undertow.util.HeaderMap;
 import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
-import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URI;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class NakadiClientImplTest {
 
@@ -70,7 +66,6 @@ public class NakadiClientImplTest {
     private Request performStandardRequestChecks(final String expectedRequestPath, final HttpString expectedRequestMethod){
 
         final Map<String, Collection<Request>> collectedRequestsMap = service.getCollectedRequests();
-        assertEquals("unexpected number of requests", 1, collectedRequestsMap.size());
 
         final Collection<Request> requests = collectedRequestsMap.get(expectedRequestPath);
         assertNotNull("request " + expectedRequestPath + " was not recorded", requests);
@@ -290,25 +285,36 @@ public class NakadiClientImplTest {
         performStandardRequestChecks(requestPath, requestMethod);
     }
 
+    private void checkQueryParameter(final Map<String, Deque<String>> queryParameters,
+                                     final String paramaterName,
+                                     final String expectedValue) {
+
+        final Deque<String> paramDeque = queryParameters.get(paramaterName);
+        assertNotNull(String.format("query parameter [parameterName=%s] is not set", paramaterName),paramDeque);
+
+        final String value = paramDeque.getFirst();
+        assertEquals(String.format("query parameter [parameterName=%s] has wrong value", paramaterName), expectedValue, value);
+    }
 
     @Test
     public void testSubscibeToTopic() throws Exception {
 
         final ArrayList<TopicPartition> partitions = Lists.newArrayList();
-        TopicPartition partition = new TopicPartition();
-        partition.setNewestAvailableOffset("0");
+        final TopicPartition partition = new TopicPartition();
+        partition.setNewestAvailableOffset("4");
         partition.setOldestAvailableOffset("0");
         partition.setPartitionId("p1");
         partitions.add(partition);
 
-        partition = new TopicPartition();
-        partition.setNewestAvailableOffset("1");
-        partition.setOldestAvailableOffset("1");
-        partition.setPartitionId("p2");
-        partitions.add(partition);
+        final TopicPartition partition2 = new TopicPartition();
+        partition2.setNewestAvailableOffset("1");
+        partition2.setOldestAvailableOffset("1");
+        partition2.setPartitionId("p2");
+        partitions.add(partition2);
 
         final String partitionsAsString = objectMapper.writeValueAsString(partitions);
 
+        //--
 
         final Event event = new Event();
         event.setEventType("partition1");
@@ -332,7 +338,7 @@ public class NakadiClientImplTest {
 
         final String streamEvent1AsString = objectMapper.writeValueAsString(streamEvent1)  + "\n";
 
-        //----
+        //--
 
         final Event event2 = new Event();
         event2.setEventType("partition1");
@@ -356,49 +362,80 @@ public class NakadiClientImplTest {
 
         final String streamEvent2AsString = objectMapper.writeValueAsString(streamEvent2) + "\n";
 
-        //----
+        //--
+
+        final String topic = "test-topic-1";
+        final String partitionsRequestPath = String.format("/topics/%s/partitions", topic);
+        final String partition1EventsRequestPath = String.format("/topics/%s/partitions/p1/events", topic);
+        final String partition2EventsRequestPath = String.format("/topics/%s/partitions/p2/events", topic);
+
+        final HttpString httpMethod = new HttpString("GET");
+        final int statusCode= 200;
+
 
         final NakadiTestService.Builder builder = new NakadiTestService.Builder();
         service = builder.withHost(HOST)
                 .withPort(PORT)
-                .withHandler("/topics/test-topic-1/partitions")
-                .withRequestMethod(new HttpString("GET"))
+                .withHandler(partitionsRequestPath)
+                .withRequestMethod(httpMethod)
                 .withResponseContentType(MEDIA_TYPE)
-                .withResponseStatusCode(200)
+                .withResponseStatusCode(statusCode)
                 .withResponsePayload(partitionsAsString)
                 .and()
-                .withHandler("/topics/test-topic-1/partitions/p1/events")
-                .withRequestMethod(new HttpString("GET"))
+                .withHandler(partition1EventsRequestPath)
+                .withRequestMethod(httpMethod)
                 .withResponseContentType(MEDIA_TYPE)
-                .withResponseStatusCode(200)
+                .withResponseStatusCode(statusCode)
                 .withResponsePayload(streamEvent1AsString)
                 .and()
-                .withHandler("/topics/test-topic-1/partitions/p2/events")
-                .withRequestMethod(new HttpString("GET"))
+                .withHandler(partition2EventsRequestPath)
+                .withRequestMethod(httpMethod)
                 .withResponseContentType(MEDIA_TYPE)
-                .withResponseStatusCode(200)
+                .withResponseStatusCode(statusCode)
                 .withResponsePayload(streamEvent2AsString)
                 .build();
         service.start();
 
         final ArrayList<Event> receivedEvents = Lists.newArrayList();
 
-        final List<Future> futures = client.subscribeToTopic("test-topic-1", (c,e) -> receivedEvents.add(e)  );
+        final List<Future> futures = client.subscribeToTopic(topic, (c,e) -> receivedEvents.add(e)  );
 
         futures.forEach(f -> {
             try {
                 f.get();
             } catch (final Exception e) {
-                throw new RuntimeException(e);
+                fail(String.format("an errror [error=%s] occurred while while subscribing to [topic=%s]", e.getMessage(), topic));
             }
         });
+
+        //-- check received events
 
         assertTrue("one event got lost", receivedEvents.contains(event));
         assertTrue("one event got lost", receivedEvents.contains(event2));
         final Map<String, Collection<Request>> collectedRequests = service.getCollectedRequests();
         assertEquals("unexpected number of requests", 3, collectedRequests.size());
 
-        // TODO check header and query parameters
 
+        //-- check header and query parameters
+
+        performStandardRequestChecks(partitionsRequestPath, httpMethod);
+
+        Request request = performStandardRequestChecks(partition1EventsRequestPath, httpMethod);
+        Map<String, Deque<String>> queryParameters = request.getRequestQueryParameters();
+        checkQueryParameter(queryParameters, "start_from", partition.getNewestAvailableOffset());
+        checkQueryParameter(queryParameters, "batch_limit", "1");
+        checkQueryParameter(queryParameters, "stream_limit", "0");
+        checkQueryParameter(queryParameters, "batch_flush_timeout", "5");
+
+
+        request = performStandardRequestChecks(partition2EventsRequestPath, httpMethod);
+        queryParameters = request.getRequestQueryParameters();
+        checkQueryParameter(queryParameters, "start_from", partition2.getNewestAvailableOffset());
+        checkQueryParameter(queryParameters, "batch_limit", "1");
+        checkQueryParameter(queryParameters, "stream_limit", "0");
+        checkQueryParameter(queryParameters, "batch_flush_timeout", "5");
     }
+
+
+
 }
