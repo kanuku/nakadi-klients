@@ -4,7 +4,7 @@
     <groupId>de.zalando.laas</groupId>
     <artifactId>nakadi-klients</artifactId>
     <packaging>jar</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>nakadi klients</name>
     <url>https://github.com/zalando/nakadi-klients</url>
 
