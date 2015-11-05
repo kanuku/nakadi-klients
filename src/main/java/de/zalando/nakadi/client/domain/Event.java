@@ -4,6 +4,7 @@ package de.zalando.nakadi.client.domain;
 import com.google.common.base.MoreObjects;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class Event {
 
@@ -42,6 +43,22 @@ public class Event {
 
     public void setBody(Object body) {
         this.body = body;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Event event = (Event) o;
+        return Objects.equals(eventType, event.eventType) &&
+                Objects.equals(orderingKey, event.orderingKey) &&
+                Objects.equals(metadata, event.metadata) &&
+                Objects.equals(body, event.body);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(eventType, orderingKey, metadata, body);
     }
 
     @Override
