@@ -4,6 +4,7 @@ package de.zalando.nakadi.client;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler;
+import de.zalando.scoop.Scoop;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,8 @@ public class ClientBuilder {
 
     private OAuth2TokenProvider tokenProvider;
     private URI endpoint;
-    private ObjectMapper objectMapper = null;
+    private ObjectMapper objectMapper;
+    private Scoop scoop;
 
     public ClientBuilder() {
     }
@@ -38,12 +40,19 @@ public class ClientBuilder {
         return this;
     }
 
-    public ClientBuilder withObjectMapper(ObjectMapper objectMapper) {
+    public ClientBuilder withObjectMapper(final ObjectMapper objectMapper) {
         checkState(this.objectMapper == null, "ObjectMapper is already set");
         this.objectMapper = checkNotNull(objectMapper, "ObjectMapper must not be null");
 
         return this;
     }
+
+    public ClientBuilder withScoop(final Scoop scoop) {
+        checkState(this.scoop == null, "Scoop instance is already set");
+        this.scoop = scoop;
+        return this;
+    }
+
 
     public Client build() {
         checkState(tokenProvider != null, "no OAuth2 token provider set -> try withOAuth2TokenProvider(myProvider)");
@@ -52,7 +61,12 @@ public class ClientBuilder {
             objectMapper = defaultObjectMapper();
         }
 
-        return new NakadiClientImpl(endpoint, tokenProvider, objectMapper);
+        if(scoop == null) {
+            return new NakadiClientImpl(endpoint, tokenProvider, objectMapper);
+        }
+        else {
+            return new ScoopAwareNakadiClientImpl(endpoint, tokenProvider, objectMapper, scoop);
+        }
     }
 
     private ObjectMapper defaultObjectMapper(){
