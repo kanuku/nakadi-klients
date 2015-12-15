@@ -1,9 +1,7 @@
 package de.zalando.nakadi.client;
 
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -56,37 +54,12 @@ class NakadiClientImpl implements Client {
     private static final Logger LOGGER = LoggerFactory.getLogger(NakadiClientImpl.class);
 
 
-    NakadiClientImpl(final URI endpoint, final OAuth2TokenProvider tokenProvider) {
+    NakadiClientImpl(final URI endpoint, final OAuth2TokenProvider tokenProvider, final ObjectMapper objectMapper) {
         this.tokenProvider = checkNotNull(tokenProvider, "OAuth2TokenProvider must not be null");
         checkNotNull(endpoint, "Nakadi endpoint must not be null");
         this.host = new HttpHost(endpoint.getHost(), endpoint.getPort(), endpoint.getScheme());
-        this.objectMapper = createObjectMapper();
+        this.objectMapper = objectMapper;
     }
-
-
-    private ObjectMapper createObjectMapper(){
-        final ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
-
-        mapper.addHandler(new DeserializationProblemHandler() {
-            @Override
-            public boolean handleUnknownProperty(final DeserializationContext ctxt,
-                                                 final JsonParser jp,
-                                                 final JsonDeserializer<?> deserializer,
-                                                 final Object beanOrClass,
-                                                 final String propertyName) throws IOException {
-                LOGGER.warn("unknown property occurred in JSON representation: [beanOrClass={}, property={}]",
-                            beanOrClass, propertyName);
-
-                return true; // problem is considered as resolved
-            }
-        });
-
-        return mapper;
-    }
-
 
     @Override
     public List<Topic> getTopics() {
