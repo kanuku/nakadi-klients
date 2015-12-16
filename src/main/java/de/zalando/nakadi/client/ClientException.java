@@ -1,7 +1,7 @@
 package de.zalando.nakadi.client;
 
 
-class ClientException extends RuntimeException{
+public class ClientException extends RuntimeException{
     public ClientException() {
     }
 
