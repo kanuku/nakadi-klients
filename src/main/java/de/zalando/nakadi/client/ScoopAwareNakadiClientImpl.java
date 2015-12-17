@@ -211,10 +211,8 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
     @Override
     public void onMemberUp(final Member member) {
         if(! mayIProcessEvents){
-            final String meAsMemberString = myAddressAsString();
-            final String upMemberAddressAsString = member.address().toString();
 
-            if(Objects.equals(meAsMemberString, upMemberAddressAsString)){
+            if(isItMe(member)){
                 mayIProcessEvents = true;
                 LOGGER.info("I am allowed to process events as my cluster can see me again :-)");
             }
@@ -222,14 +220,24 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
     }
 
 
-    @Override
-    public void onRebalanced(int partitionId, int numberOfPartitions) {
-        // do nothing
+    private boolean isItMe(final Member member){
+        final String meAsMemberString = myAddressAsString();
+        final String upMemberAddressAsString = member.address().toString();
+        return Objects.equals(meAsMemberString, upMemberAddressAsString);
     }
 
 
     @Override
     public void onMemberRemoved(final Member member) {
+        if(mayIProcessEvents && isItMe(member)){
+            mayIProcessEvents = false;
+            LOGGER.info("I have been removed from the cluster and therefore I refuse to process any events from now on" +
+                        " -> you should consider restarting the instance");
+        }
+    }
+
+    @Override
+    public void onRebalanced(int partitionId, int numberOfPartitions) {
         // do nothing
     }
 }
