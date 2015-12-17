@@ -94,44 +94,50 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
                 bout.write(byteItem);
 
                 if(byteItem == EOL) {
-                    streamingEvent = objectMapper.readValue(bout.toByteArray(), SimpleStreamEvent.class);
-                    final Cursor cursor = streamingEvent.getCursor();
-                    LOGGER.debug("received [streamingEvent={}]", streamingEvent);
-                    events = streamingEvent.getEvents();
-                    if(events == null || events.isEmpty()) {
-                        LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
+                    final byte[] receiveBuffer = bout.toByteArray();
+                    if(hasNonWhiteCharacters(receiveBuffer)){
+                        streamingEvent = objectMapper.readValue(bout.toByteArray(), SimpleStreamEvent.class);
+                        LOGGER.debug("received [streamingEvent={}]", streamingEvent);
+                        final Cursor cursor = streamingEvent.getCursor();
+                        events = streamingEvent.getEvents();
+                        if(events == null || events.isEmpty()) {
+                            LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
+                        }
+                        else {
+                            streamingEvent.getEvents().forEach( event -> {
+
+                                if (mayIProcessEvents) {
+                                    try {
+                                        final Map<String, Object> meta = event.getMetadata();
+                                        final String id = (String) meta.get("id");
+
+                                        if (id == null) {
+                                            LOGGER.warn("meta data 'id' is not set in [event={}] -> consuming event", event);
+                                            listener.onReceive(cursor, event);
+                                        } else if (scoopClient.isHandledByMe(id)) {
+                                            LOGGER.debug("scoop: [event={}] IS handled by me", event);
+                                            listener.onReceive(cursor, event);
+                                        } else if (Objects.equals(event.getEventType(), UNREACHABLE_MEMBER_EVENT_TYPE)) {
+                                            LOGGER.debug("[event={}] is handled because it has scoop internal [eventType={}]",
+                                                    event, UNREACHABLE_MEMBER_EVENT_TYPE);
+                                            listener.onReceive(cursor, event);
+                                        } else {
+                                            LOGGER.debug("scoop: [event={}] is NOT handled by me", event);
+                                        }
+                                    } catch (final Exception e) {
+                                        LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
+                                                cursor, event, listener, e);
+                                    }
+                                }
+                                else {
+                                    LOGGER.info("received [event={}] but I must not process it as I am not reachable by " +
+                                            "my cluster -> ignored", event);
+                                }
+                            });
+                        }
                     }
                     else {
-                        streamingEvent.getEvents().forEach( event -> {
-
-                            if (mayIProcessEvents) {
-                                try {
-                                    final Map<String, Object> meta = event.getMetadata();
-                                    final String id = (String) meta.get("id");
-
-                                    if (id == null) {
-                                        LOGGER.warn("meta data 'id' is not set in [event={}] -> consuming event", event);
-                                        listener.onReceive(cursor, event);
-                                    } else if (scoopClient.isHandledByMe(id)) {
-                                        LOGGER.debug("scoop: [event={}] IS handled by me", event);
-                                        listener.onReceive(cursor, event);
-                                    } else if (Objects.equals(event.getEventType(), UNREACHABLE_MEMBER_EVENT_TYPE)) {
-                                        LOGGER.debug("[event={}] is handled because it has scoop internal [eventType={}]",
-                                                event, UNREACHABLE_MEMBER_EVENT_TYPE);
-                                        listener.onReceive(cursor, event);
-                                    } else {
-                                        LOGGER.debug("scoop: [event={}] is NOT handled by me", event);
-                                    }
-                                } catch (final Exception e) {
-                                    LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
-                                            cursor, event, listener, e);
-                                }
-                            }
-                            else {
-                                LOGGER.info("received [event={}] but I must not process it as I am not reachable by " +
-                                        "my cluster -> ignored", event);
-                            }
-                        });
+                        LOGGER.debug("receive buffer consists of one EOL character only -> skipped");
                     }
 
                     bout.reset();

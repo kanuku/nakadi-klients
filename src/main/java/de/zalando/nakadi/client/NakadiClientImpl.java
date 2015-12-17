@@ -241,23 +241,29 @@ class NakadiClientImpl implements Client {
                 bout.write(byteItem);
 
                 if(byteItem == EOL) {
-                    streamingEvent = objectMapper.readValue(bout.toByteArray(), SimpleStreamEvent.class);
-                    final Cursor cursor = streamingEvent.getCursor();
-                    LOGGER.debug("received [streamingEvent={}]", streamingEvent);
-                    events = streamingEvent.getEvents();
-                    if(events == null || events.isEmpty()) {
-                        LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
+                    final byte[] receiveBuffer = bout.toByteArray();
+                    if(hasNonWhiteCharacters(receiveBuffer)){
+                        streamingEvent = objectMapper.readValue(receiveBuffer, SimpleStreamEvent.class);
+                        LOGGER.debug("received [streamingEvent={}]", streamingEvent);
+                        final Cursor cursor = streamingEvent.getCursor();
+                        events = streamingEvent.getEvents();
+                        if(events == null || events.isEmpty()) {
+                            LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
+                        }
+                        else {
+                            streamingEvent.getEvents().forEach( event -> {
+                                try {
+                                    listener.onReceive(cursor, event);
+                                }
+                                catch(final Exception e) {
+                                    LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
+                                            cursor, event,listener, e);
+                                }
+                            });
+                        }
                     }
                     else {
-                        streamingEvent.getEvents().forEach( event -> {
-                            try {
-                                listener.onReceive(cursor, event);
-                            }
-                            catch(final Exception e) {
-                                LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
-                                        cursor, event,listener, e);
-                            }
-                        });
+                        LOGGER.debug("receive buffer consists of one EOL character only -> skipped");
                     }
 
                     bout.reset();
@@ -267,6 +273,18 @@ class NakadiClientImpl implements Client {
         } catch (final IOException e) {
             throw new ClientException(e);
         }
+    }
+
+
+    protected boolean hasNonWhiteCharacters(final byte[] buffer) {
+        final int bufferLength  =buffer.length;
+        for (int i = 0; i < bufferLength; i++){
+            if(! Character.isWhitespace(buffer[i])){
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
@@ -366,4 +384,5 @@ class NakadiClientImpl implements Client {
 
         return builder.build();
     }
+
 }
