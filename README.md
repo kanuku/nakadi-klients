@@ -9,7 +9,6 @@ Implementation of a client accessing the low level API of the [Nakadi event bus]
 ## Tutorial
 
 ### Instantiate client
-
 ```java
 ClientBuilder builder = new ClientBuilder();
 String token = "<OAUTH Token>";
@@ -20,14 +19,12 @@ Client client = builder.withOAuth2TokenProvider(() -> token)
 ```
 
 ### Get monitoring metrics
-
 ```java   
 // NOTE: metrics format is not defined / fixed
 Map<String, Object> metrics = client.getMetrics();
 ```
     
 ### List all known topics
-
 ```java
 List<Topic> topics = client.getTopics();
 ```
@@ -54,7 +51,6 @@ client.postEvent(topic, event);
 ```
 
 ### Get partition information of a given topic
-
 ```java
 List<TopicPartition> partitions = client.getPartitions("myTopic");
 ```
@@ -80,6 +76,33 @@ client.listenForEvents("myTopic",
                        (cursor, event) -> System.out.println(cursor + " ---> " + event);
 ```
 
+### Scoop integration
+`Nakadi-Klients` has [Scoop](https://github.com/zalando/scoop) integrated to reduce the consumption of the same event by multiple instances of an application where each instance subscribes to `Nakadi` This feature is rather specific for [STUPS](https://github.com/zalando-stups) deployments. Please checkout the [Scoop documentation](https://github.com/zalando/scoop), if you want to use this feature.
+
+```java
+Scoop scoop = new Scoop();
+scoop = scoop.withAwsConfig()
+             .withBindHostName("hecate")
+             .withClusterPort(25551)
+             .withPort(25551);
+
+ClientBuilder builder = new ClientBuilder();
+return builder.withOAuth2TokenProvider(() -> tokens.get("tokenId"))
+              .withEndpoint(nakadiHost)
+              .withScoop(scoop)
+              .withScoopTopic("system")
+              .build();
+```
+
 ## See
 - [Nakadi event bus](https://github.com/zalando/nakadi)
+- [STUPS](https://github.com/zalando-stups)
 - [STUPS' tokens library](https://github.com/zalando-stups/tokens)
+- [Scoop](https://github.com/zalando/scoop)
+
+## TODO
+- [ ] handle case where separate clusters consisting of 1 member are built
+- [ ] automated tests for Scoop integration
+
+## License
+http://opensource.org/licenses/MIT

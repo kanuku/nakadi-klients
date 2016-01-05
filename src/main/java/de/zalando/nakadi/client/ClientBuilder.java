@@ -4,14 +4,18 @@ package de.zalando.nakadi.client;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler;
+import com.google.common.base.Strings;
+import de.zalando.scoop.Scoop;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 // TODO should we make it immutable?
 public class ClientBuilder {
@@ -19,7 +23,9 @@ public class ClientBuilder {
 
     private OAuth2TokenProvider tokenProvider;
     private URI endpoint;
-    private ObjectMapper objectMapper = null;
+    private ObjectMapper objectMapper;
+    private Scoop scoop;
+    private String scoopTopic;
 
     public ClientBuilder() {
     }
@@ -38,12 +44,26 @@ public class ClientBuilder {
         return this;
     }
 
-    public ClientBuilder withObjectMapper(ObjectMapper objectMapper) {
+    public ClientBuilder withObjectMapper(final ObjectMapper objectMapper) {
         checkState(this.objectMapper == null, "ObjectMapper is already set");
         this.objectMapper = checkNotNull(objectMapper, "ObjectMapper must not be null");
 
         return this;
     }
+
+    public ClientBuilder withScoop(final Scoop scoop) {
+        checkState(this.scoop == null, "Scoop instance is already set");
+        this.scoop = scoop;
+        return this;
+    }
+
+    public ClientBuilder withScoopTopic(final String scoopTopic) {
+        checkState(this.scoopTopic == null, "Scoop topic is already set");
+        checkArgument(!isNullOrEmpty(scoopTopic), "scoop topic must not be null or empty");
+        this.scoopTopic = scoopTopic;
+        return this;
+    }
+
 
     public Client build() {
         checkState(tokenProvider != null, "no OAuth2 token provider set -> try withOAuth2TokenProvider(myProvider)");
@@ -52,7 +72,13 @@ public class ClientBuilder {
             objectMapper = defaultObjectMapper();
         }
 
-        return new NakadiClientImpl(endpoint, tokenProvider, objectMapper);
+        if(scoop == null) {
+            return new NakadiClientImpl(endpoint, tokenProvider, objectMapper);
+        }
+        else {
+            checkState(scoopTopic != null, "scoop topic is  is not set -> try withScoopTopic(\"topic\")");
+            return new ScoopAwareNakadiClientImpl(endpoint, tokenProvider, objectMapper, scoop, scoopTopic);
+        }
     }
 
     private ObjectMapper defaultObjectMapper(){

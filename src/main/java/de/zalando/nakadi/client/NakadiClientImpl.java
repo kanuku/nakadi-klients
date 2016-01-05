@@ -34,22 +34,21 @@ class NakadiClientImpl implements Client {
     private final HttpHost host;
     private final ObjectMapper objectMapper;
 
-    private enum HttpMethod{GET, POST, PUT, DELETE}
+    protected enum HttpMethod{GET, POST, PUT, DELETE}
+    protected static final String URI_METRICS = "/metrics";
+    protected static final String URI_TOPICS = "/topics";
+    protected static final String URI_EVENT_POST = "/topics/%s/events";
+    protected static final String URI_PARTITIONS = "/topics/%s/partitions";
+    protected static final String URI_PARTITION = "/topics/%s/partitions/%s";
+    protected static final String URI_EVENTS_ON_PARTITION = "/topics/%s/partitions/%s/events";
+    protected static final String URI_EVENT_LISTENING = "/topics/%s/partitions/%s/events?start_from=%s&batch_limit=%s&batch_flush_timeout=%s&stream_limit=%s";
 
-    private static final String URI_METRICS = "/metrics";
-    private static final String URI_TOPICS = "/topics";
-    private static final String URI_EVENT_POST = "/topics/%s/events";
-    private static final String URI_PARTITIONS = "/topics/%s/partitions";
-    private static final String URI_PARTITION = "/topics/%s/partitions/%s";
-    private static final String URI_EVENTS_ON_PARTITION = "/topics/%s/partitions/%s/events";
-    private static final String URI_EVENT_LISTENING = "/topics/%s/partitions/%s/events?start_from=%s&batch_limit=%s&batch_flush_timeout=%s&stream_limit=%s";
+    protected static final int EOL = '\n';
+    protected static final int INITIAL_RECEIVE_BUFFER_SIZE = 1024; // 1 KB
 
-    private static final int EOL = '\n';
-    private static final int INITIAL_RECEIVE_BUFFER_SIZE = 1024; // 1 KB
-
-    private static final int DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS = 5;
-    private static final int DEFAULT_BATCH_LIMIT = 1;  // 1 event / batch
-    private static final int DEFAULT_STREAM_LIMIT = 0; // stream forever
+    protected static final int DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS = 5;
+    protected static final int DEFAULT_BATCH_LIMIT = 1;  // 1 event / batch
+    protected static final int DEFAULT_STREAM_LIMIT = 0; // stream forever
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NakadiClientImpl.class);
 
@@ -70,7 +69,7 @@ class NakadiClientImpl implements Client {
     }
 
 
-    private HttpRequestBase setUpRequest(final HttpMethod httpMethod, final String uri) {
+    protected HttpRequestBase setUpRequest(final HttpMethod httpMethod, final String uri) {
 
         final HttpRequestBase request;
         switch(httpMethod){
@@ -101,7 +100,7 @@ class NakadiClientImpl implements Client {
     }
 
 
-    private CloseableHttpResponse performRequest(final HttpRequestBase request)  {
+    protected CloseableHttpResponse performRequest(final HttpRequestBase request)  {
 
         final HttpClientContext localContext = HttpClientContext.create();
         final CloseableHttpClient client = HttpClients.createDefault();
@@ -242,23 +241,29 @@ class NakadiClientImpl implements Client {
                 bout.write(byteItem);
 
                 if(byteItem == EOL) {
-                    streamingEvent = objectMapper.readValue(bout.toByteArray(), SimpleStreamEvent.class);
-                    final Cursor cursor = streamingEvent.getCursor();
-                    LOGGER.debug("received [streamingEvent={}]", streamingEvent);
-                    events = streamingEvent.getEvents();
-                    if(events == null || events.isEmpty()) {
-                        LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
+                    final byte[] receiveBuffer = bout.toByteArray();
+                    if(hasNonWhiteCharacters(receiveBuffer)){
+                        streamingEvent = objectMapper.readValue(receiveBuffer, SimpleStreamEvent.class);
+                        LOGGER.debug("received [streamingEvent={}]", streamingEvent);
+                        final Cursor cursor = streamingEvent.getCursor();
+                        events = streamingEvent.getEvents();
+                        if(events == null || events.isEmpty()) {
+                            LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
+                        }
+                        else {
+                            streamingEvent.getEvents().forEach( event -> {
+                                try {
+                                    listener.onReceive(cursor, event);
+                                }
+                                catch(final Exception e) {
+                                    LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
+                                            cursor, event,listener, e);
+                                }
+                            });
+                        }
                     }
                     else {
-                        streamingEvent.getEvents().forEach( event -> {
-                            try {
-                                listener.onReceive(cursor, event);
-                            }
-                            catch(final Exception e) {
-                                LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
-                                        cursor, event,listener, e);
-                            }
-                        });
+                        LOGGER.debug("receive buffer consists of one EOL character only -> skipped");
                     }
 
                     bout.reset();
@@ -268,6 +273,18 @@ class NakadiClientImpl implements Client {
         } catch (final IOException e) {
             throw new ClientException(e);
         }
+    }
+
+
+    protected boolean hasNonWhiteCharacters(final byte[] buffer) {
+        final int bufferLength  =buffer.length;
+        for (int i = 0; i < bufferLength; i++){
+            if(! Character.isWhitespace(buffer[i])){
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
@@ -367,4 +384,5 @@ class NakadiClientImpl implements Client {
 
         return builder.build();
     }
+
 }
