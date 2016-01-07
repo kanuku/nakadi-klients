@@ -5,9 +5,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.*;
 import de.zalando.nakadi.client.domain.*;
 import de.zalando.nakadi.client.utils.NakadiTestService;
 import de.zalando.nakadi.client.utils.Request;
@@ -290,7 +289,7 @@ public class NakadiClientImplTest {
                                      final String expectedValue) {
 
         final Deque<String> paramDeque = queryParameters.get(paramaterName);
-        assertNotNull(String.format("query parameter [parameterName=%s] is not set", paramaterName),paramDeque);
+        assertNotNull(String.format("query parameter [parameterName=%s] is not set", paramaterName), paramDeque);
 
         final String value = paramDeque.getFirst();
         assertEquals(String.format("query parameter [parameterName=%s] has wrong value", paramaterName), expectedValue, value);
@@ -434,6 +433,163 @@ public class NakadiClientImplTest {
         checkQueryParameter(queryParameters, "batch_limit", "1");
         checkQueryParameter(queryParameters, "stream_limit", "0");
         checkQueryParameter(queryParameters, "batch_flush_timeout", "5");
+    }
+
+    @Test
+    public void testEventListener2() throws Exception {
+            final ArrayList<TopicPartition> partitions = Lists.newArrayList();
+            final TopicPartition partition = new TopicPartition();
+            partition.setNewestAvailableOffset("4");
+            partition.setOldestAvailableOffset("0");
+            partition.setPartitionId("p1");
+            partitions.add(partition);
+
+            final TopicPartition partition2 = new TopicPartition();
+            partition2.setNewestAvailableOffset("1");
+            partition2.setOldestAvailableOffset("1");
+            partition2.setPartitionId("p2");
+            partitions.add(partition2);
+
+            final String partitionsAsString = objectMapper.writeValueAsString(partitions);
+
+            //--
+
+            final Event event = new Event();
+            event.setEventType("partition1");
+            event.setOrderingKey("ARTICLE:123456");
+            final HashMap<String, String> bodyMap = Maps.newHashMap();
+            bodyMap.put("greeting", "hello");
+            bodyMap.put("target", "world");
+            event.setBody(bodyMap);
+            final HashMap<String, Object> metaDataMap = Maps.newHashMap();
+            metaDataMap.put("tenant-id", "234567");
+            metaDataMap.put("flow-id", "123456789");
+            event.setMetadata(metaDataMap);
+
+            final Cursor cursor = new Cursor();
+            cursor.setPartition("p1");
+            cursor.setOffset("0");
+
+            final SimpleStreamEvent streamEvent1 = new SimpleStreamEvent();
+            streamEvent1.setEvents(Lists.newArrayList(event));
+            streamEvent1.setCursor(cursor);
+
+            final String streamEvent1AsString = objectMapper.writeValueAsString(streamEvent1) + "\n";
+
+
+            //--
+
+            final String topic = "test-topic-1";
+            final String partitionsRequestPath = String.format("/topics/%s/partitions", topic);
+            final String partition1EventsRequestPath = String.format("/topics/%s/partitions/p1/events", topic);
+            final String partition2EventsRequestPath = String.format("/topics/%s/partitions/p2/events", topic);
+
+            final HttpString httpMethod = new HttpString("GET");
+            final int statusCode= 200;
+
+
+            final NakadiTestService.Builder builder = new NakadiTestService.Builder();
+            service = builder.withHost(HOST)
+                    .withPort(PORT)
+                    .withHandler(partitionsRequestPath)
+                    .withRequestMethod(httpMethod)
+                    .withResponseContentType(MEDIA_TYPE)
+                    .withResponseStatusCode(statusCode)
+                    .withResponsePayload(partitionsAsString)
+                    .and()
+                    .withHandler(partition1EventsRequestPath)
+                    .withRequestMethod(httpMethod)
+                    .withResponseContentType(MEDIA_TYPE)
+                    .withResponseStatusCode(statusCode)
+                    .withResponsePayload(streamEvent1AsString)
+                    .and()
+                    .withHandler(partition2EventsRequestPath)
+                    .withRequestMethod(httpMethod)
+                    .withResponseContentType(MEDIA_TYPE)
+                    .withResponseStatusCode(statusCode)
+                    .withResponsePayload("\n")
+                    .build();
+                service.start();
+
+
+            final EventListener2Mock eventListener2Mock = new EventListener2Mock();
+            final List<Future> futures = client.subscribeToTopic(topic, eventListener2Mock);
+
+            futures.forEach(f -> {
+                try {
+                    f.get();
+                } catch (final Exception e) {
+                    fail(String.format("an errror [error=%s] occurred while while subscribing to [topic=%s]", e.getMessage(), topic));
+                }
+            });
+
+
+            final List<Map<String, Object>> receivedCloseCalls = eventListener2Mock.getReceivedOnConnectionClosedCalls();
+            assertEquals("not enough close calls communicated", partitions.size(), receivedCloseCalls.size());
+
+            final List<Map<String, Object>> receivedCloseCallsWithErrors = eventListener2Mock.getReceivedOnConnectionClosedCallsWithProblems();
+            assertEquals("there should not have been any error", 0, receivedCloseCallsWithErrors.size());
+        }
+
+
+    private static final class EventListener2Mock implements EventListener2 {
+
+        private List<Map<String, Object>> receivedEvents;
+        private List<Map<String,Object>> receivedOnConnectionClosedCalls;
+        private List<Map<String,Object>> receivedOnConnectionClosedCallsWithProblems;
+
+        public EventListener2Mock(){
+            this.receivedEvents = Lists.newArrayList();
+            this.receivedOnConnectionClosedCalls = Lists.newArrayList();
+            this.receivedOnConnectionClosedCallsWithProblems = Lists.newArrayList();
+        }
+
+        public List<Map<String, Object>> getReceivedEvents() {
+            return ImmutableList.copyOf(receivedEvents);
+        }
+
+        public List<Map<String, Object>> getReceivedOnConnectionClosedCalls() {
+            return ImmutableList.copyOf(receivedOnConnectionClosedCalls);
+        }
+
+        public List<Map<String, Object>> getReceivedOnConnectionClosedCallsWithProblems() {
+            return ImmutableList.copyOf(receivedOnConnectionClosedCallsWithProblems);
+        }
+
+        @Override
+        public void onConnectionClosed(String topic, String partitionId) {
+            final HashMap<String, Object> entry = Maps.newHashMap();
+            entry.put("topic", topic);
+            entry.put("partitionId", partitionId);
+            receivedOnConnectionClosedCalls.add(entry);
+
+        }
+
+        @Override
+        public void onConnectionClosed(String topic, String partitionId, Exception cause) {
+            final HashMap<String, Object> entry = Maps.newHashMap();
+            entry.put("topic", topic);
+            entry.put("partitionId", partitionId);
+            entry.put("cause", cause);
+            receivedOnConnectionClosedCallsWithProblems.add(entry);
+        }
+
+        @Override
+        public void onReceive(Cursor cursor, Event event) {
+            final HashMap<String, Object> entry = Maps.newHashMap();
+            entry.put("event", event);
+            entry.put("cursor", cursor);
+            receivedEvents.add(entry);
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                    .add("receivedEvents", receivedEvents)
+                    .add("receivedOnConnectionClosedCalls", receivedOnConnectionClosedCalls)
+                    .add("receivedOnConnectionClosedCallsWithProblems", receivedOnConnectionClosedCallsWithProblems)
+                    .toString();
+        }
     }
 
 }
