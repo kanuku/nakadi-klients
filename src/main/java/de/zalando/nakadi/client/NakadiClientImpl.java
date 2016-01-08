@@ -47,8 +47,6 @@ class NakadiClientImpl implements Client {
     protected static final String URI_EVENTS_ON_PARTITION = "/topics/%s/partitions/%s/events";
     protected static final String URI_EVENT_LISTENING = "/topics/%s/partitions/%s/events?start_from=%s&batch_limit=%s&batch_flush_timeout=%s&stream_limit=%s";
 
-    protected static final int INITIAL_RECEIVE_BUFFER_SIZE = 1024; // 1 KB
-
     protected static final int DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS = 5;
     protected static final int DEFAULT_BATCH_LIMIT = 1;  // 1 event / batch
     protected static final int DEFAULT_STREAM_LIMIT = 0; // stream forever
@@ -262,8 +260,8 @@ class NakadiClientImpl implements Client {
         try {
             final InputStream contentInputStream = response.getEntity().getContent();
             StreamReader.read(  contentInputStream,
-                    objectMapper,
-                    streamEventConsumer);
+                                objectMapper,
+                                streamEventConsumer);
             LOGGER.info("stream from [response={}] retrieved from [URI={}] was closed", response, uri);
         } catch (final IOException e) {
             if(listener instanceof  EventListener2) ((EventListener2) listener).onConnectionClosed(topic, partitionId, e);
@@ -295,17 +293,6 @@ class NakadiClientImpl implements Client {
         }
     }
 
-
-    protected boolean hasNonWhiteCharacters(final byte[] buffer) {
-        final int bufferLength  =buffer.length;
-        for (int i = 0; i < bufferLength; i++){
-            if(! Character.isWhitespace(buffer[i])){
-                return true;
-            }
-        }
-
-        return false;
-    }
 
 
     @Override
