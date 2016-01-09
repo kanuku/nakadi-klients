@@ -23,6 +23,8 @@ resolvers += "Maven Central Server" at "http://repo1.maven.org/maven2"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.11",
+  "com.typesafe.play" %% "play-ws" % "2.4.6",
+  "com.typesafe.play" %% "play-json" % "2.4.6",
   "com.google.guava" % "guava" % "19.0",
 
   "com.typesafe.akka" %% "akka-testkit" % "2.3.11" % "test",
