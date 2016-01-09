@@ -1,4 +1,11 @@
-activator-akka-scala-seed
-=========================
+Nakadi Klients
+==============
 
-A minimal seed template for an Akka with Scala build 
+Implementation of a client accessing the low level API of the [Nakadi event bus](https://github.com/zalando/nakadi).
+
+## Prerequisites
+- Java >= 1.8
+- SBT >= 1.0
+- Scala >= 2.11.x
+
+

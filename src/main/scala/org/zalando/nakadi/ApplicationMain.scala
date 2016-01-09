@@ -1,4 +1,4 @@
-package com.example
+package org.zalando.nakadi
 
 import akka.actor.ActorSystem
 

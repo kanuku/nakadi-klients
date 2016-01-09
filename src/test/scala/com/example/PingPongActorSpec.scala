@@ -7,7 +7,8 @@ import akka.testkit.{ TestActors, TestKit, ImplicitSender }
 import org.scalatest.WordSpecLike
 import org.scalatest.Matchers
 import org.scalatest.BeforeAndAfterAll
- 
+import org.zalando.nakadi.{PongActor, PingActor}
+
 class PingPongActorSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
   with WordSpecLike with Matchers with BeforeAndAfterAll {
  
