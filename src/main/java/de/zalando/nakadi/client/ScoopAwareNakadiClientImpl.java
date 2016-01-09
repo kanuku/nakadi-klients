@@ -11,21 +11,12 @@ import de.zalando.nakadi.client.domain.SimpleStreamEvent;
 import de.zalando.scoop.Scoop;
 import de.zalando.scoop.ScoopClient;
 import de.zalando.scoop.ScoopListener;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpRequestBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -35,21 +26,19 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
         implements ScoopListener, EventListener2 {
 
-    private final ObjectMapper objectMapper;
     private final ActorSystem scoopSystem;
     private final ScoopClient scoopClient;
     private final String scoopTopic;
     private ClusterReadView clusterReadView;
+    private final ExecutorService threadPool;
+
+    private final ConcurrentHashMap<String, Cursor> partitionIdToCursorMap;
 
     private volatile boolean mayIProcessEvents;
 
-    private volatile  List<Future> subsciptionFutures;
-
-
     public static final String UNREACHABLE_MEMBER_EVENT_TYPE = "/scoop-system/unreachable-member";
     private static final String UNREACHABLE_MEMBER_EVENT_BODY_KEY = "unreachable_member";
-    private static final long SUBSCRIPTION_FUTURE_TIMEOUT = 5000L;
-
+    private static final int THREAD_POOL_SIZE = 100;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ScoopAwareNakadiClientImpl.class);
 
@@ -63,15 +52,20 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
         checkNotNull(scoop, "Scoop instance must not be null");
         checkArgument(!isNullOrEmpty(scoopTopic), "Scoop topic must not be null or empty");
 
-        this.objectMapper = objectMapper;
         this.scoopSystem = scoop.withListener(this).build();
         this.scoopClient = scoop.defaultClient();
         this.scoopTopic = scoopTopic;
         this.mayIProcessEvents = true;
+        this.partitionIdToCursorMap = new ConcurrentHashMap<>();
+        this.threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE); // TODO make this configurable
 
-        subsciptionFutures = subscribeToTopic(this.scoopTopic, this);
+        subscribeToTopic(this.scoopTopic, this);
     }
 
+    public void terminateActorSystem() {
+        scoopSystem.terminate();
+        scoopSystem.awaitTermination();
+    }
 
     @Override
     public void listenForEvents(final String topic,
@@ -140,6 +134,7 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
         }
     }
 
+
     @Override
     public void init(final ClusterReadView clusterReadView) {
         this.clusterReadView = clusterReadView;
@@ -182,6 +177,7 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
         final String eventType = event.getEventType();
         if(Objects.equals(eventType, UNREACHABLE_MEMBER_EVENT_TYPE)){
             LOGGER.info("received event of [eventType={}] -> [event={}]", UNREACHABLE_MEMBER_EVENT_TYPE, event);
+            partitionIdToCursorMap.put(cursor.getPartition(),cursor);
 
             final Map<String, String> bodyMap = (Map<String, String>) event.getBody();
             final String unreachableMemberAsString = bodyMap.get(UNREACHABLE_MEMBER_EVENT_BODY_KEY);
@@ -233,35 +229,40 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
         }
     }
 
+
     @Override
     public void onRebalanced(int partitionId, int numberOfPartitions) {
         // do nothing
     }
 
+
     @Override
     public void onConnectionClosed(final String topic, final String partitionId) {
         LOGGER.info("connection was closed [topic={}, partitionsId={}] -> reconnecting", topic, partitionId);
-        reconnect();
+        reconnect(topic, partitionId);
     }
+
 
     @Override
     public void onConnectionClosed(String topic, String partitionId, Exception cause) {
         LOGGER.warn("connection was closed [topic={}, partitionsId={}] because of [cause={}]-> reconnecting",
-                topic, partitionId, cause);
-        reconnect();
+                    topic, partitionId, cause);
+        reconnect(topic, partitionId);
     }
 
-    private void reconnect(){
-        final List<Future> futures = subsciptionFutures;
-        futures.forEach(f -> f.cancel(true));
-        futures.forEach(f -> {
-            try {
-                f.get(SUBSCRIPTION_FUTURE_TIMEOUT, TimeUnit.MILLISECONDS);
-            } catch (final Exception e) {
-                LOGGER.warn("a problem occurred while waiting for subscription future shutdown", e);
-            }
-        });
 
-        subsciptionFutures = subscribeToTopic(this.scoopTopic, this);
+    private void reconnect(final String topic, final String partitionId){
+        final Cursor cursor = partitionIdToCursorMap.get(partitionId);
+        final String offset;
+        if(cursor == null){
+            LOGGER.warn("could not find offset for [partition={}] -> using '0' as offset", partitionId);
+            offset = "0";
+        }
+        else {
+            offset = cursor.getOffset();
+        }
+
+        LOGGER.info("reconnecting to [topic={}, partition={}, offset={}]", topic, partitionId, offset);
+        threadPool.submit(() -> listenForEvents(topic, partitionId, offset, this));
     }
 }
