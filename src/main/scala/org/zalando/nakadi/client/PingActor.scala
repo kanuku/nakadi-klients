@@ -1,4 +1,4 @@
-package org.zalando.nakadi
+package org.zalando.nakadi.client
 
 import akka.actor.{Actor, ActorLogging, Props}
 
