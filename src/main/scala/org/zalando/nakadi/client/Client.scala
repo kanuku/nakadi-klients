@@ -52,15 +52,16 @@ trait Client {
    * hash over Event.orderingKey).
    * @param topic  target topic
    * @param event  event to be posted
+   * @return Option representing the error message or None in case of success
    */
-  def postEvent(topic: String, event: Event): Future[Either[String, Unit]]
+  def postEvent(topic: String, event: Event): Future[Option[String]]
 
   /**
    * Get specific partition
    *
    * @param topic  topic where the partition is located
    * @param partitionId  id of the target partition
-   * @return partition information
+   * @return Either error message or TopicPartition in case of success
    */
   def getPartition(topic: String, partitionId: String): Future[Either[String, TopicPartition]]
 
@@ -71,8 +72,9 @@ trait Client {
    * @param topic  topic where the partition is located
    * @param partitionId  id of the target partition
    * @param event event to be posted
+   * @return Option representing the error message or None in case of success
    */
-  def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Either[String, Unit]]
+  def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Option[String]]
 
   /**
    * Blocking subscription to events of specified topic and partition.
@@ -80,6 +82,7 @@ trait Client {
    *
    * @param parameters listen parameters
    * @param listener  listener consuming all received events
+   * @return Either error message or connection was closed and reconnect is set to false
    */
   def listenForEvents(topic: String, partitionId: String,parameters: ListenParameters, listener: (Cursor, Event) => Unit, autoReconnect: Boolean = false): Future[Either[String, _]]
 
