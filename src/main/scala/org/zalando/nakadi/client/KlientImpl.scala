@@ -36,11 +36,11 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
                   else
                     Right(Json.parse(response.body).as[Map[String, JsValue]].map{f => (f._1, convert(f._2)) })
               }
-    
+
     private def createDefaultRequest(url:String):  WSRequest =
       wsClient.url(url)
         .withHeaders (("Authorization", "Bearer " + tokenProvider.apply()) ,
-            ("Content-Type", "application/json"))
+                      ("Content-Type", "application/json"))
 
 
 

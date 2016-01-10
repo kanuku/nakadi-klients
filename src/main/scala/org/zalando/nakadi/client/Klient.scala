@@ -17,9 +17,9 @@ import scala.concurrent.Future
  *                    {streamLimit} events). If 0 or undefined, will stream indefinitely. Must be > -1
  */
 case class ListenParameters(startOffset: Option[String],
-                            batchLimit: Option[Int],
-                            batchFlushTimeoutInSeconds: Option[Int],
-                            streamLimit: Option[Int])
+                            batchLimit: Option[Int] = DEFAULT_BATCH_LIMIT,
+                            batchFlushTimeoutInSeconds: Option[Int] = DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS,
+                            streamLimit: Option[Int] = DEFAULT_STREAM_LIMIT)
 
 trait Klient {
   /**
