@@ -82,7 +82,7 @@ public interface Client {
                          final int batchLimit,
                          final int batchFlushTimeoutInSeconds,
                          final int streamLimit,
-                         final EventListener listener);
+                         final Listener listener);
 
     /**
      * Blocking subscription to events of specified topic and partition.
@@ -96,7 +96,7 @@ public interface Client {
     void listenForEvents(final String topic,
                          final String partitionId,
                          final String startOffset,
-                         final EventListener listener);
+                         final Listener listener);
 
     /**
      * Non-blocking subscription to a topic requires a `EventListener` implementation. The event listener must be thread-safe because
@@ -118,7 +118,7 @@ public interface Client {
                                   final int batchLimit,
                                   final int batchFlushTimeoutInSeconds,
                                   final int streamLimit,
-                                  final EventListener listener);
+                                  final Listener listener);
 
     /**
      * Non-blocking subscription to a topic requires a `EventListener` implementation.
@@ -135,7 +135,7 @@ public interface Client {
     @Deprecated
     List<Future> subscribeToTopic(final ExecutorService threadPool,
                                   final String topic,
-                                  final EventListener listener);
+                                  final Listener listener);
 
     /**
      * Non-blocking subscription to a topic requires a `EventListener` implementation. The event listener must be thread-safe because
@@ -155,7 +155,7 @@ public interface Client {
                                   final int batchLimit,
                                   final int batchFlushTimeoutInSeconds,
                                   final int streamLimit,
-                                  final EventListener listener);
+                                  final Listener listener);
 
     /**
      * Non-blocking subscription to a topic requires a `EventListener` implementation. The event listener must be thread-safe because
@@ -167,5 +167,5 @@ public interface Client {
      * @return {Future} instance of listener threads
      */
     List<Future> subscribeToTopic(final String topic,
-                                  final EventListener listener);
+                                  final Listener listener);
 }
