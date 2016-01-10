@@ -1,3 +1,5 @@
+import scala.collection.JavaConverters._
+
 name := """nakadi-klients"""
 
 version := "0.3.0-SNAPSHOT"
@@ -26,6 +28,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-ws" % "2.4.6",
   "com.typesafe.play" %% "play-json" % "2.4.6",
   "com.google.guava" % "guava" % "19.0",
+
 
   "com.typesafe.akka" %% "akka-testkit" % "2.3.11" % "test",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test"

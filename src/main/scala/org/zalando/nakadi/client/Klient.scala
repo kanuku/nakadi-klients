@@ -1,7 +1,6 @@
 package org.zalando.nakadi.client
 
-import org.zalando.nakadi.client.domain.{Cursor, TopicPartition, Topic, Event}
-import play.api.libs.ws.WSResponse
+import play.api.libs.json.Reads
 
 import scala.concurrent.Future
 
@@ -22,21 +21,21 @@ case class ListenParameters(startOffset: Option[String],
                             batchFlushTimeoutInSeconds: Option[Int],
                             streamLimit: Option[Int])
 
-trait Client {
+trait Klient {
   /**
    * Gets monitoring metrics.
    * NOTE: metrics format is not defined / fixed
    *
    * @return immutable map of metrics data (value can be another Map again)
    */
-  def getMetrics: Future[Map[String, AnyRef]]
+  def getMetrics: Future[Either[String, Map[String, AnyRef]]]
 
   /**
    * Lists all known `Topics` in Event Store.
    *
    * @return immutable list of known topics
    */
-  def getTopics: Future[List[Topic]]
+  def getTopics()(implicit reader: Reads[List[Topic]]): Future[Either[String, List[Topic]]]
 
   /**
    * Get partition information of a given topic
@@ -44,7 +43,7 @@ trait Client {
    * @param topic   target topic
    * @return immutable list of topic's partitions information
    */
-  def getPartitions(topic: String): Future[Either[String, List[TopicPartition]]]
+  def getPartitions(topic: String)(implicit reader:Reads[List[TopicPartition]]): Future[Either[String, List[TopicPartition]]]
 
   /**
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
@@ -63,7 +62,7 @@ trait Client {
    * @param partitionId  id of the target partition
    * @return Either error message or TopicPartition in case of success
    */
-  def getPartition(topic: String, partitionId: String): Future[Either[String, TopicPartition]]
+  def getPartition(topic: String, partitionId: String)(implicit reader:Reads[TopicPartition]): Future[Either[String, TopicPartition]]
 
   /**
    * Post event to specific partition.
