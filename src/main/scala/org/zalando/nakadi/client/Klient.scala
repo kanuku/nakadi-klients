@@ -16,10 +16,10 @@ import scala.concurrent.Future
  * @param streamLimit maximum number of events which can be consumed with this stream (consumption finishes after
  *                    {streamLimit} events). If 0 or undefined, will stream indefinitely. Must be > -1
  */
-case class ListenParameters(startOffset: Option[String],
-                            batchLimit: Option[Int] = DEFAULT_BATCH_LIMIT,
-                            batchFlushTimeoutInSeconds: Option[Int] = DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS,
-                            streamLimit: Option[Int] = DEFAULT_STREAM_LIMIT)
+case class ListenParameters(startOffset: Option[String] = None,
+                            batchLimit: Option[Int] = Some(DEFAULT_BATCH_LIMIT),
+                            batchFlushTimeoutInSeconds: Option[Int] = Some(DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS),
+                            streamLimit: Option[Int] = Some(DEFAULT_STREAM_LIMIT))
 
 trait Klient {
   /**
@@ -83,7 +83,11 @@ trait Klient {
    * @param listener  listener consuming all received events
    * @return Either error message or connection was closed and reconnect is set to false
    */
-  def listenForEvents(topic: String, partitionId: String,parameters: ListenParameters, listener: (Cursor, Event) => Unit, autoReconnect: Boolean = false): Future[Either[String, _]]
+  def listenForEvents(topic: String,
+                      partitionId: String,
+                      parameters: ListenParameters,
+                      listener: (Cursor, Event) => Unit,
+                      autoReconnect: Boolean = false) (implicit reader: Reads[SimpleStreamEvent]): Future[Either[String, _]]
 
 
   /**
@@ -94,5 +98,9 @@ trait Klient {
    * @param listener  listener consuming all received events
    * @return {Future} instance of listener threads
    */
-  def subscribeToTopic(topic: String, partitionId: String, parameters: ListenParameters, listener: (Cursor, Event) => Unit, autoReconnect: Boolean = false): Future[Either[String, _]]
+  def subscribeToTopic(topic: String,
+                       partitionId: String,
+                       parameters: ListenParameters,
+                       listener: (Cursor, Event) => Unit,
+                       autoReconnect: Boolean = false)(implicit reader: Reads[SimpleStreamEvent]): Future[Either[String, _]]
 }

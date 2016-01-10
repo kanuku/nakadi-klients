@@ -110,7 +110,7 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    * @param listener  listener consuming all received events
    * @return Either error message or connection was closed and reconnect is set to false
    */
-  override def listenForEvents(topic: String, partitionId: String, parameters: ListenParameters, listener: (Cursor, Event) => Unit, autoReconnect: Boolean): Future[Either[String, _]] = ???
+  override def listenForEvents(topic: String, partitionId: String, parameters: ListenParameters, listener: (Cursor, Event) => Unit, autoReconnect: Boolean)(implicit reader: Reads[SimpleStreamEvent]): Future[Either[String, _]] = ???
 
 
   /**
@@ -121,7 +121,7 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    * @param listener  listener consuming all received events
    * @return {Future} instance of listener threads
    */
-  override def subscribeToTopic(topic: String, partitionId: String, parameters: ListenParameters, listener: (Cursor, Event) => Unit, autoReconnect: Boolean): Future[Either[String, _]] = ???
+  override def subscribeToTopic(topic: String, partitionId: String, parameters: ListenParameters, listener: (Cursor, Event) => Unit, autoReconnect: Boolean)(implicit reader: Reads[SimpleStreamEvent]): Future[Either[String, _]] = ???
 
    /**
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
