@@ -1,8 +1,11 @@
 package org.zalando.nakadi.client.actor
 
+import java.io.ByteArrayOutputStream
+
 import akka.actor.{ActorRef, ActorLogging, Actor}
 import org.zalando.nakadi.client
 import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
+import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.{Reads, Json}
 import play.api.libs.ws.ning.NingWSClient
 import scala.concurrent.Future
@@ -25,7 +28,9 @@ class PartitionReceiver (val topic: String,
 
   val wsClient = NingWSClient()
 
+
   override def preStart = self ! Init
+
 
   override def receive: Receive = {
     case Init => listen()
@@ -37,7 +42,7 @@ class PartitionReceiver (val topic: String,
   }
 
 
-  def listen()(implicit reader: Reads[SimpleStreamEvent]) = Future {
+  def listen()(implicit reader: Reads[SimpleStreamEvent]) =
     wsClient.url(String.format(client.URI_EVENT_LISTENING,
                               topic,
                               partitionId,
@@ -47,27 +52,57 @@ class PartitionReceiver (val topic: String,
                               parameters.streamLimit))
             .withHeaders (("Authorization", "Bearer " + tokenProvider.apply()) ,
                           ("Content-Type",  "application/json"))
-            .get()
-            .map{response =>
-                if(response.status < 200 || response.status > 299) {
-                  log.warning("could not listen for events on [topic={}, partition={}] -> [response.status={}, response={}] -> restarting",
-                              topic, partitionId, response.status, response.statusText)
-                  listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
+            .getStream()
+            .map{
+              case (response, body) => {
+        if(response.status < 200 || response.status > 299) {
+          log.warning("could not listen for events on [topic={}, partition={}] -> [response.status={}] -> restarting",
+                      topic, partitionId, response.status)
+          listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
 
-                  if(automaticReconnect) {
-                    log.info("initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
-                    self ! Init
-                  }
+          if(automaticReconnect) {
+            log.info("initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
+            self ! Init
+          }
+        }
+        else {
+          listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
+
+          val bout = new ByteArrayOutputStream(1024)
+
+          /*
+           * We can not simply rely on EOL for the end of each JSON object as
+           * Nakadi puts the in the middle of the response body sometimes.
+           * For this reason, we need to apply some very simple JSON parsing logic.
+           *
+           * See also http://json.org/ for string parsing semantics
+           */
+          var stack: Int = 0
+          var hasOpenString: Boolean = false
+
+          body |>>> Iteratee.foreach[Array[Byte]] { bytes =>
+            for(byteItem <- bytes) {
+              bout.write(byteItem)
+
+              if (byteItem == '"')  hasOpenString = !hasOpenString
+              else if (!hasOpenString && byteItem == '{')  stack += 1;
+              else if (!hasOpenString && byteItem == '}') {
+                stack -= 1
+
+                if (stack == 0 && bout.size != 0) {
+                  val streamEvent = Json.parse(bout.toByteArray).as[SimpleStreamEvent]
+                  log.debug("received [streamingEvent={}]", streamEvent)
+                  self ! streamEvent
+                  bout.reset()
                 }
-                else {
-                  listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
-
-                  // FIXME we need not to work with Streams because of long polling
-                  self ! Json.parse(response.body).as[SimpleStreamEvent]
+              }
             }
+          }
+        }
       }
-  }.map { x =>
-    log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
-    listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
-  }
+            }
+            .map { x =>
+              log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
+              listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
+            }
 }
