@@ -55,49 +55,49 @@ class PartitionReceiver (val topic: String,
             .getStream()
             .map{
               case (response, body) => {
-        if(response.status < 200 || response.status > 299) {
-          log.warning("could not listen for events on [topic={}, partition={}] -> [response.status={}] -> restarting",
-                      topic, partitionId, response.status)
-          listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
+                    if(response.status < 200 || response.status > 299) {
+                      log.warning("could not listen for events on [topic={}, partition={}] -> [response.status={}] -> restarting",
+                                  topic, partitionId, response.status)
+                      listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
 
-          if(automaticReconnect) {
-            log.info("initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
-            self ! Init
-          }
-        }
-        else {
-          listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
+                      if(automaticReconnect) {
+                        log.info("initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
+                        self ! Init
+                      }
+                    }
+                    else {
+                      listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
 
-          val bout = new ByteArrayOutputStream(1024)
+                      val bout = new ByteArrayOutputStream(1024)
 
-          /*
-           * We can not simply rely on EOL for the end of each JSON object as
-           * Nakadi puts the in the middle of the response body sometimes.
-           * For this reason, we need to apply some very simple JSON parsing logic.
-           *
-           * See also http://json.org/ for string parsing semantics
-           */
-          var stack: Int = 0
-          var hasOpenString: Boolean = false
+                      /*
+                       * We can not simply rely on EOL for the end of each JSON object as
+                       * Nakadi puts the in the middle of the response body sometimes.
+                       * For this reason, we need to apply some very simple JSON parsing logic.
+                       *
+                       * See also http://json.org/ for string parsing semantics
+                       */
+                      var stack: Int = 0
+                      var hasOpenString: Boolean = false
 
-          body |>>> Iteratee.foreach[Array[Byte]] { bytes =>
-            for(byteItem <- bytes) {
-              bout.write(byteItem)
+                      body |>>> Iteratee.foreach[Array[Byte]] { bytes =>
+                        for(byteItem <- bytes) {
+                          bout.write(byteItem.asInstanceOf[Int])
 
-              if (byteItem == '"')  hasOpenString = !hasOpenString
-              else if (!hasOpenString && byteItem == '{')  stack += 1;
-              else if (!hasOpenString && byteItem == '}') {
-                stack -= 1
+                          if (byteItem == '"')  hasOpenString = !hasOpenString
+                          else if (!hasOpenString && byteItem == '{')  stack += 1;
+                          else if (!hasOpenString && byteItem == '}') {
+                            stack -= 1
 
-                if (stack == 0 && bout.size != 0) {
-                  val streamEvent = Json.parse(bout.toByteArray).as[SimpleStreamEvent]
-                  log.debug("received [streamingEvent={}]", streamEvent)
-                  self ! streamEvent
-                  bout.reset()
-                }
-              }
-            }
-          }
+                            if (stack == 0 && bout.size != 0) {
+                              val streamEvent = Json.parse(bout.toByteArray).as[SimpleStreamEvent]
+                              log.debug("received [streamingEvent={}]", streamEvent)
+                              self ! streamEvent
+                              bout.reset()
+                            }
+                          }
+                        }
+                      }
         }
       }
             }
