@@ -68,6 +68,8 @@ class PartitionReceiver (val topic: String,
                     else {
                       listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
 
+                      // TODO more functional logic
+
                       val bout = new ByteArrayOutputStream(1024)
 
                       /*
