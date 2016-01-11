@@ -2,14 +2,14 @@ package org.zalando.nakadi.client
 
 import java.net.URI
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorNotFound, ActorSystem}
 import org.zalando.nakadi.client.actor.{NewListener, ListenerActor, PartitionReceiver}
 import play.api.libs.json._
 import play.api.libs.ws.ning.NingWSClient
 import play.api.libs.ws._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-
+import scala.util.{Failure, Success}
 
 
 // TODO create builder + make this class package protected
@@ -124,7 +124,20 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
     checkExists(parameters.streamLimit, "streamLimit is not specified")
 
 
-    val receiverActor = system.actorOf(PartitionReceiver.props(topic, partitionId, parameters, tokenProvider, autoReconnect))
+    val actorSelectionPath = s"/user/partition-$partitionId"
+    val receiverSelection = system.actorSelection(actorSelectionPath)
+
+    receiverSelection.resolveOne().onComplete{_ match {
+      case Success(receiverActor) => registerListenerToActor(listener, receiverActor)
+      case Failure(e: ActorNotFound) => {
+        val receiverActor = system.actorOf(
+            PartitionReceiver.props(topic, partitionId, parameters, tokenProvider, autoReconnect), actorSelectionPath)
+        registerListenerToActor(listener, receiverActor)
+      }
+    } }
+  }
+
+  private def registerListenerToActor(listener: Listener, receiverActor: ActorRef) = {
     val listenerActor = system.actorOf(ListenerActor.props(listener))
     receiverActor ! NewListener(listenerActor)
   }
@@ -136,9 +149,16 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    *
    * @param parameters listen parameters
    * @param listener  listener consuming all received events
-   * @return {Future} instance of listener threads
    */
-  override def subscribeToTopic(topic: String, partitionId: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean)(implicit reader: Reads[SimpleStreamEvent]): Unit = ???
+  override def subscribeToTopic(topic: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean)
+                               (implicit reader: Reads[SimpleStreamEvent]): Unit = {
+    getPartitions(topic).map{_ match {
+      case Left(errorMessage) =>
+          throw new KlientException(s"a problem ocurred while subscribing to [topic=$topic, errorMessage=$errorMessage]")
+      case Right(topics: List[TopicPartition]) =>
+          topics.foreach(p => listenForEvents(topic, p.partitionId, parameters, listener, autoReconnect))
+    } }
+  }
 
    /**
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.

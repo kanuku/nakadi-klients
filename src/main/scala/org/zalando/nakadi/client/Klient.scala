@@ -99,7 +99,6 @@ trait Klient {
    * @return {Future} instance of listener threads
    */
   def subscribeToTopic(topic: String,
-                       partitionId: String,
                        parameters: ListenParameters,
                        listener: Listener,
                        autoReconnect: Boolean = false)(implicit reader: Reads[SimpleStreamEvent]): Unit
