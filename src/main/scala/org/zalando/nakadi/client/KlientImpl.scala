@@ -146,4 +146,9 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    * @return Option representing the error message or None in case of success
    */
   override def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Option[String]] = ???
+
+  /**
+   * Shuts down the communication system of the client
+   */
+  override def stop(): Unit = ???
 }

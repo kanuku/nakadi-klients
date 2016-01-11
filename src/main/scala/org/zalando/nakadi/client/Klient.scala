@@ -103,4 +103,9 @@ trait Klient {
                        parameters: ListenParameters,
                        listener: (Cursor, Event) => Unit,
                        autoReconnect: Boolean = false)(implicit reader: Reads[SimpleStreamEvent]): Future[Either[String, _]]
+
+  /**
+   * Shuts down the communication system of the client
+   */
+  def stop(): Unit
 }
