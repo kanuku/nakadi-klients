@@ -13,7 +13,7 @@ import scala.util.{Failure, Success}
 
 
 // TODO create builder + make this class package protected
-class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Klient{
+protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Klient{
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   val wsClient = NingWSClient()
