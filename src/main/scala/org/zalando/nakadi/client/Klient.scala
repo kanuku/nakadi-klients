@@ -86,8 +86,8 @@ trait Klient {
   def listenForEvents(topic: String,
                       partitionId: String,
                       parameters: ListenParameters,
-                      listener: (Cursor, Event) => Unit,
-                      autoReconnect: Boolean = false) (implicit reader: Reads[SimpleStreamEvent]): Future[Either[String, _]]
+                      listener: Listener,
+                      autoReconnect: Boolean = false) (implicit reader: Reads[SimpleStreamEvent]): Unit
 
 
   /**
@@ -101,8 +101,8 @@ trait Klient {
   def subscribeToTopic(topic: String,
                        partitionId: String,
                        parameters: ListenParameters,
-                       listener: (Cursor, Event) => Unit,
-                       autoReconnect: Boolean = false)(implicit reader: Reads[SimpleStreamEvent]): Future[Either[String, _]]
+                       listener: Listener,
+                       autoReconnect: Boolean = false)(implicit reader: Reads[SimpleStreamEvent]): Unit
 
   /**
    * Shuts down the communication system of the client

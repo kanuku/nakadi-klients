@@ -2,7 +2,7 @@ package org.zalando.nakadi.client.actor
 
 import java.io.ByteArrayOutputStream
 
-import akka.actor.{ActorRef, ActorLogging, Actor}
+import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import org.zalando.nakadi.client
 import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
 import play.api.libs.iteratee.Iteratee
@@ -16,6 +16,15 @@ case class NewListener(listener: ActorRef)
 case class ConnectionOpened(topic: String, partition: String)
 case class ConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor])
 
+
+object PartitionReceiver{
+  def props(topic: String,
+            partitionId: String,
+            parameters: ListenParameters,
+            tokenProvider: () => String,
+            automaticReconnect: Boolean)(implicit reader: Reads[SimpleStreamEvent]) =
+                        Props(new PartitionReceiver(topic, partitionId, parameters, tokenProvider, automaticReconnect) )
+}
 
 class PartitionReceiver (val topic: String,
                          val partitionId: String,

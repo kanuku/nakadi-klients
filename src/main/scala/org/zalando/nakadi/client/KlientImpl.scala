@@ -3,6 +3,7 @@ package org.zalando.nakadi.client
 import java.net.URI
 
 import akka.actor.ActorSystem
+import org.zalando.nakadi.client.actor.{NewListener, ListenerActor, PartitionReceiver}
 import play.api.libs.json._
 import play.api.libs.ws.ning.NingWSClient
 import play.api.libs.ws._
@@ -19,6 +20,8 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
   val system = ActorSystem("nakadi-client")
 
   def checkNotNull(subject: Any, message: String) = if(Option(subject) == None) throw new IllegalArgumentException(message)
+  def checkExists(subject: Option[Any], message: String) = if(! subject.isDefined) throw new IllegalArgumentException(message)
+
 
   /**
    * Gets monitoring metrics.
@@ -107,7 +110,24 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    * @param listener  listener consuming all received events
    * @return Either error message or connection was closed and reconnect is set to false
    */
-  override def listenForEvents(topic: String, partitionId: String, parameters: ListenParameters, listener: (Cursor, Event) => Unit, autoReconnect: Boolean)(implicit reader: Reads[SimpleStreamEvent]): Future[Either[String, _]] = ???
+  override def listenForEvents(topic: String, partitionId: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean = false)(implicit reader: Reads[SimpleStreamEvent]): Unit = {
+
+    checkNotNull(topic, "topic must not be null")
+    checkNotNull(partitionId, "partitionId must not be null")
+    checkNotNull(parameters, "list parameters must not be null")
+    checkNotNull(listener, "listener must not be null")
+    checkNotNull(autoReconnect, "autoReconnect must not be null")
+
+    checkExists(parameters.batchFlushTimeoutInSeconds, "batchFlushTimeoutInSeconds is not set")
+    checkExists(parameters.batchLimit, "batchLimit is not set")
+    checkExists(parameters.startOffset, "startOffset is not specified")
+    checkExists(parameters.streamLimit, "streamLimit is not specified")
+
+
+    val receiverActor = system.actorOf(PartitionReceiver.props(topic, partitionId, parameters, tokenProvider, autoReconnect))
+    val listenerActor = system.actorOf(ListenerActor.props(listener))
+    receiverActor ! NewListener(listenerActor)
+  }
 
 
   /**
@@ -118,7 +138,7 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    * @param listener  listener consuming all received events
    * @return {Future} instance of listener threads
    */
-  override def subscribeToTopic(topic: String, partitionId: String, parameters: ListenParameters, listener: (Cursor, Event) => Unit, autoReconnect: Boolean)(implicit reader: Reads[SimpleStreamEvent]): Future[Either[String, _]] = ???
+  override def subscribeToTopic(topic: String, partitionId: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean)(implicit reader: Reads[SimpleStreamEvent]): Unit = ???
 
    /**
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
@@ -137,7 +157,7 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
   private def performEventPost(uriPart: String, event: Event)(implicit writer: Writes[Event]): Future[Option[String]] = {
     checkNotNull(event, "event must not be null")
 
-    wsClient.url(endpoint + uriPart)
+    createDefaultRequest(endpoint + uriPart)
       .post(Json.stringify(writer.writes(event)))
       .map(response => if(response.status < 200 || response.status > 299) Some(response.statusText) else None)
   }

@@ -1,8 +1,11 @@
 package org.zalando.nakadi.client.actor
 
-import akka.actor.{ActorLogging, Actor}
+import akka.actor.{Props, ActorLogging, Actor}
 import org.zalando.nakadi.client.{Cursor, Event, Listener}
 
+object ListenerActor{
+  def props(listener: Listener) = Props(new ListenerActor(listener))
+}
 
 class ListenerActor(val listener: Listener) extends Actor with ActorLogging{
   override def receive: Receive = {
