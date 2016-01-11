@@ -2,12 +2,10 @@ package org.zalando.nakadi.client
 
 import java.net.URI
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import akka.actor.ActorSystem
 import play.api.libs.json._
 import play.api.libs.ws.ning.NingWSClient
 import play.api.libs.ws._
-
-import scala.collection.immutable.HashMap
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -18,6 +16,7 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   val wsClient = NingWSClient()
+  val system = ActorSystem("nakadi-client")
 
   def checkNotNull(subject: Any, message: String) = if(Option(subject) == None) throw new IllegalArgumentException(message)
 
@@ -58,7 +57,7 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    */
   override def getPartitions(topic: String)(implicit reader:Reads[List[TopicPartition]]): Future[Either[String, List[TopicPartition]]] = {
     checkNotNull(topic, "topic must not be null")
-    performDefaultRequest(String.format(URI_PARTITIONS,topic))
+    performDefaultGetRequest(String.format(URI_PARTITIONS,topic))
   }
 
   private def evaluateResponse[T](response: WSResponse)(implicit reader:Reads[T]):Either[String,T] = {
@@ -72,13 +71,11 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
   }
 
 
-  def performDefaultRequest[T](uriPart: String)(implicit reader:Reads[T]): Future[Either[String, T]] =
+  def performDefaultGetRequest[T](uriPart: String)(implicit reader: Reads[T]): Future[Either[String, T]] =
     createDefaultRequest(endpoint.toString + uriPart)
             .get()
             .map(evaluateResponse(_))
-
-
-
+  
 
   /**
    * Get specific partition
@@ -90,7 +87,7 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
   override def getPartition(topic: String, partitionId: String)(implicit reader:Reads[TopicPartition]): Future[Either[String, TopicPartition]] = {
     checkNotNull(topic, "topic must not be null")
     checkNotNull(partitionId, "partitionId must not be null")
-    performDefaultRequest(String.format(URI_PARTITION, topic, partitionId))
+    performDefaultGetRequest(String.format(URI_PARTITION, topic, partitionId))
   }
 
 
@@ -99,7 +96,7 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    *
    * @return immutable list of known topics
    */
-  def getTopics()(implicit reader: Reads[List[Topic]]): Future[Either[String, List[Topic]]] = performDefaultRequest(URI_TOPICS)
+  def getTopics()(implicit reader: Reads[List[Topic]]): Future[Either[String, List[Topic]]] = performDefaultGetRequest(URI_TOPICS)
 
 
   /**
@@ -131,9 +128,19 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    * @param event  event to be posted
    * @return Option representing the error message or None in case of success
    */
-  override def postEvent(topic: String, event: Event): Future[Option[String]] = ???
+  override def postEvent(topic: String, event: Event)(implicit writer: Writes[Event]): Future[Option[String]] ={
+     checkNotNull(topic, "topic must not be null")
+     performEventPost(String.format(URI_EVENT_POST, topic), event)
+   }
 
 
+  private def performEventPost(uriPart: String, event: Event)(implicit writer: Writes[Event]): Future[Option[String]] = {
+    checkNotNull(event, "event must not be null")
+
+    wsClient.url(endpoint + uriPart)
+      .post(Json.stringify(writer.writes(event)))
+      .map(response => if(response.status < 200 || response.status > 299) Some(response.statusText) else None)
+  }
 
 
   /**
@@ -145,10 +152,13 @@ class KlientImpl(val endpoint: URI, val tokenProvider: () => String) extends Kli
    * @param event event to be posted
    * @return Option representing the error message or None in case of success
    */
-  override def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Option[String]] = ???
+  override def postEventToPartition(topic: String, partitionId: String, event: Event)(implicit writer: Writes[Event]): Future[Option[String]] = {
+    checkNotNull(topic, "topic must not be null")
+    performEventPost(String.format(URI_EVENTS_ON_PARTITION, topic, partitionId), event)
+  }
 
   /**
    * Shuts down the communication system of the client
    */
-  override def stop(): Unit = ???
+  override def stop(): Unit = system.shutdown()
 }
