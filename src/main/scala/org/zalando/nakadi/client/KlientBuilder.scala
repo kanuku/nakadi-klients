@@ -10,16 +10,20 @@ private   var tokenProvider : Nothing = null
   */
 class KlientBuilder(val endpoint: URI = null, tokenProvider: () => String) {
 
-  private def checkNotNull[T](subject: T): T = if(Option(subject) == None) throw new NullPointerException else subject
-  private def checkState[T](subject: T, predicate: (T) => Boolean, msg: String): T = if(predicate(subject)) subject else throw new IllegalStateException()
+  private def checkNotNull[T](subject: T): T =
+      if(Option(subject) == None) throw new NullPointerException else subject
+
+  private def checkState[T](subject: T, predicate: (T) => Boolean, msg: String): T =
+      if(predicate(subject)) subject else throw new IllegalStateException()
 
   def withEndpoint(endpoint: URI): KlientBuilder = new KlientBuilder(checkNotNull(endpoint), tokenProvider)
 
-  def withTokenProvider(tokenProvider: () => String): KlientBuilder = new KlientBuilder(endpoint, checkNotNull(tokenProvider))
+  def withTokenProvider(tokenProvider: () => String): KlientBuilder =
+                                                                new KlientBuilder(endpoint, checkNotNull(tokenProvider))
 
   def build(): Klient = new KlientImpl(
                   checkState(endpoint,      s => Option(s) != None, "endpoint is not set -> try withEndpoint()"),
                   checkState(tokenProvider, s => Option(s) != None, "tokenProvider is not set -> try withTokenProvider()"))
-  
+
   override def toString = s"KlientBuilder($endpoint)"
 }

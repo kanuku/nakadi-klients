@@ -10,6 +10,7 @@ import play.api.libs.ws._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
+import org.zalando.nakadi.client.Formatter._
 
 
 // TODO create builder + make this class package protected
