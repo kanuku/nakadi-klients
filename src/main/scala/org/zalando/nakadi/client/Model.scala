@@ -11,6 +11,7 @@ case class TopologyItem (clientId: String, partitions: List[String])
 case class TopicPartition(partitionId: String, oldestAvailableOffset: String, newestAvailableOffset: String)
 case class SimpleStreamEvent(cursor: Cursor, events: List[Event], topology: List[TopologyItem])
 
+/*
 object Formatter{
 
 
@@ -100,3 +101,4 @@ object Formatter{
   implicit val simpleStreamEventFormat = Format(simpleStreamEventReader, simpleStreamEventWriter)
 
 }
+*/

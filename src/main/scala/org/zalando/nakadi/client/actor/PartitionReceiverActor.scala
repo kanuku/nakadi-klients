@@ -3,6 +3,7 @@ package org.zalando.nakadi.client.actor
 import java.io.ByteArrayOutputStream
 
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.zalando.nakadi.client
 import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
 import play.api.libs.iteratee.Iteratee
@@ -22,15 +23,17 @@ object PartitionReceiver{
             partitionId: String,
             parameters: ListenParameters,
             tokenProvider: () => String,
-            automaticReconnect: Boolean)(implicit reader: Reads[SimpleStreamEvent]) =
-                        Props(new PartitionReceiver(topic, partitionId, parameters, tokenProvider, automaticReconnect) )
+            automaticReconnect: Boolean,
+            objectMapper: ObjectMapper) =
+    Props(new PartitionReceiver(topic, partitionId, parameters, tokenProvider, automaticReconnect, objectMapper) )
 }
 
 class PartitionReceiver (val topic: String,
                          val partitionId: String,
                          val parameters: ListenParameters,
                          val tokenProvider: () => String,
-                         val automaticReconnect: Boolean) (implicit reader: Reads[SimpleStreamEvent]) extends Actor with ActorLogging
+                         val automaticReconnect: Boolean,
+                         val objectMapper: ObjectMapper)  extends Actor with ActorLogging
 {
   var listeners: List[ActorRef] = List()
   var lastCursor: Option[Cursor] = None
@@ -51,7 +54,7 @@ class PartitionReceiver (val topic: String,
   }
 
 
-  def listen()(implicit reader: Reads[SimpleStreamEvent]) =
+  def listen() =
     wsClient.url(String.format(client.URI_EVENT_LISTENING,
                               topic,
                               partitionId,
@@ -101,7 +104,7 @@ class PartitionReceiver (val topic: String,
                             stack -= 1
 
                             if (stack == 0 && bout.size != 0) {
-                              val streamEvent = Json.parse(bout.toByteArray).as[SimpleStreamEvent]
+                              val streamEvent = objectMapper.readValue(bout.toByteArray, classOf[SimpleStreamEvent])
                               log.debug("received [streamingEvent={}]", streamEvent)
                               self ! streamEvent
                               bout.reset()

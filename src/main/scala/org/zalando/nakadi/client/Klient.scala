@@ -35,7 +35,7 @@ trait Klient {
    *
    * @return immutable list of known topics
    */
-  def getTopics()(implicit reader: Reads[List[Topic]]): Future[Either[String, List[Topic]]]
+  def getTopics(): Future[Either[String, List[Topic]]]
 
   /**
    * Get partition information of a given topic
@@ -43,7 +43,7 @@ trait Klient {
    * @param topic   target topic
    * @return immutable list of topic's partitions information
    */
-  def getPartitions(topic: String)(implicit reader:Reads[List[TopicPartition]]): Future[Either[String, List[TopicPartition]]]
+  def getPartitions(topic: String): Future[Either[String, List[TopicPartition]]]
 
   /**
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
@@ -53,7 +53,7 @@ trait Klient {
    * @param event  event to be posted
    * @return Option representing the error message or None in case of success
    */
-  def postEvent(topic: String, event: Event)(implicit writer: Writes[Event]): Future[Option[String]]
+  def postEvent(topic: String, event: Event): Future[Option[String]]
 
   /**
    * Get specific partition
@@ -62,7 +62,7 @@ trait Klient {
    * @param partitionId  id of the target partition
    * @return Either error message or TopicPartition in case of success
    */
-  def getPartition(topic: String, partitionId: String)(implicit reader:Reads[TopicPartition]): Future[Either[String, TopicPartition]]
+  def getPartition(topic: String, partitionId: String): Future[Either[String, TopicPartition]]
 
   /**
    * Post event to specific partition.
@@ -73,7 +73,7 @@ trait Klient {
    * @param event event to be posted
    * @return Option representing the error message or None in case of success
    */
-  def postEventToPartition(topic: String, partitionId: String, event: Event)(implicit writer: Writes[Event]): Future[Option[String]]
+  def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Option[String]]
 
   /**
    * Blocking subscription to events of specified topic and partition.
@@ -87,7 +87,7 @@ trait Klient {
                       partitionId: String,
                       parameters: ListenParameters,
                       listener: Listener,
-                      autoReconnect: Boolean = false) (implicit reader: Reads[SimpleStreamEvent]): Unit
+                      autoReconnect: Boolean = false): Unit
 
 
   /**
@@ -101,7 +101,7 @@ trait Klient {
   def subscribeToTopic(topic: String,
                        parameters: ListenParameters,
                        listener: Listener,
-                       autoReconnect: Boolean = false)(implicit reader: Reads[SimpleStreamEvent]): Unit
+                       autoReconnect: Boolean = false): Unit
 
   /**
    * Shuts down the communication system of the client

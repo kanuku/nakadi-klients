@@ -2,6 +2,8 @@ package org.zalando.nakadi.client
 
 import java.net.URI
 
+import com.fasterxml.jackson.databind.ObjectMapper
+
 /**
 private   var tokenProvider : Nothing = null
     private   var objectMapper : Nothing = null
@@ -22,8 +24,10 @@ class KlientBuilder(val endpoint: URI = null, tokenProvider: () => String) {
                                                                 new KlientBuilder(endpoint, checkNotNull(tokenProvider))
 
   def build(): Klient = new KlientImpl(
-                  checkState(endpoint,      s => Option(s) != None, "endpoint is not set -> try withEndpoint()"),
-                  checkState(tokenProvider, s => Option(s) != None, "tokenProvider is not set -> try withTokenProvider()"))
+                  checkState(endpoint,      (s: URI) => Option(s) != None, "endpoint is not set -> try withEndpoint()"),
+                  checkState(tokenProvider, (s: () => String) => Option(s) != None, "tokenProvider is not set -> try withTokenProvider()"),
+                new ObjectMapper() // TODO
+  )
 
   override def toString = s"KlientBuilder($endpoint)"
 }
