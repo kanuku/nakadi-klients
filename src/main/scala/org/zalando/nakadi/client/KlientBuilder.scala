@@ -1,21 +1,18 @@
 package org.zalando.nakadi.client
 
-import java.io.IOException
 import java.net.URI
-
-import com.fasterxml.jackson.core.{JsonProcessingException, JsonParser}
+import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
 import com.fasterxml.jackson.databind._
-import com.fasterxml.jackson.module.scala.{DefaultScalaModule, ScalaModule}
-import com.typesafe.scalalogging.{LazyLogging, Logger}
-import org.slf4j.LoggerFactory
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import com.typesafe.scalalogging.LazyLogging
 
 
 class KlientBuilder(val endpoint: URI = null, val tokenProvider: () => String = null, val objectMapper: ObjectMapper = null)
   extends LazyLogging
 {
   private def checkNotNull[T](subject: T): T =
-                                   if(Option(subject) == None) throw new NullPointerException else subject
+                                   if(Option(subject).isEmpty) throw new NullPointerException else subject
 
 
   private def checkState[T](subject: T, predicate: (T) => Boolean, msg: String): T =
@@ -46,7 +43,7 @@ class KlientBuilder(val endpoint: URI = null, val tokenProvider: () => String = 
     mapper.addHandler(new DeserializationProblemHandler() {
       override def handleUnknownProperty(ctxt: DeserializationContext, jp: JsonParser, deserializer: JsonDeserializer[_], beanOrClass: AnyRef, propertyName: String): Boolean = {
         logger.warn(s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
-        return true
+       true
       }
     })
     mapper
@@ -54,8 +51,8 @@ class KlientBuilder(val endpoint: URI = null, val tokenProvider: () => String = 
 
 
   def build(): Klient = new KlientImpl(
-                  checkState(endpoint,      (s: URI) => Option(s) != None, "endpoint is not set -> try withEndpoint()"),
-                  checkState(tokenProvider, (s: () => String) => Option(s) != None, "tokenProvider is not set -> try withTokenProvider()"),
+                  checkState(endpoint,      (s: URI) => Option(s).isDefined, "endpoint is not set -> try withEndpoint()"),
+                  checkState(tokenProvider, (s: () => String) => Option(s).isDefined, "tokenProvider is not set -> try withTokenProvider()"),
                   Option(objectMapper).getOrElse(defaultObjectMapper)
   )
 
