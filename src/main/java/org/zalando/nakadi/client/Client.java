@@ -1,39 +1,27 @@
 package org.zalando.nakadi.client;
 
-import org.zalando.nakadi.client.domain.Event;
-import org.zalando.nakadi.client.domain.Topic;
-import org.zalando.nakadi.client.domain.TopicPartition;
+import scala.Option;
+import scala.collection.immutable.List;
+import scala.collection.immutable.Map;
+import scala.util.Either;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 public interface Client {
-
     /**
      * Gets monitoring metrics.
      * NOTE: metrics format is not defined / fixed
      *
      * @return immutable map of metrics data (value can be another Map again)
      */
-    Map<String, Object> getMetrics();
+    Future<Either<String, Map<String, Object>>> getMetrics();
 
     /**
      * Lists all known `Topics` in Event Store.
      *
      * @return immutable list of known topics
      */
-    List<Topic> getTopics();
-
-    /**
-     * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
-     * The partition resolution strategy is defined per topic and is managed by event store (currently resolved from
-     * hash over Event.orderingKey).
-     * @param topic  target topic
-     * @param event  event to be posted
-     */
-    void postEvent(final String topic, final Event event);
+    Future<Either<String, List<Topic>>> getTopics();
 
     /**
      * Get partition information of a given topic
@@ -41,16 +29,26 @@ public interface Client {
      * @param topic   target topic
      * @return immutable list of topic's partitions information
      */
-    List<TopicPartition> getPartitions(final String topic);
+    Future<Either<String, List<TopicPartition>>> getPartitions(String topic);
+
+    /**
+     * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
+     * The partition resolution strategy is defined per topic and is managed by event store (currently resolved from
+     * hash over Event.orderingKey).
+     * @param topic  target topic
+     * @param event  event to be posted
+     * @return Option representing the error message or None in case of success
+     */
+    Future<Option<String>> postEvent(final String topic, final Event event);
 
     /**
      * Get specific partition
      *
      * @param topic  topic where the partition is located
      * @param partitionId  id of the target partition
-     * @return partition information
+     * @return Either error message or TopicPartition in case of success
      */
-    TopicPartition getPartition(final String topic, final String partitionId);
+    Future<Either<String, TopicPartition>> getPartition(String topic, String partitionId);
 
     /**
      * Post event to specific partition.
@@ -59,113 +57,40 @@ public interface Client {
      * @param topic  topic where the partition is located
      * @param partitionId  id of the target partition
      * @param event event to be posted
+     * @return Option representing the error message or None in case of success
      */
-    void postEventToPartition(final String topic, final String partitionId, final Event event);
-
-    /**
-     * Blocking subscription to events of specified topic and partition.
-     *
-     * @param topic  topic where the partition is located
-     * @param partitionId id of the target partition
-     * @param startOffset start position in 'queue' from which events are received
-     * @param batchLimit  number of events which should be received at once (per poll). Must be > 0
-     * @param batchFlushTimeoutInSeconds maximum time in seconds to wait for the flushing of each chunk;
-     *                                   if the `batch_limit` is reached before this time is reached the messages are
-     *                                   immediately flushed to the client
-     * @param streamLimit maximum number of events which can be consumed with this stream (consumption finishes after
-     *                    {streamLimit} events). If 0 or undefined, will stream indefinitely. Must be > -1
-     * @param listener  listener consuming all received events
-     */
-    void listenForEvents(final String topic,
-                         final String partitionId,
-                         final String startOffset,
-                         final int batchLimit,
-                         final int batchFlushTimeoutInSeconds,
-                         final int streamLimit,
-                         final Listener listener);
+    Future<Option<String>> postEventToPartition(String topic, String partitionId, Event event);
 
     /**
      * Blocking subscription to events of specified topic and partition.
      * (batchLimit is set to 1, batch flush timeout to 1,  and streamLimit to 0 -> infinite streaming receiving 1 event per poll)
      *
-     * @param topic  topic where the partition is located
-     * @param partitionId id of the target partition
-     * @param startOffset start position in 'queue' from which events are received
+     * @param parameters listen parameters
      * @param listener  listener consuming all received events
+     * @return Either error message or connection was closed and reconnect is set to false
      */
-    void listenForEvents(final String topic,
-                         final String partitionId,
-                         final String startOffset,
-                         final Listener listener);
+    void listenForEvents(String topic,
+                         String partitionId,
+                         ListenParameters parameters,
+                         Listener listener,
+                         boolean autoReconnect);
+
 
     /**
      * Non-blocking subscription to a topic requires a `EventListener` implementation. The event listener must be thread-safe because
      * the listener listens to all partitions of a topic (one thread each).
      *
-     * @param threadPool  thread pool to be utilized for listener threads
-     * @param topic  subscription topic
-     * @param batchLimit  number of events which should be received at once (per poll). Must be > 0
-     * @param batchFlushTimeoutInSeconds maximum time in seconds to wait for the flushing of each chunk;
-     *                                   if the `batch_limit` is reached before this time is reached the messages are
-     *                                   immediately flushed to the client
-     * @param streamLimit  maximum number of events which can be consumed with this stream (consumption finishes after
-     *                     {streamLimit} events). If 0 or undefined, will stream indefinitely. Must be > -1
+     * @param parameters listen parameters
      * @param listener  listener consuming all received events
      * @return {Future} instance of listener threads
      */
-    List<Future> subscribeToTopic(final ExecutorService threadPool,
-                                  final String topic,
-                                  final int batchLimit,
-                                  final int batchFlushTimeoutInSeconds,
-                                  final int streamLimit,
-                                  final Listener listener);
+    void subscribeToTopic(String topic,
+                          ListenParameters parameters,
+                          Listener listener,
+                          boolean autoReconnect);
 
     /**
-     * Non-blocking subscription to a topic requires a `EventListener` implementation.
-     * The event listener must be thread-safe because
-     * the listener listens to all partitions of a topic (one thread each).
-     * (batchLimit is set to 1, batch flush timeout to 1,  and streamLimit to 0 -> infinite streaming receiving 1 event per poll)
-     *
-     *
-     * @param threadPool  thread pool to be utilized for listener threads
-     * @param topic  subscription topic
-     * @param listener  listener consuming all received events
-     * @return {Future} instance of listener threads
+     * Shuts down the communication system of the client
      */
-    @Deprecated
-    List<Future> subscribeToTopic(final ExecutorService threadPool,
-                                  final String topic,
-                                  final Listener listener);
-
-    /**
-     * Non-blocking subscription to a topic requires a `EventListener` implementation. The event listener must be thread-safe because
-     * the listener listens to all partitions of a topic (one thread each).
-     *
-     * @param topic  subscription topic
-     * @param batchLimit  number of events which should be received at once (per poll). Must be > 0
-     * @param batchFlushTimeoutInSeconds maximum time in seconds to wait for the flushing of each chunk;
-     *                                   if the `batch_limit` is reached before this time is reached the messages are
-     *                                   immediately flushed to the client
-     * @param streamLimit  maximum number of events which can be consumed with this stream (consumption finishes after
-     *                     {streamLimit} events). If 0 or undefined, will stream indefinitely. Must be > -1
-     * @param listener  listener consuming all received events
-     * @return {Future} instance of listener threads
-     */
-    List<Future> subscribeToTopic(final String topic,
-                                  final int batchLimit,
-                                  final int batchFlushTimeoutInSeconds,
-                                  final int streamLimit,
-                                  final Listener listener);
-
-    /**
-     * Non-blocking subscription to a topic requires a `EventListener` implementation. The event listener must be thread-safe because
-     * the listener listens to all partitions of a topic (one thread each).
-     * (batchLimit is set to 1, batch flush timeout to 1,  and streamLimit to 0 -> infinite streaming receiving 1 event per poll)
-     *
-     * @param topic  subscription topic
-     * @param listener  listener consuming all received events
-     * @return {Future} instance of listener threads
-     */
-    List<Future> subscribeToTopic(final String topic,
-                                  final Listener listener);
+    void stop();
 }

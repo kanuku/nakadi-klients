@@ -1,13 +1,10 @@
 package org.zalando.nakadi.client
 
-import java.util.concurrent.{TimeUnit, Future}
-
+import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-/**
- * Created by bfriedrich on 11/01/16.
- */
+
 object Utils {
   def convert[T](x: scala.concurrent.Future[T]): java.util.concurrent.Future[T]={
     new java.util.concurrent.Future[T] {
