@@ -3,9 +3,9 @@ package org.zalando.nakadi.client
 import java.io.IOException
 import java.net.URI
 
-import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.core.{JsonProcessingException, JsonParser}
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
-import com.fasterxml.jackson.databind.{PropertyNamingStrategy, SerializationFeature, DeserializationFeature, ObjectMapper}
+import com.fasterxml.jackson.databind._
 import com.fasterxml.jackson.module.scala.{DefaultScalaModule, ScalaModule}
 import com.typesafe.scalalogging.{LazyLogging, Logger}
 import org.slf4j.LoggerFactory
@@ -44,10 +44,8 @@ class KlientBuilder(val endpoint: URI = null, val tokenProvider: () => String = 
     mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     mapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
     mapper.addHandler(new DeserializationProblemHandler() {
-      @Override
-      @throws(classOf[IOException])
-      def handleUnknownProperty(ctxt: Nothing, jp: JsonParser, deserializer: Nothing, beanOrClass: Nothing, propertyName: Nothing): Boolean = {
-        logger.warn(s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]", beanOrClass, propertyName)
+      override def handleUnknownProperty(ctxt: DeserializationContext, jp: JsonParser, deserializer: JsonDeserializer[_], beanOrClass: AnyRef, propertyName: String): Boolean = {
+        logger.warn(s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
         return true
       }
     })
@@ -61,7 +59,7 @@ class KlientBuilder(val endpoint: URI = null, val tokenProvider: () => String = 
                   Option(objectMapper).getOrElse(defaultObjectMapper)
   )
 
-  
+
   def buildJavaClient(): Client = new JavaClientImpl(build())
 
 

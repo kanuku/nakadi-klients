@@ -3,12 +3,6 @@ package org.zalando.nakadi
 
 package object client {
 
-
-  protected object HttpMethod extends Enumeration {
-    type HttpMethod = Value
-    val GET, POST, PUT, DELETE = Value
-  }
-
   val URI_METRICS = "/metrics"
   val URI_TOPICS = "/topics"
   val URI_EVENT_POST = "/topics/%s/events"
