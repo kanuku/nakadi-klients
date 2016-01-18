@@ -11,41 +11,35 @@ import scala.util.Either;
 import java.util.concurrent.Future;
 
 
-class JavaClientImpl  {
+class JavaClientImpl implements Klient {
 
-    private final Klient scalaClient;
-
-    public JavaClientImpl(final Klient scalaClient){
-        this.scalaClient = scalaClient;
-    }
-
-
-    public Future<Either<String, Map<String, Object>>> getMetrics() {
-        //getMetrics().get().right().get().
-        return Utils.convert(scalaClient.getMetrics());
-    }
-
-    public Future<Either<String, List<Topic>>> getTopics(Reads<List<Topic>> reader) {
+    @Override
+    public scala.concurrent.Future<Either<String, Map<String, Object>>> getMetrics() {
         return null;
     }
 
     @Override
-    public Future<Either<String, List<TopicPartition>>> getPartitions(String topic, Reads<List<TopicPartition>> reader) {
+    public scala.concurrent.Future<Either<String, List<Topic>>> getTopics() {
         return null;
     }
 
     @Override
-    public Future<Option<String>> postEvent(String topic, Event event, Writes<Event> writer) {
+    public scala.concurrent.Future<Either<String, List<TopicPartition>>> getPartitions(String topic) {
         return null;
     }
 
     @Override
-    public Future<Either<String, TopicPartition>> getPartition(String topic, String partitionId, Reads<TopicPartition> reader) {
+    public scala.concurrent.Future<Option<String>> postEvent(String topic, Event event) {
         return null;
     }
 
     @Override
-    public Future<Option<String>> postEventToPartition(String topic, String partitionId, Event event, Writes<Event> writer) {
+    public scala.concurrent.Future<Either<String, TopicPartition>> getPartition(String topic, String partitionId) {
+        return null;
+    }
+
+    @Override
+    public scala.concurrent.Future<Option<String>> postEventToPartition(String topic, String partitionId, Event event) {
         return null;
     }
 
@@ -55,7 +49,7 @@ class JavaClientImpl  {
     }
 
     @Override
-    public void listenForEvents(String topic, String partitionId, ListenParameters parameters, Listener listener, boolean autoReconnect, Reads<SimpleStreamEvent> reader) {
+    public void listenForEvents(String topic, String partitionId, ListenParameters parameters, Listener listener, boolean autoReconnect) {
 
     }
 
@@ -65,7 +59,7 @@ class JavaClientImpl  {
     }
 
     @Override
-    public void subscribeToTopic(String topic, ListenParameters parameters, Listener listener, boolean autoReconnect, Reads<SimpleStreamEvent> reader) {
+    public void subscribeToTopic(String topic, ListenParameters parameters, Listener listener, boolean autoReconnect) {
 
     }
 
