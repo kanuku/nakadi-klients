@@ -1,7 +1,6 @@
 package org.zalando.nakadi.client;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Map;
