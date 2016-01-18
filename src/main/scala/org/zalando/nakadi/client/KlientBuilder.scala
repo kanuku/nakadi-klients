@@ -7,6 +7,10 @@ import com.fasterxml.jackson.databind._
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.typesafe.scalalogging.LazyLogging
 
+object KlientBuilder{
+  def apply(endpoint: URI = null, tokenProvider: () => String = null, objectMapper: ObjectMapper = null) =
+      new KlientBuilder(endpoint, tokenProvider, objectMapper)
+}
 
 class KlientBuilder(val endpoint: URI = null, val tokenProvider: () => String = null, val objectMapper: ObjectMapper = null)
   extends LazyLogging

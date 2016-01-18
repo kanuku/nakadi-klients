@@ -6,7 +6,6 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{ActorRef, ActorNotFound, ActorSystem}
 import akka.util.Timeout
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.zalando.nakadi.client.actor.{NewListener, ListenerActor, PartitionReceiver}
 import play.api.libs.json._
 import play.api.libs.ws.ning.NingWSClient
@@ -16,17 +15,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 
-// TODO create builder + make this class package protected
 protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
+  checkNotNull(objectMapper, "objectMapper must not be null")
+
   val wsClient = NingWSClient()
   val system = ActorSystem("nakadi-client")
 
-  objectMapper.registerModule(DefaultScalaModule)
-
-
-  def checkNotNull(subject: Any, message: String) = if(Option(subject) == None) throw new IllegalArgumentException(message)
+  def checkNotNull(subject: Any, message: String) = if(Option(subject).isEmpty) throw new IllegalArgumentException(message)
   def checkExists(subject: Option[Any], message: String) = if(! subject.isDefined) throw new IllegalArgumentException(message)
 
 
@@ -46,11 +43,11 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
                     Right(Json.parse(response.body).as[Map[String, JsValue]].map{f => (f._1, convert(f._2)) })
               }
 
+
     private def createDefaultRequest(url:String):  WSRequest =
       wsClient.url(url)
         .withHeaders (("Authorization", "Bearer " + tokenProvider.apply()) ,
                       ("Content-Type", "application/json"))
-
 
 
     private def convert( input: JsValue): AnyRef = input match {
@@ -132,17 +129,17 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
     val actorSelectionPath = s"/user/partition-$partitionId"
     val receiverSelection = system.actorSelection(actorSelectionPath)
 
-    // TODO check timeout
-    receiverSelection.resolveOne()(Timeout(1000L, TimeUnit.SECONDS)).onComplete{_ match {
+    receiverSelection.resolveOne()(Timeout(1L, TimeUnit.SECONDS)).onComplete{_ match {
       case Success(receiverActor) => registerListenerToActor(listener, receiverActor)
       case Failure(e: ActorNotFound) => {
         val receiverActor = system.actorOf(
             PartitionReceiver.props(topic, partitionId, parameters, tokenProvider, autoReconnect, objectMapper), actorSelectionPath)
         registerListenerToActor(listener, receiverActor)
       }
-      case Failure(e: Throwable) => throw new RuntimeException(e) // TODO better exception
+      case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
     } }
   }
+
 
   private def registerListenerToActor(listener: Listener, receiverActor: ActorRef) = {
     val listenerActor = system.actorOf(ListenerActor.props(listener))
@@ -166,6 +163,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
     } }
   }
 
+
    /**
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
    * The partition resolution strategy is defined per topic and is managed by event store (currently resolved from
@@ -177,7 +175,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
   override def postEvent(topic: String, event: Event): Future[Option[String]] ={
      checkNotNull(topic, "topic must not be null")
      performEventPost(String.format(URI_EVENT_POST, topic), event)
-   }
+  }
 
 
   private def performEventPost(uriPart: String, event: Event): Future[Option[String]] = {
@@ -202,6 +200,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
     checkNotNull(topic, "topic must not be null")
     performEventPost(String.format(URI_EVENTS_ON_PARTITION, topic, partitionId), event)
   }
+
 
   /**
    * Shuts down the communication system of the client
