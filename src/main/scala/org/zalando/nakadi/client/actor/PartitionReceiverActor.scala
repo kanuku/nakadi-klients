@@ -7,9 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.zalando.nakadi.client
 import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
 import play.api.libs.iteratee.Iteratee
-import play.api.libs.json.{Reads, Json}
 import play.api.libs.ws.ning.NingWSClient
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 sealed case class Init()
@@ -41,13 +39,13 @@ class PartitionReceiver (val topic: String,
   val wsClient = NingWSClient()
 
 
-  override def preStart = self ! Init
+  override def preStart() = self ! Init
 
 
   override def receive: Receive = {
     case Init => listen()
     case NewListener(listener) => listeners = listeners ++ List(listener)
-    case streamEvent: SimpleStreamEvent => streamEvent.events.map{event =>
+    case streamEvent: SimpleStreamEvent => streamEvent.events.foreach{event =>
         lastCursor = Some(streamEvent.cursor)
         listeners.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
     }
@@ -99,7 +97,7 @@ class PartitionReceiver (val topic: String,
                           bout.write(byteItem.asInstanceOf[Int])
 
                           if (byteItem == '"')  hasOpenString = !hasOpenString
-                          else if (!hasOpenString && byteItem == '{')  stack += 1;
+                          else if (!hasOpenString && byteItem == '{')  stack += 1
                           else if (!hasOpenString && byteItem == '}') {
                             stack -= 1
 
