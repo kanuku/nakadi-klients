@@ -7,10 +7,7 @@ import akka.actor.{ActorRef, ActorNotFound, ActorSystem}
 import akka.util.Timeout
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.`type`.CollectionType
-import org.apache.http.util.EntityUtils
 import org.zalando.nakadi.client.actor.{NewListener, ListenerActor, PartitionReceiver}
-import play.api.libs.json._
 import play.api.libs.ws.ning.NingWSClient
 import play.api.libs.ws._
 import scala.concurrent.Future
