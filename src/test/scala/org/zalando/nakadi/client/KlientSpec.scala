@@ -140,5 +140,43 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
           }
         }
     }
+
+    "post events to Nakadi topics" in {
+      val event = Event("http://test.zalando.net/my_type",
+                        "ARTICLE:123456",
+                         Map("tenant-id" -> "234567",
+                             "flow-id" -> "123456789" ),
+                         Map("greeting" -> "hello",
+                             "target" -> "world"))
+
+
+      val topic = "test-topic-1"
+      val requestMethod = new HttpString("POST")
+      val requestPath = s"/topics/$topic/events"
+      val responseStatusCode = 201
+
+      val builder = new NakadiTestService.Builder
+      service = builder.withHost(HOST)
+                       .withPort(PORT)
+                       .withHandler(requestPath)
+                       .withRequestMethod(requestMethod)
+                       .withResponseContentType(MEDIA_TYPE)
+                       .withResponseStatusCode(responseStatusCode)
+                       .withResponsePayload("")
+                       .build
+      service.start
+
+      Await.result(
+        klient.postEvent(topic, event),
+        10 seconds
+      ) match {
+        case Some(error) => fail(s"an error occurred while posting event to topic $topic")
+        case None => logger.debug("event post request was successful")
+      }
+
+      val request = performStandardRequestChecks(requestPath, requestMethod)
+      val sentEvent = objectMapper.readValue(request.getRequestBody, classOf[Event])
+      sentEvent should be(event)
+    }
   }
 }
