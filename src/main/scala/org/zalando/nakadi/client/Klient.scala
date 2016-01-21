@@ -28,7 +28,7 @@ trait Klient {
    *
    * @return immutable map of metrics data (value can be another Map again)
    */
-  def getMetrics: Future[Either[String, Map[String, AnyRef]]]
+  def getMetrics: Future[Either[String, Map[String, Any]]]
 
   /**
    * Lists all known `Topics` in Event Store.

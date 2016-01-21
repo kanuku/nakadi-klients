@@ -5,7 +5,10 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{ActorRef, ActorNotFound, ActorSystem}
 import akka.util.Timeout
+import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.`type`.CollectionType
+import org.apache.http.util.EntityUtils
 import org.zalando.nakadi.client.actor.{NewListener, ListenerActor, PartitionReceiver}
 import play.api.libs.json._
 import play.api.libs.ws.ning.NingWSClient
@@ -33,28 +36,13 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
    *
    * @return immutable map of metrics data (value can be another Map again)
    */
-  override def getMetrics: Future[Either[String, Map[String, AnyRef]]] =
-    createDefaultRequest(endpoint.toString + URI_METRICS)
-              .get()
-              .map{response =>
-                  if(response.status < 200 || response.status > 299)
-                    Left(response.status + " - " + response.body)
-                  else
-                    Right(Json.parse(response.body).as[Map[String, JsValue]].map{f => (f._1, convert(f._2)) })
-              }
+  override def getMetrics: Future[Either[String, Map[String, Any]]] =
+                                            performDefaultGetRequest(URI_METRICS, new TypeReference[Map[String, Any]]{})
 
-
-    private def createDefaultRequest(url:String):  WSRequest =
-      wsClient.url(url)
-        .withHeaders (("Authorization", "Bearer " + tokenProvider.apply()) ,
-                      ("Content-Type", "application/json"))
-
-
-    private def convert( input: JsValue): AnyRef = input match {
-        case value: JsObject => value.value.map(f => convert(f._2))
-        case everythingElse => everythingElse.toString()
-    }
-
+  private def createDefaultRequest(url:String):  WSRequest =
+    wsClient.url(url)
+      .withHeaders (("Authorization", "Bearer " + tokenProvider.apply()) ,
+      ("Content-Type", "application/json"))
 
   /**
    * Get partition information of a given topic
@@ -64,21 +52,21 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
    */
   override def getPartitions(topic: String): Future[Either[String, List[TopicPartition]]] = {
     checkNotNull(topic, "topic must not be null")
-    performDefaultGetRequest(String.format(URI_PARTITIONS,topic), classOf[List[TopicPartition]])
+    performDefaultGetRequest(String.format(URI_PARTITIONS,topic), new TypeReference[List[TopicPartition]]{})
   }
 
 
-  private def performDefaultGetRequest[T](uriPart: String, expectedType: Class[T]): Future[Either[String, T]] =
+  private def performDefaultGetRequest[T](uriPart: String, expectedType: TypeReference[T]): Future[Either[String, T]] =
     createDefaultRequest(endpoint.toString + uriPart)
             .get()
             .map(evaluateResponse(_, expectedType))
 
 
-  private def evaluateResponse[T](response: WSResponse, expectedType: Class[T]) :Either[String,T] = {
+  private def evaluateResponse[T](response: WSResponse, expectedType: TypeReference[T]) :Either[String,T] = {
     if(response.status < 200 || response.status > 299)
       Left(response.status + " - " + response.body)
     else
-      Right(objectMapper.readValue(response.bodyAsBytes, expectedType))
+      Right(objectMapper.readValue[T](response.bodyAsBytes, expectedType))
   }
 
 
@@ -92,7 +80,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
   override def getPartition(topic: String, partitionId: String): Future[Either[String, TopicPartition]] = {
     checkNotNull(topic, "topic must not be null")
     checkNotNull(partitionId, "partitionId must not be null")
-    performDefaultGetRequest(String.format(URI_PARTITION, topic, partitionId), classOf[TopicPartition])
+    performDefaultGetRequest(String.format(URI_PARTITION, topic, partitionId), new TypeReference[TopicPartition]{})
   }
 
 
@@ -101,7 +89,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
    *
    * @return immutable list of known topics
    */
-  def getTopics(): Future[Either[String, List[Topic]]] = performDefaultGetRequest(URI_TOPICS, classOf[List[Topic]])
+  def getTopics(): Future[Either[String, List[Topic]]] = performDefaultGetRequest(URI_TOPICS, new TypeReference[List[Topic]]{})
 
 
   /**

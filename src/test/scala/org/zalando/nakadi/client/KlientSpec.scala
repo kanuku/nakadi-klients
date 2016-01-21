@@ -4,7 +4,9 @@ import java.net.URI
 import java.util
 
 import com.fasterxml.jackson.databind.{PropertyNamingStrategy, SerializationFeature, DeserializationFeature, ObjectMapper}
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.common.collect.{Maps, Iterators}
+import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HttpString, Headers}
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import org.zalando.nakadi.client.utils.NakadiTestService
@@ -15,7 +17,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach {
+class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging {
 
   var klient: Klient = null
   var service: NakadiTestService = null
@@ -23,6 +25,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach {
   objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
   objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
   objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
+  objectMapper.registerModule(new DefaultScalaModule)
 
   val MEDIA_TYPE = "application/json"
   val TOKEN = "<OAUTH Token>"
@@ -31,8 +34,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach {
 
   override  def beforeEach() = {
     klient = KlientBuilder()
-      .withEndpoint(new URI(s"http://$HOST:$PORT"))
-      .withTokenProvider(() => "my-token")
+      .withEndpoint(new URI(s"http://$HOST:$PORT")) // TODO if no scheme is specified, the library utilized by the client breaks with a NullpointeException...
+      .withTokenProvider(() => TOKEN)
       .build()
   }
 
@@ -62,7 +65,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach {
 
     headerValues = headerMap.get(Headers.AUTHORIZATION)
     val authorizationHeaderValue = headerValues.getFirst
-    authorizationHeaderValue should be(TOKEN)
+    authorizationHeaderValue should be(s"Bearer $TOKEN")
 
     request
   }
@@ -88,7 +91,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach {
       expectedResponse.put("post_event", postEventData)
 
       // ---
-      val expectedResponseAsString = objectMapper.writeValueAsString(expectedResponse)
+      val expectedResponseAsString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(expectedResponse)
       val requestMethod = new HttpString("GET")
       val requestPath = "/metrics"
       val responseStatusCode: Int = 200
@@ -104,16 +107,49 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach {
                        .build
       service.start
 
-      Await.ready(
-        klient.getMetrics.map(_ match {
-          case Left(error) => fail(s"could not retrieve metrics: $error")
-          case Right(metrics) => {
-            println(s"metrics => $metrics")
+      Await.result(
+        klient.getMetrics,
+        5 seconds
+      ) match {
+        case Left(error) => fail(s"could not retrieve metrics: $error")
+        case Right(metrics) => {
+          logger.debug(s"metrics => $metrics")
+          performStandardRequestChecks(requestPath, requestMethod)
+        }
+      }
+    }
+
+    "retrieve Nakadi topics" in {
+      val expectedResponse = List(Topic("test-topic-1"), Topic("test-topic-2"))
+
+
+      val expectedResponseAsString = objectMapper.writeValueAsString(expectedResponse)
+      val requestMethod = new HttpString("GET")
+      val requestPath = "/topics"
+      val responseStatusCode = 200
+
+      val builder = new Builder
+      service = builder.withHost(HOST)
+                       .withPort(PORT)
+                       .withHandler(requestPath)
+                       .withRequestMethod(requestMethod)
+                       .withResponseContentType(MEDIA_TYPE)
+                       .withResponseStatusCode(responseStatusCode)
+                       .withResponsePayload(expectedResponseAsString)
+                       .build
+      service.start
+
+      Await.result(
+        klient.getTopics,
+        10 seconds
+      ) match {
+          case Left(error) => fail(s"could not retrieve topics: $error")
+          case Right(topics) => {
+            logger.info(s"topics => $topics")
+            topics should be(expectedResponse)
             performStandardRequestChecks(requestPath, requestMethod)
           }
-        }),
-        20 seconds
-      )
+        }
     }
   }
 }
