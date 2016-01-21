@@ -72,23 +72,12 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
   "A Klient" must {
     "retrieve Nakadi metrics" in {
-      val expectedResponse = Maps.newHashMap[String, Any]
-
-      val getMetricsData = Maps.newHashMap[String, Any]
-      getMetricsData.put("calls_per_second", "0.011")
-      getMetricsData.put("count", "1")
-      var statusCodeMetrics = Maps.newHashMap[String, Any]
-      statusCodeMetrics.put("401", "1")
-      getMetricsData.put("status_codes", statusCodeMetrics)
-      expectedResponse.put("get_metrics", getMetricsData)
-
-      val postEventData = Maps.newHashMap[String, Any]
-      postEventData.put("calls_per_second", "0.005")
-      postEventData.put("count", "5")
-      statusCodeMetrics = Maps.newHashMap[String, Any]
-      statusCodeMetrics.put("201", "5")
-      postEventData.put("status_codes", statusCodeMetrics)
-      expectedResponse.put("post_event", postEventData)
+      val expectedResponse = Map("post_event" -> Map("calls_per_second" -> "0.005",
+                                                      "count" -> "5",
+                                                      "status_codes" -> Map("201" -> 5)),
+                                  "get_metrics" -> Map("calls_per_second" -> "0.001",
+                                                       "count" -> "1",
+                                                       "status_codes" -> Map("401" -> 1)))
 
       // ---
       val expectedResponseAsString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(expectedResponse)
