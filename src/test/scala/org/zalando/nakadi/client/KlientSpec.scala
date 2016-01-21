@@ -2,12 +2,14 @@ package org.zalando.nakadi.client
 
 import java.net.URI
 import java.util
+import java.util.concurrent.atomic.AtomicReference
 
 import com.fasterxml.jackson.databind.{PropertyNamingStrategy, SerializationFeature, DeserializationFeature, ObjectMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.common.collect.{Maps, Iterators}
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HttpString, Headers}
+import org.apache.commons.io.filefilter.FalseFileFilter
 import org.scalatest.{Failed, BeforeAndAfterEach, Matchers, WordSpec}
 import org.zalando.nakadi.client.utils.NakadiTestService
 import org.zalando.nakadi.client.utils.NakadiTestService.Builder
@@ -16,6 +18,26 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
+
+
+class TestListener extends  Listener {
+  var receivedEvents = new AtomicReference[List[Event]](List[Event]());
+  var onConnectionClosed = false
+  var onConnectionOpened = false
+
+  override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit =  {
+    println(s"WAS CALLED [topic=$topic, partition=$partition, event=$event]" )
+
+    var old = List[Event]()
+    do {
+      old = receivedEvents.get()
+    }
+    while(! receivedEvents.compareAndSet(old, old ++ List(event)))
+  }
+  override def onConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor]): Unit = onConnectionClosed = true
+  override def onConnectionOpened(topic: String, partition: String): Unit = onConnectionOpened = true
+}
+
 
 class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging {
 
@@ -68,6 +90,12 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
     authorizationHeaderValue should be(s"Bearer $TOKEN")
 
     request
+  }
+
+  private def checkQueryParameter(queryParameters: java.util.Map[String, util.Deque[String]], paramaterName: String, expectedValue: String) {
+    val paramDeque = queryParameters.get(paramaterName)
+    paramDeque should not be(null)
+    paramDeque.getFirst should be(expectedValue)
   }
 
   "A Klient" must {
@@ -237,6 +265,101 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       receivedPartition should be(expectedPartition)
 
       performStandardRequestChecks(requestPath, requestMethod)
+    }
+
+    "subscribe to topic" in {
+      val partition = TopicPartition("p1", "0", "4")
+      val partition2 = TopicPartition("p2", "1", "1")
+      val partitions = List(partition, partition2)
+      val partitionsAsString = objectMapper.writeValueAsString(partitions)
+
+      val event = Event("type-1",
+                        "ARTICLE:123456",
+                        Map("tenant-id" -> "234567", "flow-id" -> "123456789"),
+                        Map("greeting" -> "hello", "target" -> "world"))
+
+      val streamEvent1 = SimpleStreamEvent(Cursor("p1", "0"), List(event), List())
+
+      val streamEvent1AsString = objectMapper.writeValueAsString(streamEvent1) + "\n"
+
+      //--
+
+      val event2 = Event("type-2",
+                         "ARTICLE:123456",
+                         Map("tenant-id" -> "234567", "flow-id" -> "123456789"),
+                         Map("greeting" -> "hello", "target" -> "world"))
+
+      val streamEvent2 = SimpleStreamEvent(Cursor("p2", "0"), List(event2), List())
+
+      val streamEvent2AsString = objectMapper.writeValueAsString(streamEvent2) + "\n"
+
+      //--
+
+      val topic = "test-topic-1"
+      val partitionsRequestPath = s"/topics/$topic/partitions"
+      val partition1EventsRequestPath = s"/topics/$topic/partitions/p1/events"
+      val partition2EventsRequestPath = s"/topics/$topic/partitions/p2/events"
+
+      val httpMethod = new HttpString("GET")
+      val statusCode = 200
+
+
+      val builder = new Builder
+      service = builder.withHost(HOST)
+                       .withPort(PORT)
+                       .withHandler(partitionsRequestPath)
+                       .withRequestMethod(httpMethod)
+                       .withResponseContentType(MEDIA_TYPE)
+                       .withResponseStatusCode(statusCode)
+                       .withResponsePayload(partitionsAsString)
+                       .and
+                       .withHandler(partition1EventsRequestPath)
+                       .withRequestMethod(httpMethod)
+                       .withResponseContentType(MEDIA_TYPE)
+                       .withResponseStatusCode(statusCode)
+                       .withResponsePayload(streamEvent1AsString)
+                       .and
+                       .withHandler(partition2EventsRequestPath)
+                       .withRequestMethod(httpMethod)
+                       .withResponseContentType(MEDIA_TYPE)
+                       .withResponseStatusCode(statusCode)
+                       .withResponsePayload(streamEvent2AsString)
+                       .build
+      service.start
+
+      val listener = new TestListener
+      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener)
+
+      Thread.sleep(1500L)
+
+      //-- check received events
+
+      val receivedEvents = listener.receivedEvents.get
+      receivedEvents should contain(event)
+      receivedEvents should contain(event2)
+
+
+      val collectedRequests = service.getCollectedRequests
+      collectedRequests should have size(3)
+
+      //-- check header and query parameters
+
+      performStandardRequestChecks(partitionsRequestPath, httpMethod)
+
+      var request = performStandardRequestChecks(partition1EventsRequestPath, httpMethod)
+
+      var queryParameters = request.getRequestQueryParameters
+      checkQueryParameter(queryParameters, "start_from", partition.newestAvailableOffset)
+      checkQueryParameter(queryParameters, "batch_limit", "1")
+      checkQueryParameter(queryParameters, "stream_limit", "0")
+      checkQueryParameter(queryParameters, "batch_flush_timeout", "5")
+
+      val request2 = performStandardRequestChecks(partition2EventsRequestPath, httpMethod)
+      queryParameters = request2.getRequestQueryParameters
+      checkQueryParameter(queryParameters, "start_from", partition2.newestAvailableOffset)
+      checkQueryParameter(queryParameters, "batch_limit", "1")
+      checkQueryParameter(queryParameters, "stream_limit", "0")
+      checkQueryParameter(queryParameters, "batch_flush_timeout", "5")
     }
   }
 }

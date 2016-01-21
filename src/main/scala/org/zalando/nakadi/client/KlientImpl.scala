@@ -118,7 +118,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
       case Success(receiverActor) => registerListenerToActor(listener, receiverActor)
       case Failure(e: ActorNotFound) => {
         val receiverActor = system.actorOf(
-            PartitionReceiver.props(topic, partitionId, parameters, tokenProvider, autoReconnect, objectMapper), actorSelectionPath)
+            PartitionReceiver.props(endpoint, topic, partitionId, parameters, tokenProvider, autoReconnect, objectMapper), s"partition-$partitionId")
         registerListenerToActor(listener, receiverActor)
       }
       case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
@@ -144,7 +144,15 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
       case Left(errorMessage) =>
           throw new KlientException(s"a problem ocurred while subscribing to [topic=$topic, errorMessage=$errorMessage]")
       case Right(topics: List[TopicPartition]) =>
-          topics.foreach(p => listenForEvents(topic, p.partitionId, parameters, listener, autoReconnect))
+          topics.foreach(p => listenForEvents(topic,
+                                              p.partitionId,
+                                              ListenParameters(
+                                                Option(p.newestAvailableOffset),
+                                                parameters.batchLimit,
+                                                parameters.batchFlushTimeoutInSeconds,
+                                                parameters.streamLimit),
+                                              listener,
+                                              autoReconnect))
     } }
   }
 

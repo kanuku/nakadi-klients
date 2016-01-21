@@ -1,6 +1,7 @@
 package org.zalando.nakadi.client.actor
 
 import java.io.ByteArrayOutputStream
+import java.net.URI
 
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -17,16 +18,18 @@ case class ConnectionClosed(topic: String, partition: String, lastCursor: Option
 
 
 object PartitionReceiver{
-  def props(topic: String,
+  def props(endpoint: URI,
+            topic: String,
             partitionId: String,
             parameters: ListenParameters,
             tokenProvider: () => String,
             automaticReconnect: Boolean,
             objectMapper: ObjectMapper) =
-    Props(new PartitionReceiver(topic, partitionId, parameters, tokenProvider, automaticReconnect, objectMapper) )
+    Props(new PartitionReceiver(endpoint, topic, partitionId, parameters, tokenProvider, automaticReconnect, objectMapper) )
 }
 
-class PartitionReceiver (val topic: String,
+class PartitionReceiver (val endpoint: URI,
+                         val topic: String,
                          val partitionId: String,
                          val parameters: ListenParameters,
                          val tokenProvider: () => String,
@@ -43,7 +46,13 @@ class PartitionReceiver (val topic: String,
 
 
   override def receive: Receive = {
-    case Init => listen()
+    case Init => lastCursor match {
+      case None => listen(parameters)
+      case Some(cursor) => listen(ListenParameters(Option(cursor.offset),
+                                                   parameters.batchLimit,
+                                                   parameters.batchFlushTimeoutInSeconds,
+                                                   parameters.streamLimit))
+    }
     case NewListener(listener) => listeners = listeners ++ List(listener)
     case streamEvent: SimpleStreamEvent => streamEvent.events.foreach{event =>
         lastCursor = Some(streamEvent.cursor)
@@ -51,15 +60,15 @@ class PartitionReceiver (val topic: String,
     }
   }
 
-
-  def listen() =
-    wsClient.url(String.format(client.URI_EVENT_LISTENING,
-                              topic,
-                              partitionId,
-                              parameters.startOffset,
-                              parameters.batchLimit,
-                              parameters.batchFlushTimeoutInSeconds,
-                              parameters.streamLimit))
+  // TODO check earlier ListenParameters
+  def listen(parameters: ListenParameters) =
+    wsClient.url(String.format(endpoint + client.URI_EVENT_LISTENING,
+                               topic,
+                               partitionId,
+                               parameters.startOffset.getOrElse(throw new IllegalStateException("no startOffset set")),
+                               parameters.batchLimit.getOrElse(throw new IllegalStateException("no batchLimit set")).toString,
+                               parameters.batchFlushTimeoutInSeconds.getOrElse(throw new IllegalStateException("no batchFlushTimeoutInSeconds set")).toString,
+                               parameters.streamLimit.getOrElse(throw new IllegalStateException("no streamLimit set")).toString))
             .withHeaders (("Authorization", "Bearer " + tokenProvider.apply()) ,
                           ("Content-Type",  "application/json"))
             .getStream()
