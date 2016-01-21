@@ -207,5 +207,36 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       receivedPartitions should be(expectedPartitions)
       performStandardRequestChecks(requestPath, requestMethod)
     }
+
+    "retrieve a particular partition" in {
+      val expectedPartition = TopicPartition("111", "0", "0")
+      val expectedResponse = objectMapper.writeValueAsString(expectedPartition)
+
+
+      val partitionId = "111"
+      val topic = "test-topic-1"
+      val requestMethod = new HttpString("GET")
+      val requestPath = s"/topics/$topic/partitions/" + partitionId
+      val responseStatusCode: Int = 200
+
+      val builder = new Builder
+      service = builder.withHost(HOST)
+                       .withPort(PORT)
+                       .withHandler(requestPath)
+                       .withRequestMethod(requestMethod)
+                       .withResponseContentType(MEDIA_TYPE)
+                       .withResponseStatusCode(responseStatusCode)
+                       .withResponsePayload(expectedResponse)
+                       .build
+      service.start
+
+      val receivedPartition = Await.result(klient.getPartition(topic, partitionId), 10 seconds) match {
+        case Left(error)  => throw new RuntimeException(s"could not retrieve partition: $error")
+        case Right(topic) => topic
+      }
+      receivedPartition should be(expectedPartition)
+
+      performStandardRequestChecks(requestPath, requestMethod)
+    }
   }
 }
