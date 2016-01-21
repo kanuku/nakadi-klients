@@ -8,7 +8,7 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.common.collect.{Maps, Iterators}
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HttpString, Headers}
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatest.{Failed, BeforeAndAfterEach, Matchers, WordSpec}
 import org.zalando.nakadi.client.utils.NakadiTestService
 import org.zalando.nakadi.client.utils.NakadiTestService.Builder
 
@@ -177,6 +177,35 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val request = performStandardRequestChecks(requestPath, requestMethod)
       val sentEvent = objectMapper.readValue(request.getRequestBody, classOf[Event])
       sentEvent should be(event)
+    }
+
+    "retreive partitions of a topic" in {
+      val expectedPartitions = List(TopicPartition("111", "0", "0"), TopicPartition("222", "0", "1"))
+      val expectedResponse = objectMapper.writeValueAsString(expectedPartitions)
+
+
+      val topic = "test-topic-1"
+      val requestMethod = new HttpString("GET")
+      val requestPath = s"/topics/$topic/partitions"
+      val responseStatusCode = 200
+
+      val builder = new Builder
+      service = builder.withHost(HOST)
+                       .withPort(PORT)
+                       .withHandler(requestPath)
+                       .withRequestMethod(requestMethod)
+                       .withResponseContentType(MEDIA_TYPE)
+                       .withResponseStatusCode(responseStatusCode)
+                       .withResponsePayload(expectedResponse)
+                       .build
+      service.start
+
+      val receivedPartitions = Await.result(klient.getPartitions(topic), 10 seconds) match {
+        case Left(error: String) => throw new RuntimeException(s"could not retrieve partitions: $error")
+        case Right(partitions) => partitions
+      }
+      receivedPartitions should be(expectedPartitions)
+      performStandardRequestChecks(requestPath, requestMethod)
     }
   }
 }
