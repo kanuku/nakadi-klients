@@ -24,7 +24,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
   val system = ActorSystem("nakadi-client")
 
   def checkNotNull(subject: Any, message: String) = if(Option(subject).isEmpty) throw new IllegalArgumentException(message)
-  def checkExists(subject: Option[Any], message: String) = if(! subject.isDefined) throw new IllegalArgumentException(message)
+  def checkExists(subject: Option[Any], message: String) = if(subject.isEmpty) throw new IllegalArgumentException(message)
 
 
   /**
@@ -86,7 +86,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
    *
    * @return immutable list of known topics
    */
-  def getTopics(): Future[Either[String, List[Topic]]] = performDefaultGetRequest(URI_TOPICS, new TypeReference[List[Topic]]{})
+  def getTopics: Future[Either[String, List[Topic]]] = performDefaultGetRequest(URI_TOPICS, new TypeReference[List[Topic]]{})
 
 
   /**
@@ -116,11 +116,17 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
 
     receiverSelection.resolveOne()(Timeout(1L, TimeUnit.SECONDS)).onComplete{_ match {
       case Success(receiverActor) => registerListenerToActor(listener, receiverActor)
-      case Failure(e: ActorNotFound) => {
+      case Failure(e: ActorNotFound) =>
         val receiverActor = system.actorOf(
-            PartitionReceiver.props(endpoint, topic, partitionId, parameters, tokenProvider, autoReconnect, objectMapper), s"partition-$partitionId")
+                                PartitionReceiver.props(endpoint,
+                                                        topic,
+                                                        partitionId,
+                                                        parameters,
+                                                        tokenProvider,
+                                                        autoReconnect,
+                                                        objectMapper),
+                                                        s"partition-$partitionId")
         registerListenerToActor(listener, receiverActor)
-      }
       case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
     } }
   }
@@ -139,6 +145,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
    * @param parameters listen parameters
    * @param listener  listener consuming all received events
    */
+  // TODO earlier parameter check
   override def subscribeToTopic(topic: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean): Unit = {
     getPartitions(topic).map{_ match {
       case Left(errorMessage) =>

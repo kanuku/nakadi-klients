@@ -1,7 +1,5 @@
 package org.zalando.nakadi.client
 
-import play.api.libs.json.{Writes, Reads}
-
 import scala.concurrent.Future
 
 
@@ -35,7 +33,7 @@ trait Klient {
    *
    * @return immutable list of known topics
    */
-  def getTopics(): Future[Either[String, List[Topic]]]
+  def getTopics: Future[Either[String, List[Topic]]]
 
   /**
    * Get partition information of a given topic

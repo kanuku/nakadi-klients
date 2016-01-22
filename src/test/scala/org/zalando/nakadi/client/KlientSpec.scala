@@ -6,22 +6,20 @@ import java.util.concurrent.atomic.AtomicReference
 
 import com.fasterxml.jackson.databind.{PropertyNamingStrategy, SerializationFeature, DeserializationFeature, ObjectMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.google.common.collect.{Maps, Iterators}
+import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HttpString, Headers}
-import org.apache.commons.io.filefilter.FalseFileFilter
-import org.scalatest.{Failed, BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import org.zalando.nakadi.client.utils.NakadiTestService
 import org.zalando.nakadi.client.utils.NakadiTestService.Builder
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.concurrent.ExecutionContext.Implicits.global
 
 
 class TestListener extends  Listener {
-  var receivedEvents = new AtomicReference[List[Event]](List[Event]());
+  var receivedEvents = new AtomicReference[List[Event]](List[Event]())
   var onConnectionClosed = false
   var onConnectionOpened = false
 
@@ -94,7 +92,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
   private def checkQueryParameter(queryParameters: java.util.Map[String, util.Deque[String]], paramaterName: String, expectedValue: String) {
     val paramDeque = queryParameters.get(paramaterName)
-    paramDeque should not be(null)
+    paramDeque should not be null
     paramDeque.getFirst should be(expectedValue)
   }
 
@@ -122,17 +120,15 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .withResponseStatusCode(responseStatusCode)
                        .withResponsePayload(expectedResponseAsString)
                        .build
-      service.start
+      service.start()
 
       Await.result(
         klient.getMetrics,
         5 seconds
       ) match {
         case Left(error) => fail(s"could not retrieve metrics: $error")
-        case Right(metrics) => {
-          logger.debug(s"metrics => $metrics")
-          performStandardRequestChecks(requestPath, requestMethod)
-        }
+        case Right(metrics) => logger.debug(s"metrics => $metrics")
+                               performStandardRequestChecks(requestPath, requestMethod)
       }
     }
 
@@ -154,18 +150,18 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .withResponseStatusCode(responseStatusCode)
                        .withResponsePayload(expectedResponseAsString)
                        .build
-      service.start
+      service.start()
 
       Await.result(
         klient.getTopics,
         10 seconds
       ) match {
           case Left(error) => fail(s"could not retrieve topics: $error")
-          case Right(topics) => {
+          case Right(topics) =>
             logger.info(s"topics => $topics")
             topics should be(expectedResponse)
             performStandardRequestChecks(requestPath, requestMethod)
-          }
+
         }
     }
 
@@ -192,7 +188,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .withResponseStatusCode(responseStatusCode)
                        .withResponsePayload("")
                        .build
-      service.start
+      service.start()
 
       Await.result(
         klient.postEvent(topic, event),
@@ -217,7 +213,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val requestPath = s"/topics/$topic/partitions"
       val responseStatusCode = 200
 
-      val builder = new Builder
+      val builder = new Builder()
       service = builder.withHost(HOST)
                        .withPort(PORT)
                        .withHandler(requestPath)
@@ -226,7 +222,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .withResponseStatusCode(responseStatusCode)
                        .withResponsePayload(expectedResponse)
                        .build
-      service.start
+      service.start()
 
       val receivedPartitions = Await.result(klient.getPartitions(topic), 10 seconds) match {
         case Left(error: String) => throw new RuntimeException(s"could not retrieve partitions: $error")
@@ -247,7 +243,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val requestPath = s"/topics/$topic/partitions/" + partitionId
       val responseStatusCode: Int = 200
 
-      val builder = new Builder
+      val builder = new Builder()
       service = builder.withHost(HOST)
                        .withPort(PORT)
                        .withHandler(requestPath)
@@ -255,12 +251,12 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .withResponseContentType(MEDIA_TYPE)
                        .withResponseStatusCode(responseStatusCode)
                        .withResponsePayload(expectedResponse)
-                       .build
-      service.start
+                       .build()
+      service.start()
 
       val receivedPartition = Await.result(klient.getPartition(topic, partitionId), 10 seconds) match {
         case Left(error)  => throw new RuntimeException(s"could not retrieve partition: $error")
-        case Right(topic) => topic
+        case Right(receivedTopic) => receivedTopic
       }
       receivedPartition should be(expectedPartition)
 
@@ -304,7 +300,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val statusCode = 200
 
 
-      val builder = new Builder
+      val builder = new Builder()
       service = builder.withHost(HOST)
                        .withPort(PORT)
                        .withHandler(partitionsRequestPath)
@@ -325,7 +321,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .withResponseStatusCode(statusCode)
                        .withResponsePayload(streamEvent2AsString)
                        .build
-      service.start
+      service.start()
 
       val listener = new TestListener
       klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener)
@@ -340,13 +336,13 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
 
       val collectedRequests = service.getCollectedRequests
-      collectedRequests should have size(3)
+      collectedRequests should have size 3
 
       //-- check header and query parameters
 
       performStandardRequestChecks(partitionsRequestPath, httpMethod)
 
-      var request = performStandardRequestChecks(partition1EventsRequestPath, httpMethod)
+      val request = performStandardRequestChecks(partition1EventsRequestPath, httpMethod)
 
       var queryParameters = request.getRequestQueryParameters
       checkQueryParameter(queryParameters, "start_from", partition.newestAvailableOffset)
