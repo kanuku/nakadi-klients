@@ -36,13 +36,18 @@ class PartitionReceiver (val endpoint: URI,
                          val automaticReconnect: Boolean,
                          val objectMapper: ObjectMapper)  extends Actor with ActorLogging
 {
+
+  log.info(">>> NEW INSTANCE ")
+
   var listeners: List[ActorRef] = List()
   var lastCursor: Option[Cursor] = None
 
   val wsClient = NingWSClient()
 
-
-  override def preStart() = self ! Init
+  override def preStart() = {
+    log.info(">>> RESTART --> " + listeners)
+    self ! Init
+  }
 
 
   override def receive: Receive = {
@@ -53,6 +58,7 @@ class PartitionReceiver (val endpoint: URI,
                                                    parameters.batchFlushTimeoutInSeconds,
                                                    parameters.streamLimit))
     }
+      log.info(">>> INIT --> " + listeners)
     case NewListener(listener) => listeners = listeners ++ List(listener)
     case streamEvent: SimpleStreamEvent => streamEvent.events.foreach{event =>
         lastCursor = Some(streamEvent.cursor)
@@ -61,6 +67,7 @@ class PartitionReceiver (val endpoint: URI,
   }
 
   // TODO check earlier ListenParameters
+  // TODO what about closing connections?
   def listen(parameters: ListenParameters) =
     wsClient.url(String.format(endpoint + client.URI_EVENT_LISTENING,
                                topic,
@@ -113,7 +120,12 @@ class PartitionReceiver (val endpoint: URI,
                             if (stack == 0 && bout.size != 0) {
                               val streamEvent = objectMapper.readValue(bout.toByteArray, classOf[SimpleStreamEvent])
                               log.debug("received [streamingEvent={}]", streamEvent)
-                              self ! streamEvent
+
+                              if(Option(streamEvent.events).isDefined && ! streamEvent.events.isEmpty)
+                                self ! streamEvent
+                              else{
+                                log.debug(s"received empty [streamingEvent={}] --> ignored", streamEvent)
+                              }
                               bout.reset()
                             }
                           }
@@ -125,5 +137,12 @@ class PartitionReceiver (val endpoint: URI,
             .map { x =>
               log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
               listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
+              if(automaticReconnect) {
+                log.info(s"[automaticReconnect=$automaticReconnect] -> reconnecting")
+                self ! Init
+              }
             }
+
+
+  override def toString = s"PartitionReceiver(listeners=$listeners, lastCursor=$lastCursor, endpoint=$endpoint, topic=$topic, partitionId=$partitionId, parameters=$parameters, automaticReconnect=$automaticReconnect)"
 }

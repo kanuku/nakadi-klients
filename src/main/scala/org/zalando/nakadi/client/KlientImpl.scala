@@ -1,18 +1,15 @@
 package org.zalando.nakadi.client
 
-import java.net.URI
-import java.util.concurrent.TimeUnit
+import java.net.{ConnectException, URI}
 
-import akka.actor.{ActorRef, ActorNotFound, ActorSystem}
-import akka.util.Timeout
+import akka.actor._
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.zalando.nakadi.client.actor.{NewListener, ListenerActor, PartitionReceiver}
+import org.zalando.nakadi.client.actor._
 import play.api.libs.ws.ning.NingWSClient
 import play.api.libs.ws._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success}
 
 
 protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
@@ -22,6 +19,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
 
   val wsClient = NingWSClient()
   val system = ActorSystem("nakadi-client")
+  val supervisor = system.actorOf(KlientSupervisor.props(endpoint, tokenProvider, objectMapper))
 
   def checkNotNull(subject: Any, message: String) = if(Option(subject).isEmpty) throw new IllegalArgumentException(message)
   def checkExists(subject: Option[Any], message: String) = if(subject.isEmpty) throw new IllegalArgumentException(message)
@@ -36,10 +34,12 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
   override def getMetrics: Future[Either[String, Map[String, Any]]] =
                                             performDefaultGetRequest(URI_METRICS, new TypeReference[Map[String, Any]]{})
 
+
   private def createDefaultRequest(url:String):  WSRequest =
     wsClient.url(url)
       .withHeaders (("Authorization", "Bearer " + tokenProvider.apply()) ,
       ("Content-Type", "application/json"))
+
 
   /**
    * Get partition information of a given topic
@@ -110,31 +110,7 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
     checkExists(parameters.startOffset, "startOffset is not specified")
     checkExists(parameters.streamLimit, "streamLimit is not specified")
 
-
-    val actorSelectionPath = s"/user/partition-$partitionId"
-    val receiverSelection = system.actorSelection(actorSelectionPath)
-
-    receiverSelection.resolveOne()(Timeout(1L, TimeUnit.SECONDS)).onComplete{_ match {
-      case Success(receiverActor) => registerListenerToActor(listener, receiverActor)
-      case Failure(e: ActorNotFound) =>
-        val receiverActor = system.actorOf(
-                                PartitionReceiver.props(endpoint,
-                                                        topic,
-                                                        partitionId,
-                                                        parameters,
-                                                        tokenProvider,
-                                                        autoReconnect,
-                                                        objectMapper),
-                                                        s"partition-$partitionId")
-        registerListenerToActor(listener, receiverActor)
-      case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
-    } }
-  }
-
-
-  private def registerListenerToActor(listener: Listener, receiverActor: ActorRef) = {
-    val listenerActor = system.actorOf(ListenerActor.props(listener))
-    receiverActor ! NewListener(listenerActor)
+    supervisor ! NewSubscription(topic, partitionId, parameters, autoReconnect, listener)
   }
 
 
