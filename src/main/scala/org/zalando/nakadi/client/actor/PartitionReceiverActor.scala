@@ -45,9 +45,6 @@ class PartitionReceiver (val endpoint: URI,
                          val automaticReconnect: Boolean,
                          val objectMapper: ObjectMapper)  extends Actor with ActorLogging
 {
-
-  log.info(Thread.currentThread().getId +  " >>> NEW_INSTANCE " + toString)
-
   var listeners: List[ActorRef] = List()
   var lastCursor: Option[Cursor] = None
 
@@ -56,7 +53,6 @@ class PartitionReceiver (val endpoint: URI,
   implicit val materializer = ActorMaterializer()
 
   override def preStart() = {
-    log.info(Thread.currentThread().getId + " >>> PRESTART --> " + toString)
     self ! Init
   }
 
@@ -69,20 +65,15 @@ class PartitionReceiver (val endpoint: URI,
                                                    parameters.batchFlushTimeoutInSeconds,
                                                    parameters.streamLimit))
     }
-      log.info(Thread.currentThread().getId + " >>> INIT --> " + toString)
     case NewListener(listener) => listeners = listeners ++ List(listener)
     case streamEvent: SimpleStreamEvent => streamEvent.events.foreach{event =>
         lastCursor = Some(streamEvent.cursor)
-        listeners.foreach(listener => {
-          log.debug(s"notifying [listener=$listener] about [topic=$topic, partitionId=$partitionId, streamEvent.cursor=${streamEvent.cursor}}, event=$event]")
-          listener ! Tuple4(topic, partitionId, streamEvent.cursor, event)
-        })
+        listeners.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
     }
   }
 
 
   // TODO check earlier ListenParameters
-  // TODO what about closing connections?
   def listen(parameters: ListenParameters) =
     Source.single(
         HttpRequest(uri = requestUri(parameters))
@@ -98,7 +89,7 @@ class PartitionReceiver (val endpoint: URI,
               listeners.foreach(_ ! ConnectionFailed(topic, partitionId, response.status.intValue(), response.entity.toString))
 
               if (automaticReconnect) {
-                log.info(">>> RESTART initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
+                log.info("initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
                 self ! Init
               }
           })
@@ -107,7 +98,7 @@ class PartitionReceiver (val endpoint: URI,
         log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
         listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
         if (automaticReconnect) {
-          log.info(s">>> RESTART  [automaticReconnect=$automaticReconnect] -> reconnecting")
+          log.info(s"[automaticReconnect=$automaticReconnect] -> reconnecting")
           self ! Init
         }
       })
@@ -163,6 +154,6 @@ class PartitionReceiver (val endpoint: URI,
     }
   }
 
-
+  
   override def toString = s"PartitionReceiver(listeners=$listeners, lastCursor=$lastCursor, endpoint=$endpoint, topic=$topic, partitionId=$partitionId, parameters=$parameters, automaticReconnect=$automaticReconnect)"
 }
