@@ -22,6 +22,7 @@ class TestListener extends  Listener {
   var receivedEvents = new AtomicReference[List[Event]](List[Event]())
   var onConnectionClosed = false
   var onConnectionOpened = false
+  var onConnectionFailed = false
 
   override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit =  {
     println(s"WAS CALLED [topic=$topic, partition=$partition, event=$event]" )
@@ -34,6 +35,8 @@ class TestListener extends  Listener {
   }
   override def onConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor]): Unit = onConnectionClosed = true
   override def onConnectionOpened(topic: String, partition: String): Unit = onConnectionOpened = true
+
+  override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = onConnectionFailed = true
 }
 
 
@@ -334,6 +337,9 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       receivedEvents should contain(event)
       receivedEvents should contain(event2)
 
+      listener.onConnectionOpened should be(true)
+      listener.onConnectionClosed should be(true) // no long polling actitvated by test mock
+
 
       val collectedRequests = service.getCollectedRequests
       collectedRequests should have size 3
@@ -356,6 +362,55 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       checkQueryParameter(queryParameters, "batch_limit", "1")
       checkQueryParameter(queryParameters, "stream_limit", "0")
       checkQueryParameter(queryParameters, "batch_flush_timeout", "5")
+    }
+
+    "reconnect, if autoReconnect = true and stream was closed by Nakadi" in {
+      val partition = TopicPartition("p1", "0", "4")
+      val partition2 = TopicPartition("p2", "1", "1")
+      val partitions = List(partition, partition2)
+      val partitionsAsString = objectMapper.writeValueAsString(partitions)
+
+      val event = Event("type-1",
+        "ARTICLE:123456",
+        Map("tenant-id" -> "234567", "flow-id" -> "123456789"),
+        Map("greeting" -> "hello", "target" -> "world"))
+
+      val streamEvent1 = SimpleStreamEvent(Cursor("p1", "0"), List(event), List())
+
+      val streamEvent1AsString = objectMapper.writeValueAsString(streamEvent1) + "\n"
+
+      val topic = "test-topic-1"
+      val partitionsRequestPath = s"/topics/$topic/partitions"
+      val partition1EventsRequestPath = s"/topics/$topic/partitions/p1/events"
+
+      val httpMethod = new HttpString("GET")
+      val statusCode = 200
+
+      val builder = new Builder()
+      service = builder.withHost(HOST)
+        .withPort(PORT)
+        .withHandler(partitionsRequestPath)
+        .withRequestMethod(httpMethod)
+        .withResponseContentType(MEDIA_TYPE)
+        .withResponseStatusCode(statusCode)
+        .withResponsePayload(partitionsAsString)
+        .and
+        .withHandler(partition1EventsRequestPath)
+        .withRequestMethod(httpMethod)
+        .withResponseContentType(MEDIA_TYPE)
+        .withResponseStatusCode(statusCode)
+        .withResponsePayload(streamEvent1AsString)
+        .build
+      service.start()
+
+      val listener = new TestListener
+      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true)
+
+      Thread.sleep(1500L)
+      service.stop()
+      service = null
+      Thread.sleep(15000L)
+
     }
   }
 }

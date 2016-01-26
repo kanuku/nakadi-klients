@@ -18,11 +18,11 @@ case class NewSubscription(val topic: String,
                            val listener: Listener)
 
 object KlientSupervisor{
-  def props(endpoint: URI, tokenProvider: () => String, objectMapper: ObjectMapper) =
-                                                      Props(new KlientSupervisor(endpoint, tokenProvider, objectMapper))
+  def props(endpoint: URI, port: Int, tokenProvider: () => String, objectMapper: ObjectMapper) =
+                                           Props(new KlientSupervisor(endpoint, port, tokenProvider, objectMapper))
 }
 
-class KlientSupervisor(val endpoint: URI, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Actor{
+class KlientSupervisor(val endpoint: URI, val port: Int, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Actor{
 
   import akka.actor.SupervisorStrategy._
   import scala.concurrent.duration._
@@ -48,6 +48,7 @@ class KlientSupervisor(val endpoint: URI, val tokenProvider: () => String, val o
         case Failure(e: ActorNotFound) =>
           val receiverActor = context.actorOf(
             PartitionReceiver.props(endpoint,
+              port,
               topic,
               partitionId,
               parameters,

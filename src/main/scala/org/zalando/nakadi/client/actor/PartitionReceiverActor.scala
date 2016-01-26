@@ -1,34 +1,43 @@
 package org.zalando.nakadi.client.actor
 
-import java.io.ByteArrayOutputStream
+import java.io.{IOException, ByteArrayOutputStream}
 import java.net.URI
 
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.headers.OAuth2BearerToken
+import akka.http.scaladsl.model.{headers, HttpResponse, HttpRequest}
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Sink, Source, Flow}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.zalando.nakadi.client
 import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.ws.ning.NingWSClient
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 sealed case class Init()
 case class NewListener(listener: ActorRef)
 case class ConnectionOpened(topic: String, partition: String)
+case class ConnectionFailed(topic: String, partition: String, status: Int, error: String)
 case class ConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor])
 
 
 object PartitionReceiver{
   def props(endpoint: URI,
+            port: Int,
             topic: String,
             partitionId: String,
             parameters: ListenParameters,
             tokenProvider: () => String,
             automaticReconnect: Boolean,
             objectMapper: ObjectMapper) =
-    Props(new PartitionReceiver(endpoint, topic, partitionId, parameters, tokenProvider, automaticReconnect, objectMapper) )
+    Props(new PartitionReceiver(endpoint, port, topic, partitionId, parameters, tokenProvider, automaticReconnect, objectMapper) )
 }
 
 class PartitionReceiver (val endpoint: URI,
+                         val port: Int,
                          val topic: String,
                          val partitionId: String,
                          val parameters: ListenParameters,
@@ -37,15 +46,17 @@ class PartitionReceiver (val endpoint: URI,
                          val objectMapper: ObjectMapper)  extends Actor with ActorLogging
 {
 
-  log.info(">>> NEW INSTANCE ")
+  log.info(Thread.currentThread().getId +  " >>> NEW_INSTANCE " + toString)
 
   var listeners: List[ActorRef] = List()
   var lastCursor: Option[Cursor] = None
 
   val wsClient = NingWSClient()
 
+  implicit val materializer = ActorMaterializer()
+
   override def preStart() = {
-    log.info(">>> RESTART --> " + listeners)
+    log.info(Thread.currentThread().getId + " >>> PRESTART --> " + toString)
     self ! Init
   }
 
@@ -58,90 +69,99 @@ class PartitionReceiver (val endpoint: URI,
                                                    parameters.batchFlushTimeoutInSeconds,
                                                    parameters.streamLimit))
     }
-      log.info(">>> INIT --> " + listeners)
+      log.info(Thread.currentThread().getId + " >>> INIT --> " + toString)
     case NewListener(listener) => listeners = listeners ++ List(listener)
     case streamEvent: SimpleStreamEvent => streamEvent.events.foreach{event =>
         lastCursor = Some(streamEvent.cursor)
-        listeners.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
+        listeners.foreach(listener => {
+          log.debug(s"notifying [listener=$listener] about [topic=$topic, partitionId=$partitionId, streamEvent.cursor=${streamEvent.cursor}}, event=$event]")
+          listener ! Tuple4(topic, partitionId, streamEvent.cursor, event)
+        })
     }
   }
+
 
   // TODO check earlier ListenParameters
   // TODO what about closing connections?
   def listen(parameters: ListenParameters) =
-    wsClient.url(String.format(endpoint + client.URI_EVENT_LISTENING,
-                               topic,
-                               partitionId,
-                               parameters.startOffset.getOrElse(throw new IllegalStateException("no startOffset set")),
-                               parameters.batchLimit.getOrElse(throw new IllegalStateException("no batchLimit set")).toString,
-                               parameters.batchFlushTimeoutInSeconds.getOrElse(throw new IllegalStateException("no batchFlushTimeoutInSeconds set")).toString,
-                               parameters.streamLimit.getOrElse(throw new IllegalStateException("no streamLimit set")).toString))
-            .withHeaders (("Authorization", "Bearer " + tokenProvider.apply()) ,
-                          ("Content-Type",  "application/json"))
-            .getStream()
-            .map{
-              case (response, body) => {
-                    if(response.status < 200 || response.status > 299) {
-                      log.warning("could not listen for events on [topic={}, partition={}] -> [response.status={}] -> restarting",
-                                  topic, partitionId, response.status)
-                      listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
-
-                      if(automaticReconnect) {
-                        log.info("initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
-                        self ! Init
-                      }
-                    }
-                    else {
-                      listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
-
-                      // TODO more functional logic
-
-                      val bout = new ByteArrayOutputStream(1024)
-
-                      /*
-                       * We can not simply rely on EOL for the end of each JSON object as
-                       * Nakadi puts the in the middle of the response body sometimes.
-                       * For this reason, we need to apply some very simple JSON parsing logic.
-                       *
-                       * See also http://json.org/ for string parsing semantics
-                       */
-                      var stack: Int = 0
-                      var hasOpenString: Boolean = false
-
-                      body |>>> Iteratee.foreach[Array[Byte]] { bytes =>
-                        for(byteItem <- bytes) {
-                          bout.write(byteItem.asInstanceOf[Int])
-
-                          if (byteItem == '"')  hasOpenString = !hasOpenString
-                          else if (!hasOpenString && byteItem == '{')  stack += 1
-                          else if (!hasOpenString && byteItem == '}') {
-                            stack -= 1
-
-                            if (stack == 0 && bout.size != 0) {
-                              val streamEvent = objectMapper.readValue(bout.toByteArray, classOf[SimpleStreamEvent])
-                              log.debug("received [streamingEvent={}]", streamEvent)
-
-                              if(Option(streamEvent.events).isDefined && ! streamEvent.events.isEmpty)
-                                self ! streamEvent
-                              else{
-                                log.debug(s"received empty [streamingEvent={}] --> ignored", streamEvent)
-                              }
-                              bout.reset()
-                            }
-                          }
-                        }
-                      }
-        }
-      }
+    Source.single(
+        HttpRequest(uri = requestUri(parameters))
+          .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply()))))
+      .via(Http(context.system).outgoingConnection(endpoint.toString.replace("http://", ""), port))
+      .runWith(Sink.foreach(response =>
+          response.status match {
+            case status if status.isSuccess => {
+              listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
+              consumeStream(response)
             }
-            .map { x =>
-              log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
-              listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
-              if(automaticReconnect) {
-                log.info(s"[automaticReconnect=$automaticReconnect] -> reconnecting")
+            case status =>
+              listeners.foreach(_ ! ConnectionFailed(topic, partitionId, response.status.intValue(), response.entity.toString))
+
+              if (automaticReconnect) {
+                log.info(">>> RESTART initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
                 self ! Init
               }
+          })
+      )
+      .onComplete(_ => {
+        log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
+        listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
+        if (automaticReconnect) {
+          log.info(s">>> RESTART  [automaticReconnect=$automaticReconnect] -> reconnecting")
+          self ! Init
+        }
+      })
+
+
+  def requestUri(parameters: ListenParameters) =
+    String.format(client.URI_EVENT_LISTENING,
+      topic,
+      partitionId,
+      parameters.startOffset.getOrElse(throw new IllegalStateException("no startOffset set")),
+      parameters.batchLimit.getOrElse(throw new IllegalStateException("no batchLimit set")).toString,
+      parameters.batchFlushTimeoutInSeconds.getOrElse(throw new IllegalStateException("no batchFlushTimeoutInSeconds set")).toString,
+      parameters.streamLimit.getOrElse(throw new IllegalStateException("no streamLimit set")).toString)
+
+
+  def consumeStream(response: HttpResponse) = {
+    /*
+     * We can not simply rely on EOL for the end of each JSON object as
+     * Nakadi puts the in the middle of the response body sometimes.
+     * For this reason, we need to apply some very simple JSON parsing logic.
+     *
+     * See also http://json.org/ for string parsing semantics
+     */
+    var stack: Int = 0
+    var hasOpenString: Boolean = false
+    val bout = new ByteArrayOutputStream(1024)
+
+    response.entity.dataBytes.runForeach {
+      byteString => {
+        byteString.foreach(byteItem => {
+          bout.write(byteItem.asInstanceOf[Int])
+
+          if (byteItem == '"') hasOpenString = !hasOpenString
+          else if (!hasOpenString && byteItem == '{') stack += 1
+          else if (!hasOpenString && byteItem == '}') {
+            stack -= 1
+
+            if (stack == 0 && bout.size != 0) {
+              val streamEvent = objectMapper.readValue(bout.toByteArray, classOf[SimpleStreamEvent])
+
+              if (Option(streamEvent.events).isDefined && !streamEvent.events.isEmpty){
+                println(s"RECEIVED streamEvent=$streamEvent")
+                self ! streamEvent
+              }
+              else
+                log.debug(s"received empty [streamingEvent={}] --> ignored", streamEvent)
+
+              bout.reset()
             }
+          }
+        })
+      }
+    }
+  }
 
 
   override def toString = s"PartitionReceiver(listeners=$listeners, lastCursor=$lastCursor, endpoint=$endpoint, topic=$topic, partitionId=$partitionId, parameters=$parameters, automaticReconnect=$automaticReconnect)"

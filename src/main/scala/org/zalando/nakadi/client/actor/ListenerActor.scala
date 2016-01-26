@@ -9,9 +9,13 @@ object ListenerActor{
 
 class ListenerActor(val listener: Listener) extends Actor with ActorLogging{
   override def receive: Receive = {
-    case (topic: String, partition: String, cursor: Cursor, event: Event) => listener.onReceive(topic, partition, cursor, event)
-    case ConnectionOpened(topic: String, partition: String) => listener.onConnectionOpened(topic, partition)
-    case ConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor]) => listener.onConnectionClosed(topic, partition, lastCursor)
+    case (topic: String, partition: String, cursor: Cursor, event: Event) => {
+      log.debug(s"received [topic=$topic, partition=$partition, cursor=$cursor, event=$event]")
+      listener.onReceive(topic, partition, cursor, event)
+    }
+    case ConnectionOpened(topic, partition) => listener.onConnectionOpened(topic, partition)
+    case ConnectionClosed(topic, partition, lastCursor) => listener.onConnectionClosed(topic, partition, lastCursor)
+    case ConnectionFailed(topic, partition, status, error) => listener.onConnectionFailed(topic, partition, status, error)
   }
 
 }

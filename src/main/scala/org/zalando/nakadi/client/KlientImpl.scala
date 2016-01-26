@@ -12,14 +12,14 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
+protected class KlientImpl(val endpoint: URI, val port:Int, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   checkNotNull(objectMapper, "objectMapper must not be null")
 
   val wsClient = NingWSClient()
   val system = ActorSystem("nakadi-client")
-  val supervisor = system.actorOf(KlientSupervisor.props(endpoint, tokenProvider, objectMapper))
+  val supervisor = system.actorOf(KlientSupervisor.props(endpoint, port, tokenProvider, objectMapper))
 
   def checkNotNull(subject: Any, message: String) = if(Option(subject).isEmpty) throw new IllegalArgumentException(message)
   def checkExists(subject: Option[Any], message: String) = if(subject.isEmpty) throw new IllegalArgumentException(message)
@@ -54,7 +54,8 @@ protected class KlientImpl(val endpoint: URI, val tokenProvider: () => String, v
 
 
   private def performDefaultGetRequest[T](uriPart: String, expectedType: TypeReference[T]): Future[Either[String, T]] =
-    createDefaultRequest(endpoint.toString + uriPart)
+   // TODO fix it + replcace current ws client with akka
+    createDefaultRequest(endpoint.toString + ":" + port + uriPart)
             .get()
             .map(evaluateResponse(_, expectedType))
 
