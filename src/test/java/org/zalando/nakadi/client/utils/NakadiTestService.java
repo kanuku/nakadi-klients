@@ -13,7 +13,6 @@ import io.undertow.util.HeaderMap;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpStatus;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,7 +59,7 @@ public class NakadiTestService {
                         final Handler handler = handlerMap.get(receivedRequestPath);
                         if(handler == null || ! Objects.equals(handler.getRequestMethod(), receivedRequestMethod)) {
                             exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, handler.getResponseContentType());
-                            exchange.setResponseCode(HttpStatus.SC_NOT_FOUND);
+                         //   exchange.setResponseCode(HttpStatus.SC_NOT_FOUND);
                             exchange.getResponseSender().send("invalid request: " + receivedRequestPath + " with request method: " + receivedRequestMethod);
                         }
                         else {

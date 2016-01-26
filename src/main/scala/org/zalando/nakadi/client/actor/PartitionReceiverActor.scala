@@ -12,8 +12,6 @@ import akka.stream.scaladsl.{Sink, Source, Flow}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.zalando.nakadi.client
 import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
-import play.api.libs.iteratee.Iteratee
-import play.api.libs.ws.ning.NingWSClient
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -47,8 +45,6 @@ class PartitionReceiver (val endpoint: URI,
 {
   var listeners: List[ActorRef] = List()
   var lastCursor: Option[Cursor] = None
-
-  val wsClient = NingWSClient()
 
   implicit val materializer = ActorMaterializer()
 

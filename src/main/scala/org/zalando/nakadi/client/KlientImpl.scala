@@ -1,14 +1,20 @@
 package org.zalando.nakadi.client
 
-import java.net.{ConnectException, URI}
+import java.net.URI
 
 import akka.actor._
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.HttpMethods.POST
+import akka.http.scaladsl.model.headers.OAuth2BearerToken
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.unmarshalling.Unmarshaller
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Sink, Source}
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.zalando.nakadi.client.actor._
-import play.api.libs.ws.ning.NingWSClient
-import play.api.libs.ws._
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
@@ -17,9 +23,10 @@ protected class KlientImpl(val endpoint: URI, val port:Int, val tokenProvider: (
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   checkNotNull(objectMapper, "objectMapper must not be null")
 
-  val wsClient = NingWSClient()
-  val system = ActorSystem("nakadi-client")
+  implicit val system = ActorSystem("nakadi-client")
   val supervisor = system.actorOf(KlientSupervisor.props(endpoint, port, tokenProvider, objectMapper))
+
+  implicit val materializer = ActorMaterializer()
 
   def checkNotNull(subject: Any, message: String) = if(Option(subject).isEmpty) throw new IllegalArgumentException(message)
   def checkExists(subject: Option[Any], message: String) = if(subject.isEmpty) throw new IllegalArgumentException(message)
@@ -35,12 +42,6 @@ protected class KlientImpl(val endpoint: URI, val port:Int, val tokenProvider: (
                                             performDefaultGetRequest(URI_METRICS, new TypeReference[Map[String, Any]]{})
 
 
-  private def createDefaultRequest(url:String):  WSRequest =
-    wsClient.url(url)
-      .withHeaders (("Authorization", "Bearer " + tokenProvider.apply()) ,
-      ("Content-Type", "application/json"))
-
-
   /**
    * Get partition information of a given topic
    *
@@ -53,19 +54,26 @@ protected class KlientImpl(val endpoint: URI, val port:Int, val tokenProvider: (
   }
 
 
-  private def performDefaultGetRequest[T](uriPart: String, expectedType: TypeReference[T]): Future[Either[String, T]] =
-   // TODO fix it + replcace current ws client with akka
-    createDefaultRequest(endpoint.toString + ":" + port + uriPart)
-            .get()
-            .map(evaluateResponse(_, expectedType))
+  private def performDefaultGetRequest[T](uriPart: String, expectedType: TypeReference[T]): Future[Either[String, T]] = {
+  Source.single(
+    HttpRequest(uri = uriPart)
+      .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply()))))
+    .via(Http(system).outgoingConnectionTls(endpoint.toString, port))
+    .runWith(Sink.head)
+   .map(evaluateResponse(_, expectedType))
+ }
 
 
-  private def evaluateResponse[T](response: WSResponse, expectedType: TypeReference[T]) :Either[String,T] = {
-    if(response.status < 200 || response.status > 299)
-      Left(response.status + " - " + response.body)
+
+  private def evaluateResponse[T](response: HttpResponse, expectedType: TypeReference[T]) :Either[String,T] =
+    if(response.status.intValue() < 200 || response.status.intValue() > 299)
+      Left(response.status + " - " + response.entity)
     else
-      Right(objectMapper.readValue[T](response.bodyAsBytes, expectedType))
-  }
+      // TODO better way?
+      Await.result(
+        Unmarshaller.byteArrayUnmarshaller(response.entity).map(bytes => {
+          Right(objectMapper.readValue[T](bytes, expectedType))
+      }), Duration.Inf)
 
 
   /**
@@ -158,9 +166,17 @@ protected class KlientImpl(val endpoint: URI, val port:Int, val tokenProvider: (
   private def performEventPost(uriPart: String, event: Event): Future[Option[String]] = {
     checkNotNull(event, "event must not be null")
 
-    createDefaultRequest(endpoint + uriPart)
-      .post( objectMapper.writeValueAsString(event))
-      .map(response => if(response.status < 200 || response.status > 299) Some(response.statusText) else None)
+    Source.single(
+      HttpRequest(uri = uriPart, method = POST)
+        .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply()))).withEntity(
+          ContentType(MediaTypes.`application/json`),
+          objectMapper.writeValueAsBytes(event)
+        ))
+      .via(Http(system).outgoingConnection(endpoint.toString, port))
+      .runWith(Sink.head)
+      .map(response => if(response.status.intValue() < 200 || response.status.intValue() > 299)
+            Some(response.entity.dataBytes.toString) else None)
+    // TODO check entity handling
   }
 
 

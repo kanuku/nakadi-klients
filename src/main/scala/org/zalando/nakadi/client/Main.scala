@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
 import com.fasterxml.jackson.databind._
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.zalando.nakadi.client.actor.{ConnectionOpened, ConnectionClosed}
-import play.api.libs.iteratee.Iteratee
 
 import scala.concurrent.Await
 import akka.http.scaladsl.Http
@@ -39,9 +38,9 @@ object Main {
   def main (args: Array[String]) {
 
     val klient = KlientBuilder()
-      .withEndpoint(new URI("http://localhost"))
+      .withEndpoint(new URI("eventstore-laas.laas.zalan.do")) // eventstore-laas.laas.zalan.do
       .withPort(8080)
-      .withTokenProvider(() => "").build()
+      .withTokenProvider(() => "6165764c-05cc-4d32-9ede-64bede084b51").build()
 
     val listener = new Listener {
 
@@ -54,7 +53,7 @@ object Main {
       override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = println(s"connection failed [topic=$topic, partition=$partition, status=$status, error=$error]")
     }
 
-    klient.subscribeToTopic("test", ListenParameters(Some("0")), listener, true)
+    klient.subscribeToTopic("items", ListenParameters(Some("0")), listener, true)
 
     Thread.sleep(Long.MaxValue)
 
