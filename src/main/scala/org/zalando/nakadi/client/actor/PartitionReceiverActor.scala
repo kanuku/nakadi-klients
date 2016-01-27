@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.model.{MediaRange, headers, HttpResponse, HttpRequest}
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Sink, Source, Flow}
+import akka.stream.scaladsl.{Sink, Source}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.zalando.nakadi.client
 import org.zalando.nakadi.client.Utils.outgoingHttpConnection
@@ -65,14 +65,12 @@ class PartitionReceiver (val endpoint: URI,
                                                    parameters.batchFlushTimeoutInSeconds,
                                                    parameters.streamLimit))
     }
-    case NewListener(listenerId, listener) => {
-      listeners = listeners + ((listenerId, listener))
-    }
+    case NewListener(listenerId, listener) => listeners = listeners + ((listenerId, listener))
     case streamEvent: SimpleStreamEvent => streamEvent.events.foreach{event =>
-        lastCursor = Some(streamEvent.cursor)
-        listeners.values.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
+      lastCursor = Some(streamEvent.cursor)
+      listeners.values.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
     }
-    case Unsubscription(topic, listener) => if(topic == this.topic) listeners -= listener.id
+    case Unsubscription(_topic, _listener) => if(_topic == topic) listeners -= _listener.id
   }
 
 
@@ -93,10 +91,9 @@ class PartitionReceiver (val endpoint: URI,
         .via(outgoingHttpConnection(endpoint, port, securedConnection)(context.system))
         .runWith(Sink.foreach(response =>
         response.status match {
-          case status if status.isSuccess => {
+          case status if status.isSuccess() =>
             listeners.values.foreach(_ ! ConnectionOpened(topic, partitionId))
             consumeStream(response)
-          }
           case status =>
             listeners.values.foreach(_ ! ConnectionFailed(topic, partitionId, response.status.intValue(), response.entity.toString))
             reconnectIfActivated()
@@ -104,7 +101,13 @@ class PartitionReceiver (val endpoint: URI,
         .onComplete(_ => {
           log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
           listeners.values.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
-          reconnectIfActivated()
+
+          if(automaticReconnect) reconnectIfActivated()
+          else {
+            log.info("stream to [topic={}, partition={}] has been closed and [automaticReconnect={}] -> shutting down",
+                     topic, partitionId, automaticReconnect)
+            self ! PoisonPill.getInstance
+          }
       })
     }
   }
