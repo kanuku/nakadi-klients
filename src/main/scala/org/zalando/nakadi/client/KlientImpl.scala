@@ -1,9 +1,10 @@
 package org.zalando.nakadi.client
 
 import java.net.URI
+import javax.net.ssl.SSLContext
 
 import akka.actor._
-import akka.http.scaladsl.Http
+import akka.http.scaladsl.{HttpsContext, Http}
 import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.model._
@@ -12,19 +13,20 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.zalando.nakadi.client.Utils.outgoingHttpConnection
 import org.zalando.nakadi.client.actor._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-protected class KlientImpl(val endpoint: URI, val port:Int, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
+protected class KlientImpl(val endpoint: URI, val port:Int,val securedConnection: Boolean, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   checkNotNull(objectMapper, "objectMapper must not be null")
 
   implicit val system = ActorSystem("nakadi-client")
-  val supervisor = system.actorOf(KlientSupervisor.props(endpoint, port, tokenProvider, objectMapper))
+  val supervisor = system.actorOf(KlientSupervisor.props(endpoint, port, securedConnection, tokenProvider, objectMapper))
 
   implicit val materializer = ActorMaterializer()
 
@@ -54,26 +56,30 @@ protected class KlientImpl(val endpoint: URI, val port:Int, val tokenProvider: (
   }
 
 
-  private def performDefaultGetRequest[T](uriPart: String, expectedType: TypeReference[T]): Future[Either[String, T]] = {
-  Source.single(
+  private def performDefaultGetRequest[T](uriPart: String, expectedType: TypeReference[T]): Future[Either[String, T]] =
+    Source.single(
     HttpRequest(uri = uriPart)
       .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply()))))
-    .via(Http(system).outgoingConnectionTls(endpoint.toString, port))
+    .via(outgoingHttpConnection(endpoint, port, securedConnection))
     .runWith(Sink.head)
    .map(evaluateResponse(_, expectedType))
- }
 
 
 
-  private def evaluateResponse[T](response: HttpResponse, expectedType: TypeReference[T]) :Either[String,T] =
+
+  private def evaluateResponse[T](response: HttpResponse, expectedType: TypeReference[T]) :Either[String,T] = {
+    println("RESPNSE --> " + response)
+
     if(response.status.intValue() < 200 || response.status.intValue() > 299)
       Left(response.status + " - " + response.entity)
     else
-      // TODO better way?
+    // TODO better way?
       Await.result(
         Unmarshaller.byteArrayUnmarshaller(response.entity).map(bytes => {
           Right(objectMapper.readValue[T](bytes, expectedType))
-      }), Duration.Inf)
+        }), Duration.Inf)
+
+  }
 
 
   /**
@@ -172,7 +178,7 @@ protected class KlientImpl(val endpoint: URI, val port:Int, val tokenProvider: (
           ContentType(MediaTypes.`application/json`),
           objectMapper.writeValueAsBytes(event)
         ))
-      .via(Http(system).outgoingConnection(endpoint.toString, port))
+      .via(outgoingHttpConnection(endpoint, port, securedConnection))
       .runWith(Sink.head)
       .map(response => if(response.status.intValue() < 200 || response.status.intValue() > 299)
             Some(response.entity.dataBytes.toString) else None)

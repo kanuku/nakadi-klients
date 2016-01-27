@@ -38,9 +38,10 @@ object Main {
   def main (args: Array[String]) {
 
     val klient = KlientBuilder()
-      .withEndpoint(new URI("eventstore-laas.laas.zalan.do")) // eventstore-laas.laas.zalan.do
-      .withPort(8080)
-      .withTokenProvider(() => "6165764c-05cc-4d32-9ede-64bede084b51").build()
+      .withEndpoint(new URI("eventstore-laas.laas.zalan.do"))
+      .withPort(443)
+      .withSecuredConnection()
+      .withTokenProvider(() => "<my token>").build()
 
     val listener = new Listener {
 

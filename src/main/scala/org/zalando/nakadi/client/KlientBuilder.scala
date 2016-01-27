@@ -8,11 +8,11 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.typesafe.scalalogging.LazyLogging
 
 object KlientBuilder{
-  def apply(endpoint: URI = null, port: Int = 8080, tokenProvider: () => String = null, objectMapper: ObjectMapper = null) =
-      new KlientBuilder(endpoint, port, tokenProvider, objectMapper)
+  def apply(endpoint: URI = null, port: Int = 8080, securedConnection: Boolean = false, tokenProvider: () => String = null, objectMapper: ObjectMapper = null) =
+      new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)
 }
 
-class KlientBuilder(val endpoint: URI = null, val port: Int, val tokenProvider: () => String = null, val objectMapper: ObjectMapper = null)
+class KlientBuilder(val endpoint: URI = null, val port: Int, val securedConnection: Boolean, val tokenProvider: () => String = null, val objectMapper: ObjectMapper = null)
   extends LazyLogging
 {
   private def checkNotNull[T](subject: T): T =
@@ -24,19 +24,23 @@ class KlientBuilder(val endpoint: URI = null, val port: Int, val tokenProvider: 
 
 
   def withEndpoint(endpoint: URI): KlientBuilder =
-                                new KlientBuilder(checkNotNull(endpoint), port, tokenProvider, objectMapper)
+                                new KlientBuilder(checkNotNull(endpoint), port, securedConnection, tokenProvider, objectMapper)
 
 
   def withTokenProvider(tokenProvider: () => String): KlientBuilder =
-                                new KlientBuilder(endpoint, port, checkNotNull(tokenProvider), objectMapper)
+                                new KlientBuilder(endpoint, port, securedConnection, checkNotNull(tokenProvider), objectMapper)
 
   // TODO param check
-  def withPort(port: Int): KlientBuilder = new KlientBuilder(endpoint, port, tokenProvider, objectMapper)
+  def withPort(port: Int): KlientBuilder = new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)
+
+
+  def withSecuredConnection(securedConnection: Boolean = true) = new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)
+
 
   def withObjectMapper(objectMapper: ObjectMapper): KlientBuilder =  {
     checkNotNull(objectMapper)
     objectMapper.registerModule(new DefaultScalaModule)
-    new KlientBuilder(endpoint, port, tokenProvider, objectMapper)
+    new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)
   }
 
 
@@ -59,6 +63,7 @@ class KlientBuilder(val endpoint: URI = null, val port: Int, val tokenProvider: 
   def build(): Klient = new KlientImpl(
                   checkState(endpoint,      (s: URI) => Option(s).isDefined, "endpoint is not set -> try withEndpoint()"),
                   checkState(port, (s: Int) => port > 0, s"port $port is invalid"),
+                  securedConnection,
                   checkState(tokenProvider, (s: () => String) => Option(s).isDefined, "tokenProvider is not set -> try withTokenProvider()"),
                   Option(objectMapper).getOrElse(defaultObjectMapper)
   )

@@ -11,7 +11,8 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source, Flow}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.zalando.nakadi.client
-import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
+import org.zalando.nakadi.client.Utils.outgoingHttpConnection
+import org.zalando.nakadi.client.{Utils, Cursor, SimpleStreamEvent, ListenParameters}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -25,17 +26,19 @@ case class ConnectionClosed(topic: String, partition: String, lastCursor: Option
 object PartitionReceiver{
   def props(endpoint: URI,
             port: Int,
+            securedConnection: Boolean,
             topic: String,
             partitionId: String,
             parameters: ListenParameters,
             tokenProvider: () => String,
             automaticReconnect: Boolean,
             objectMapper: ObjectMapper) =
-    Props(new PartitionReceiver(endpoint, port, topic, partitionId, parameters, tokenProvider, automaticReconnect, objectMapper) )
+    Props(new PartitionReceiver(endpoint, port, securedConnection, topic, partitionId, parameters, tokenProvider, automaticReconnect, objectMapper) )
 }
 
 class PartitionReceiver (val endpoint: URI,
                          val port: Int,
+                         val securedConnection: Boolean,
                          val topic: String,
                          val partitionId: String,
                          val parameters: ListenParameters,
@@ -74,7 +77,7 @@ class PartitionReceiver (val endpoint: URI,
     Source.single(
         HttpRequest(uri = requestUri(parameters))
           .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply()))))
-      .via(Http(context.system).outgoingConnection(endpoint.toString.replace("http://", ""), port))
+      .via(outgoingHttpConnection(endpoint, port, securedConnection)(context.system))
       .runWith(Sink.foreach(response =>
           response.status match {
             case status if status.isSuccess => {
