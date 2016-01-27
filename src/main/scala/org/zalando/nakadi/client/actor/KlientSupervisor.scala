@@ -12,15 +12,17 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
+sealed case class ListenersChanged(listenerMap: Map[String, (List[ActorRef], ActorRef)])
+
+sealed case class RegisterListener(topic: String, partitionId: String, listener: Listener, receiverActor: ActorRef)
+
 case class NewSubscription(topic: String,
                            partitionId: String,
                            parameters: ListenParameters,
                            autoReconnect: Boolean,
                            listener: Listener)
 
-case class Unsubscription(topic: String,
-                          partitionId: String,
-                          listener: Listener)
+case class Unsubscription(topic: String, listener: Listener)
 
 object KlientSupervisor{
   def props(endpoint: URI, port: Int, securedConnection: Boolean, tokenProvider: () => String, objectMapper: ObjectMapper) =
@@ -36,21 +38,19 @@ class KlientSupervisor(val endpoint: URI, val port: Int, val securedConnection: 
 
   override val supervisorStrategy =
     AllForOneStrategy(maxNrOfRetries = 100, withinTimeRange = 5 minutes) {
-      case e: ArithmeticException      => println("xxx ARITHMETIC"); Resume
-      case e: NullPointerException     => println("xxx NULLPOINTER"); Restart
-      case e: IllegalArgumentException => println("xxx ILLEGAL"); Stop
-      case e: Exception                => println("xxx ANY EXC"); e.printStackTrace(); Resume//Escalate
+      case e: ArithmeticException      => Resume
+      case e: NullPointerException     => Restart
+      case e: IllegalArgumentException => Stop
+      case e: Exception                => Resume
     }
 
-
-  var listenerActorPathToReceiverAndListenerMap = Map[String, (ActorRef, ActorRef)]()
 
 
   override def receive: Receive = {
     case NewSubscription(topic, partitionId, parameters, autoReconnect, listener) => {
-      resolveActor(s"/user/partition-$partitionId").onComplete(_ match {
-        case Success(receiverActor) => registerListener(topic, partitionId, listener, receiverActor)
-        case Failure(e: ActorNotFound) =>
+      resolveActor("partition-" + partitionId).onComplete(_ match {
+        case Success(receiverActor) => receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(topic, listener)))
+        case Failure(e: ActorNotFound) => {
           val receiverActor = context.actorOf(
             PartitionReceiver.props(endpoint,
               port,
@@ -62,46 +62,19 @@ class KlientSupervisor(val endpoint: URI, val port: Int, val securedConnection: 
               autoReconnect,
               objectMapper),
             s"partition-$partitionId")
-          registerListener(topic, partitionId, listener, receiverActor)
+          receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(topic, listener)))
+        }
         case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
       })
-    }
-    case Unsubscription(topic, partitionId, listener) => {
-      unregisterListener(topic, partitionId, listener)
     }
   }
 
 
-  def asListenerPath(topic: String, partitionId: String, listener: Listener): String = s"$topic-$partitionId-${listener.id}"
+  def asListenerPath(topic: String, listener: Listener): String = s"$topic-${listener.id}"
 
 
   def resolveActor(actorSelectionPath: String): Future[ActorRef] = {
     val receiverSelection = context.actorSelection(actorSelectionPath)
     receiverSelection.resolveOne()(Timeout(1L, TimeUnit.SECONDS))
-  }
-
-
-  def registerListener(topic: String, partitionId: String, listener: Listener, receiverActor: ActorRef) = {
-    val listenerPath: String = asListenerPath(topic, partitionId, listener)
-    val listenerActor = context.actorOf(ListenerActor.props(listener), listenerPath)
-    receiverActor ! NewListener(listenerActor)
-    listenerActorPathToReceiverAndListenerMap =
-                                listenerActorPathToReceiverAndListenerMap ++ Map((listenerPath, (receiverActor, listenerActor)))
-  }
-
-
-  def unregisterListener(topic: String, partitionId: String, listener: Listener) = {
-    val listenerPath = asListenerPath(topic, partitionId, listener)
-    listenerActorPathToReceiverAndListenerMap.get(listenerPath) match {
-      case Some((listenerActor, receiverActor)) => {
-        receiverActor ! Unregistered(listenerActor)
-        listenerActor ! PoisonPill.getInstance
-        listenerActorPathToReceiverAndListenerMap = listenerActorPathToReceiverAndListenerMap - listenerPath
-        log.debug("unregistered listener for [topic={}, partitionId={}, listener.id={}]", topic, partitionId, listener.id)
-      }
-      case None => log.warning("no listener registered for [topic={}, partitionId={}, listener.id={}]",
-                               topic, partitionId, listener.id )
-    }
-
   }
 }

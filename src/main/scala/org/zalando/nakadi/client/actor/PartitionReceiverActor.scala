@@ -3,7 +3,7 @@ package org.zalando.nakadi.client.actor
 import java.io.ByteArrayOutputStream
 import java.net.URI
 
-import akka.actor.{Props, ActorRef, ActorLogging, Actor}
+import akka.actor._
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.model.{MediaRange, headers, HttpResponse, HttpRequest}
@@ -17,8 +17,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 
 sealed case class Init()
-case class NewListener(listener: ActorRef)
-case class Unregistered(listener: ActorRef)
+case class NewListener(listenerId: String, listener: ActorRef)
 case class ConnectionOpened(topic: String, partition: String)
 case class ConnectionFailed(topic: String, partition: String, status: Int, error: String)
 case class ConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor])
@@ -47,12 +46,14 @@ class PartitionReceiver (val endpoint: URI,
                          val automaticReconnect: Boolean,
                          val objectMapper: ObjectMapper)  extends Actor with ActorLogging
 {
-  var listeners: List[ActorRef] = List()
+  var listeners: Map[String, ActorRef] = Map()
+
   var lastCursor: Option[Cursor] = None
   implicit val materializer = ActorMaterializer()
 
   val RECEIVE_BUFFER_SIZE: Int = 1024
 
+  context.system.eventStream.subscribe(self, classOf[Unsubscription])
 
   override def preStart() = self ! Init
 
@@ -64,12 +65,14 @@ class PartitionReceiver (val endpoint: URI,
                                                    parameters.batchFlushTimeoutInSeconds,
                                                    parameters.streamLimit))
     }
-    case NewListener(listener) => listeners = listeners ++ List(listener)
+    case NewListener(listenerId, listener) => {
+      listeners = listeners + ((listenerId, listener))
+    }
     case streamEvent: SimpleStreamEvent => streamEvent.events.foreach{event =>
         lastCursor = Some(streamEvent.cursor)
-        listeners.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
+        listeners.values.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
     }
-    case Unregistered(listener) => listeners = listeners.filterNot(_ == listener)
+    case Unsubscription(topic, listener) => if(topic == this.topic) listeners -= listener.id
   }
 
 
@@ -79,36 +82,43 @@ class PartitionReceiver (val endpoint: URI,
                       .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply())),
                                    headers.Accept(MediaRange(`application/json`)))
 
-    log.debug("listening via [request={}]", request)
-
-    Source
-      .single(request)
-      .via(outgoingHttpConnection(endpoint, port, securedConnection)(context.system))
-      .runWith(Sink.foreach(response =>
-      response.status match {
-        case status if status.isSuccess => {
-          listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
-          consumeStream(response)
-        }
-        case status =>
-          listeners.foreach(_ ! ConnectionFailed(topic, partitionId, response.status.intValue(), response.entity.toString))
-
-          if (automaticReconnect) {
-            log.info("initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
-            self ! Init
+    if(listeners.isEmpty) {
+      log.info("no listeners registered -> not establishing connection to Nakadi")
+      reconnectIfActivated(30) // TODO make configurable
+    }
+    else {
+      log.debug("listening via [request={}]", request)
+      Source
+        .single(request)
+        .via(outgoingHttpConnection(endpoint, port, securedConnection)(context.system))
+        .runWith(Sink.foreach(response =>
+        response.status match {
+          case status if status.isSuccess => {
+            listeners.values.foreach(_ ! ConnectionOpened(topic, partitionId))
+            consumeStream(response)
           }
-      })
-      )
-      .onComplete(_ => {
+          case status =>
+            listeners.values.foreach(_ ! ConnectionFailed(topic, partitionId, response.status.intValue(), response.entity.toString))
+            reconnectIfActivated()
+        }))
+        .onComplete(_ => {
           log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
-          listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
-          if (automaticReconnect) {
-            log.info(s"[automaticReconnect=$automaticReconnect] -> reconnecting")
-            self ! Init
-          }
-    })
+          listeners.values.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
+          reconnectIfActivated()
+      })
+    }
   }
 
+  def reconnectIfActivated(numerOfSeconds: Int = 1) = {
+    if (automaticReconnect) {
+      log.info("[automaticReconnect={}] -> reconnecting", automaticReconnect)
+      import scala.concurrent.duration._
+      import scala.language.postfixOps
+      // TODO make configurable
+      context.system.scheduler.scheduleOnce(numerOfSeconds seconds, self, Init)
+    }
+    else log.info("[automaticReconnect={}] -> no reconnect", automaticReconnect)
+  }
 
   def buildRequestUri(parameters: ListenParameters) =
     String.format(client.URI_EVENT_LISTENING,

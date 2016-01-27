@@ -29,7 +29,8 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
   checkNotNull(objectMapper, "objectMapper must not be null")
 
   implicit val system = ActorSystem("nakadi-client")
-  val supervisor = system.actorOf(KlientSupervisor.props(endpoint, port, securedConnection, tokenProvider, objectMapper))
+  val supervisor = system.actorOf(KlientSupervisor.props(endpoint, port, securedConnection, tokenProvider, objectMapper),
+                                  "klient-supervisor")
 
   implicit val materializer = ActorMaterializer()
 
@@ -166,14 +167,8 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
   }
 
 
-  def unsubscribeTopic(topic: String, listener: Listener): Future[Unit] = {
-    getPartitions(topic).map{_ match {
-      case Left(errorMessage) =>
-        throw new KlientException(s"a problem ocurred while unsubscribing [topic=$topic, errorMessage=$errorMessage]")
-      case Right(partitions: List[TopicPartition]) =>
-        partitions.foreach(p => supervisor ! Unsubscription(topic, p.partitionId, listener))
-    } }
-  }
+  def unsubscribeTopic(topic: String, listener: Listener): Unit = system.eventStream.publish(Unsubscription(topic, listener))
+
 
    /**
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.

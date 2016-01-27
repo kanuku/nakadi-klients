@@ -103,7 +103,7 @@ trait Klient {
 
 
 
-  def unsubscribeTopic(topic: String, listener: Listener): Future[Unit]
+  def unsubscribeTopic(topic: String, listener: Listener): Unit
 
   /**
    * Shuts down the communication system of the client

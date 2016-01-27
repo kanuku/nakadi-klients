@@ -439,14 +439,88 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(1500L)
+      Thread.sleep(1000L)
       service.stop()
       service = null
-      Thread.sleep(1500L)
+      Thread.sleep(1000L)
 
       listener.onConnectionOpened should be > 1
       listener.onConnectionClosed should be > 1
       listener.onConnectionFailed should be > 0
     }
+
+    "unsubscribe listener" in {
+      val topic = "test-topic-1"
+
+      startServiceForEventListening()
+
+      val listener = new TestListener
+
+      Await.ready(
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
+        5 seconds)
+
+      Await.ready(
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
+        5 seconds)
+
+      Thread.sleep(1000L)
+      val receivedEvents = listener.receivedEvents
+
+      klient.unsubscribeTopic(topic, listener)
+
+      service.stop()
+      Thread.sleep(1000L)
+
+
+
+      startServiceForEventListening()
+
+      Thread.sleep(10000L)
+
+      receivedEvents should be(listener.receivedEvents)
+    }
+  }
+
+
+  def startServiceForEventListening() = {
+
+    val partition = TopicPartition("p1", "0", "4")
+    val partition2 = TopicPartition("p2", "1", "1")
+    val partitions = List(partition, partition2)
+    val partitionsAsString = objectMapper.writeValueAsString(partitions)
+
+    val event = Event("type-1",
+      "ARTICLE:123456",
+      Map("tenant-id" -> "234567", "flow-id" -> "123456789"),
+      Map("greeting" -> "hello", "target" -> "world"))
+
+    val streamEvent1 = SimpleStreamEvent(Cursor("p1", "0"), List(event), List())
+
+    val streamEvent1AsString = objectMapper.writeValueAsString(streamEvent1) + "\n"
+
+    val topic = "test-topic-1"
+    val partitionsRequestPath = s"/topics/$topic/partitions"
+    val partition1EventsRequestPath = s"/topics/$topic/partitions/p1/events"
+
+    val httpMethod = new HttpString("GET")
+    val statusCode = 200
+
+    val builder = new Builder()
+    service = builder.withHost(HOST)
+      .withPort(PORT)
+      .withHandler(partitionsRequestPath)
+      .withRequestMethod(httpMethod)
+      .withResponseContentType(MEDIA_TYPE)
+      .withResponseStatusCode(statusCode)
+      .withResponsePayload(partitionsAsString)
+      .and
+      .withHandler(partition1EventsRequestPath)
+      .withRequestMethod(httpMethod)
+      .withResponseContentType(MEDIA_TYPE)
+      .withResponseStatusCode(statusCode)
+      .withResponsePayload(streamEvent1AsString)
+      .build
+    service.start()
   }
 }
