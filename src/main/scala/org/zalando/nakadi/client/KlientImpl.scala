@@ -148,23 +148,32 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
    * @param listener  listener consuming all received events
    */
   // TODO earlier parameter check
-  override def subscribeToTopic(topic: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean): Unit = {
+  override def subscribeToTopic(topic: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean): Future[Unit] = {
     getPartitions(topic).map{_ match {
       case Left(errorMessage) =>
           throw new KlientException(s"a problem ocurred while subscribing to [topic=$topic, errorMessage=$errorMessage]")
-      case Right(topics: List[TopicPartition]) =>
-          topics.foreach(p => listenForEvents(topic,
-                                              p.partitionId,
-                                              ListenParameters(
-                                                Option(p.newestAvailableOffset),
-                                                parameters.batchLimit,
-                                                parameters.batchFlushTimeoutInSeconds,
-                                                parameters.streamLimit),
-                                              listener,
-                                              autoReconnect))
+      case Right(partitions: List[TopicPartition]) =>
+          partitions.foreach(p => listenForEvents(topic,
+                                                  p.partitionId,
+                                                  ListenParameters(
+                                                    Option(p.newestAvailableOffset),
+                                                    parameters.batchLimit,
+                                                    parameters.batchFlushTimeoutInSeconds,
+                                                    parameters.streamLimit),
+                                                  listener,
+                                                  autoReconnect))
     } }
   }
 
+
+  def unsubscribeTopic(topic: String, listener: Listener): Future[Unit] = {
+    getPartitions(topic).map{_ match {
+      case Left(errorMessage) =>
+        throw new KlientException(s"a problem ocurred while unsubscribing [topic=$topic, errorMessage=$errorMessage]")
+      case Right(partitions: List[TopicPartition]) =>
+        partitions.foreach(p => supervisor ! Unsubscription(topic, p.partitionId, listener))
+    } }
+  }
 
    /**
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.

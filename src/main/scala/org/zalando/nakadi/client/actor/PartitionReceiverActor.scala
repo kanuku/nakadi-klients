@@ -1,10 +1,9 @@
 package org.zalando.nakadi.client.actor
 
-import java.io.{IOException, ByteArrayOutputStream}
+import java.io.ByteArrayOutputStream
 import java.net.URI
 
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.model.{MediaRange, headers, HttpResponse, HttpRequest}
@@ -13,12 +12,13 @@ import akka.stream.scaladsl.{Sink, Source, Flow}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.zalando.nakadi.client
 import org.zalando.nakadi.client.Utils.outgoingHttpConnection
-import org.zalando.nakadi.client.{Utils, Cursor, SimpleStreamEvent, ListenParameters}
+import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+
 
 sealed case class Init()
 case class NewListener(listener: ActorRef)
+case class Unregistered(listener: ActorRef)
 case class ConnectionOpened(topic: String, partition: String)
 case class ConnectionFailed(topic: String, partition: String, status: Int, error: String)
 case class ConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor])
@@ -49,8 +49,10 @@ class PartitionReceiver (val endpoint: URI,
 {
   var listeners: List[ActorRef] = List()
   var lastCursor: Option[Cursor] = None
-
   implicit val materializer = ActorMaterializer()
+
+  val RECEIVE_BUFFER_SIZE: Int = 1024
+
 
   override def preStart() = self ! Init
 
@@ -67,12 +69,13 @@ class PartitionReceiver (val endpoint: URI,
         lastCursor = Some(streamEvent.cursor)
         listeners.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
     }
+    case Unregistered(listener) => listeners = listeners.filterNot(_ == listener)
   }
 
 
   // TODO check earlier ListenParameters
   def listen(parameters: ListenParameters) = {
-    val request = HttpRequest(uri = requestUri(parameters))
+    val request = HttpRequest(uri = buildRequestUri(parameters))
                       .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply())),
                                    headers.Accept(MediaRange(`application/json`)))
 
@@ -97,18 +100,17 @@ class PartitionReceiver (val endpoint: URI,
       })
       )
       .onComplete(_ => {
-      log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
-      listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
-      if (automaticReconnect) {
-        log.info(s"[automaticReconnect=$automaticReconnect] -> reconnecting")
-        self ! Init
-      }
+          log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
+          listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
+          if (automaticReconnect) {
+            log.info(s"[automaticReconnect=$automaticReconnect] -> reconnecting")
+            self ! Init
+          }
     })
   }
 
 
-
-  def requestUri(parameters: ListenParameters) =
+  def buildRequestUri(parameters: ListenParameters) =
     String.format(client.URI_EVENT_LISTENING,
       topic,
       partitionId,
@@ -128,7 +130,7 @@ class PartitionReceiver (val endpoint: URI,
      */
     var stack: Int = 0
     var hasOpenString: Boolean = false
-    val bout = new ByteArrayOutputStream(1024)
+    val bout = new ByteArrayOutputStream(RECEIVE_BUFFER_SIZE)
 
     response.entity.dataBytes.runForeach {
       byteString => {
@@ -143,12 +145,11 @@ class PartitionReceiver (val endpoint: URI,
             if (stack == 0 && bout.size != 0) {
               val streamEvent = objectMapper.readValue(bout.toByteArray, classOf[SimpleStreamEvent])
 
-              if (Option(streamEvent.events).isDefined && !streamEvent.events.isEmpty){
+              if (Option(streamEvent.events).isDefined && streamEvent.events.nonEmpty){
                 log.debug("received non-empty [streamEvent={}]", streamEvent)
                 self ! streamEvent
               }
-              else
-                log.debug(s"received empty [streamingEvent={}] --> ignored", streamEvent)
+              else log.debug(s"received empty [streamingEvent={}] --> ignored", streamEvent)
 
               bout.reset()
             }

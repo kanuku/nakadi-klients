@@ -24,6 +24,8 @@ class TestListener extends  Listener {
   var onConnectionOpened = 0
   var onConnectionFailed = 0
 
+  override def id = "test"
+
   override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit =  {
     println(s"WAS CALLED [topic=$topic, partition=$partition, event=$event]" )
 
@@ -337,7 +339,9 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       service.start()
 
       val listener = new TestListener
-      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false)
+      Await.ready(
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false),
+        5 seconds)
 
       Thread.sleep(1500L)
 
@@ -430,7 +434,10 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       service.start()
 
       val listener = new TestListener
-      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true)
+
+      Await.ready(
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
+        5 seconds)
 
       Thread.sleep(1500L)
       service.stop()

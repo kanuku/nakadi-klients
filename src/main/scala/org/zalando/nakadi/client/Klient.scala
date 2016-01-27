@@ -99,7 +99,11 @@ trait Klient {
   def subscribeToTopic(topic: String,
                        parameters: ListenParameters,
                        listener: Listener,
-                       autoReconnect: Boolean = true): Unit
+                       autoReconnect: Boolean = true): Future[Unit]
+
+
+
+  def unsubscribeTopic(topic: String, listener: Listener): Future[Unit]
 
   /**
    * Shuts down the communication system of the client
