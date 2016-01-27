@@ -53,7 +53,7 @@ class PartitionReceiver (val endpoint: URI,
   implicit val materializer = ActorMaterializer()
 
   override def preStart() = self ! Init
-  
+
   override def receive: Receive = {
     case Init => lastCursor match {
       case None => listen(parameters)

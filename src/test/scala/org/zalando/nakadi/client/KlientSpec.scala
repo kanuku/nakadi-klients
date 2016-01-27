@@ -20,9 +20,9 @@ import scala.language.postfixOps
 
 class TestListener extends  Listener {
   var receivedEvents = new AtomicReference[List[Event]](List[Event]())
-  var onConnectionClosed = false
-  var onConnectionOpened = false
-  var onConnectionFailed = false
+  var onConnectionClosed = 0
+  var onConnectionOpened = 0
+  var onConnectionFailed = 0
 
   override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit =  {
     println(s"WAS CALLED [topic=$topic, partition=$partition, event=$event]" )
@@ -33,10 +33,9 @@ class TestListener extends  Listener {
     }
     while(! receivedEvents.compareAndSet(old, old ++ List(event)))
   }
-  override def onConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor]): Unit = onConnectionClosed = true
-  override def onConnectionOpened(topic: String, partition: String): Unit = onConnectionOpened = true
-
-  override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = onConnectionFailed = true
+  override def onConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor]): Unit = onConnectionClosed += 1
+  override def onConnectionOpened(topic: String, partition: String): Unit = onConnectionOpened += 1
+  override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = onConnectionFailed += 1
 }
 
 
@@ -348,8 +347,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       receivedEvents should contain(event)
       receivedEvents should contain(event2)
 
-      listener.onConnectionOpened should be(true)
-      listener.onConnectionClosed should be(true) // no long polling actitvated by test mock
+      listener.onConnectionOpened should be > 0
+      listener.onConnectionClosed should be > 0 // no long polling actitvated by test mock
 
 
       val collectedRequests = service.getCollectedRequests
@@ -431,13 +430,16 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       service.start()
 
       val listener = new TestListener
-      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false)
+      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true)
 
       Thread.sleep(1500L)
       service.stop()
       service = null
-      Thread.sleep(15000L)
+      Thread.sleep(1500L)
 
+      listener.onConnectionOpened should be > 1
+      listener.onConnectionClosed should be > 1
+      listener.onConnectionFailed should be > 0
     }
   }
 }
