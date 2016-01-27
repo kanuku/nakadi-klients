@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.{PropertyNamingStrategy, SerializationFeat
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.LazyLogging
-import io.undertow.util.{HttpString, Headers}
+import io.undertow.util.{HeaderValues, HttpString, Headers}
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import org.zalando.nakadi.client.utils.NakadiTestService
 import org.zalando.nakadi.client.utils.NakadiTestService.Builder
@@ -57,7 +57,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
   override  def beforeEach() = {
     klient = KlientBuilder()
-      .withEndpoint(new URI(s"http://$HOST:$PORT")) // TODO if no scheme is specified, the library utilized by the client breaks with a NullpointeException...
+      .withEndpoint(new URI(HOST)) // TODO if no scheme is specified, the library utilized by the client breaks with a NullpointeException...
+      .withPort(PORT)
       .withTokenProvider(() => TOKEN)
       .build()
   }
@@ -82,9 +83,19 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
     val headerMap = request.getRequestHeaders
 
-    var headerValues= headerMap.get(Headers.CONTENT_TYPE)
-    val mediaType= headerValues.getFirst
-    mediaType should be(MEDIA_TYPE)
+    var headerValues: HeaderValues = null
+
+    if(request.getRequestMethod.equals(new HttpString("GET"))){
+      headerValues= headerMap.get(Headers.ACCEPT)
+      val mediaType= headerValues.getFirst
+      mediaType should be(MEDIA_TYPE)
+    }
+    else {
+      headerValues= headerMap.get(Headers.CONTENT_TYPE)
+      val mediaType= headerValues.getFirst
+      mediaType should be(MEDIA_TYPE)
+    }
+
 
     headerValues = headerMap.get(Headers.AUTHORIZATION)
     val authorizationHeaderValue = headerValues.getFirst
@@ -266,6 +277,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       performStandardRequestChecks(requestPath, requestMethod)
     }
 
+
     "subscribe to topic" in {
       val partition = TopicPartition("p1", "0", "4")
       val partition2 = TopicPartition("p2", "1", "1")
@@ -302,7 +314,6 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val httpMethod = new HttpString("GET")
       val statusCode = 200
 
-
       val builder = new Builder()
       service = builder.withHost(HOST)
                        .withPort(PORT)
@@ -327,7 +338,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       service.start()
 
       val listener = new TestListener
-      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener)
+      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false)
 
       Thread.sleep(1500L)
 
@@ -350,18 +361,34 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
       val request = performStandardRequestChecks(partition1EventsRequestPath, httpMethod)
 
-      var queryParameters = request.getRequestQueryParameters
-      checkQueryParameter(queryParameters, "start_from", partition.newestAvailableOffset)
-      checkQueryParameter(queryParameters, "batch_limit", "1")
-      checkQueryParameter(queryParameters, "stream_limit", "0")
-      checkQueryParameter(queryParameters, "batch_flush_timeout", "5")
+      if(request.getRequestPath.contains(partition1EventsRequestPath)) {
+        var queryParameters = request.getRequestQueryParameters
+        checkQueryParameter(queryParameters, "start_from", partition.newestAvailableOffset)
+        checkQueryParameter(queryParameters, "batch_limit", "1")
+        checkQueryParameter(queryParameters, "stream_limit", "0")
+        checkQueryParameter(queryParameters, "batch_flush_timeout", "5")
 
-      val request2 = performStandardRequestChecks(partition2EventsRequestPath, httpMethod)
-      queryParameters = request2.getRequestQueryParameters
-      checkQueryParameter(queryParameters, "start_from", partition2.newestAvailableOffset)
-      checkQueryParameter(queryParameters, "batch_limit", "1")
-      checkQueryParameter(queryParameters, "stream_limit", "0")
-      checkQueryParameter(queryParameters, "batch_flush_timeout", "5")
+        val request2 = performStandardRequestChecks(partition2EventsRequestPath, httpMethod)
+        queryParameters = request2.getRequestQueryParameters
+        checkQueryParameter(queryParameters, "start_from", partition2.newestAvailableOffset)
+        checkQueryParameter(queryParameters, "batch_limit", "1")
+        checkQueryParameter(queryParameters, "stream_limit", "0")
+        checkQueryParameter(queryParameters, "batch_flush_timeout", "5")
+      }
+      else {
+        var queryParameters = request.getRequestQueryParameters
+        checkQueryParameter(queryParameters, "start_from", partition2.newestAvailableOffset)
+        checkQueryParameter(queryParameters, "batch_limit", "1")
+        checkQueryParameter(queryParameters, "stream_limit", "0")
+        checkQueryParameter(queryParameters, "batch_flush_timeout", "5")
+
+        val request2 = performStandardRequestChecks(partition2EventsRequestPath, httpMethod)
+        queryParameters = request2.getRequestQueryParameters
+        checkQueryParameter(queryParameters, "start_from", partition.newestAvailableOffset)
+        checkQueryParameter(queryParameters, "batch_limit", "1")
+        checkQueryParameter(queryParameters, "stream_limit", "0")
+        checkQueryParameter(queryParameters, "batch_flush_timeout", "5")
+      }
     }
 
     "reconnect, if autoReconnect = true and stream was closed by Nakadi" in {
@@ -404,7 +431,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       service.start()
 
       val listener = new TestListener
-      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true)
+      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false)
 
       Thread.sleep(1500L)
       service.stop()

@@ -5,8 +5,9 @@ import java.net.URI
 
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
-import akka.http.scaladsl.model.{headers, HttpResponse, HttpRequest}
+import akka.http.scaladsl.model.{MediaRange, headers, HttpResponse, HttpRequest}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source, Flow}
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -51,11 +52,8 @@ class PartitionReceiver (val endpoint: URI,
 
   implicit val materializer = ActorMaterializer()
 
-  override def preStart() = {
-    self ! Init
-  }
-
-
+  override def preStart() = self ! Init
+  
   override def receive: Receive = {
     case Init => lastCursor match {
       case None => listen(parameters)
@@ -73,34 +71,41 @@ class PartitionReceiver (val endpoint: URI,
 
 
   // TODO check earlier ListenParameters
-  def listen(parameters: ListenParameters) =
-    Source.single(
-        HttpRequest(uri = requestUri(parameters))
-          .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply()))))
+  def listen(parameters: ListenParameters) = {
+    val request = HttpRequest(uri = requestUri(parameters))
+                      .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply())),
+                                   headers.Accept(MediaRange(`application/json`)))
+
+    log.debug("listening via [request={}]", request)
+
+    Source
+      .single(request)
       .via(outgoingHttpConnection(endpoint, port, securedConnection)(context.system))
       .runWith(Sink.foreach(response =>
-          response.status match {
-            case status if status.isSuccess => {
-              listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
-              consumeStream(response)
-            }
-            case status =>
-              listeners.foreach(_ ! ConnectionFailed(topic, partitionId, response.status.intValue(), response.entity.toString))
+      response.status match {
+        case status if status.isSuccess => {
+          listeners.foreach(_ ! ConnectionOpened(topic, partitionId))
+          consumeStream(response)
+        }
+        case status =>
+          listeners.foreach(_ ! ConnectionFailed(topic, partitionId, response.status.intValue(), response.entity.toString))
 
-              if (automaticReconnect) {
-                log.info("initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
-                self ! Init
-              }
-          })
+          if (automaticReconnect) {
+            log.info("initiating reconnect to [topic={}, partition={}]...", topic, partitionId)
+            self ! Init
+          }
+      })
       )
       .onComplete(_ => {
-        log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
-        listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
-        if (automaticReconnect) {
-          log.info(s"[automaticReconnect=$automaticReconnect] -> reconnecting")
-          self ! Init
-        }
-      })
+      log.info("connection closed to [topic={}, partition={}]", topic, partitionId)
+      listeners.foreach(_ ! ConnectionClosed(topic, partitionId, lastCursor))
+      if (automaticReconnect) {
+        log.info(s"[automaticReconnect=$automaticReconnect] -> reconnecting")
+        self ! Init
+      }
+    })
+  }
+
 
 
   def requestUri(parameters: ListenParameters) =
@@ -139,7 +144,7 @@ class PartitionReceiver (val endpoint: URI,
               val streamEvent = objectMapper.readValue(bout.toByteArray, classOf[SimpleStreamEvent])
 
               if (Option(streamEvent.events).isDefined && !streamEvent.events.isEmpty){
-                println(s"RECEIVED streamEvent=$streamEvent")
+                log.debug("received non-empty [streamEvent={}]", streamEvent)
                 self ! streamEvent
               }
               else

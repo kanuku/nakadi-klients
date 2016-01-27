@@ -4,6 +4,7 @@ import java.net.URI
 import javax.net.ssl.SSLContext
 
 import akka.actor._
+import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.{HttpsContext, Http}
 import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
@@ -13,6 +14,8 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Utils.outgoingHttpConnection
 import org.zalando.nakadi.client.actor._
 import scala.concurrent.duration.Duration
@@ -20,7 +23,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-protected class KlientImpl(val endpoint: URI, val port:Int,val securedConnection: Boolean, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
+protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnection: Boolean, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   checkNotNull(objectMapper, "objectMapper must not be null")
@@ -29,6 +32,9 @@ protected class KlientImpl(val endpoint: URI, val port:Int,val securedConnection
   val supervisor = system.actorOf(KlientSupervisor.props(endpoint, port, securedConnection, tokenProvider, objectMapper))
 
   implicit val materializer = ActorMaterializer()
+
+  val logger = Logger(LoggerFactory.getLogger("KlientImpl"))
+
 
   def checkNotNull(subject: Any, message: String) = if(Option(subject).isEmpty) throw new IllegalArgumentException(message)
   def checkExists(subject: Option[Any], message: String) = if(subject.isEmpty) throw new IllegalArgumentException(message)
@@ -56,19 +62,24 @@ protected class KlientImpl(val endpoint: URI, val port:Int,val securedConnection
   }
 
 
-  private def performDefaultGetRequest[T](uriPart: String, expectedType: TypeReference[T]): Future[Either[String, T]] =
-    Source.single(
-    HttpRequest(uri = uriPart)
-      .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply()))))
-    .via(outgoingHttpConnection(endpoint, port, securedConnection))
-    .runWith(Sink.head)
-   .map(evaluateResponse(_, expectedType))
+  private def performDefaultGetRequest[T](uriPart: String, expectedType: TypeReference[T]): Future[Either[String, T]] = {
+    val request = HttpRequest(uri = uriPart)
+                  .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply())),
+                               headers.Accept(MediaRange(`application/json`)))
 
+    logger.debug("sending [request={}]", request)
+
+    Source
+      .single(request)
+      .via(outgoingHttpConnection(endpoint, port, securedConnection))
+      .runWith(Sink.head)
+      .map(evaluateResponse(_, expectedType))
+  }
 
 
 
   private def evaluateResponse[T](response: HttpResponse, expectedType: TypeReference[T]) :Either[String,T] = {
-    println("RESPNSE --> " + response)
+    logger.debug("received [response={}]", response)
 
     if(response.status.intValue() < 200 || response.status.intValue() > 299)
       Left(response.status + " - " + response.entity)
@@ -172,12 +183,14 @@ protected class KlientImpl(val endpoint: URI, val port:Int,val securedConnection
   private def performEventPost(uriPart: String, event: Event): Future[Option[String]] = {
     checkNotNull(event, "event must not be null")
 
-    Source.single(
-      HttpRequest(uri = uriPart, method = POST)
-        .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply()))).withEntity(
-          ContentType(MediaTypes.`application/json`),
-          objectMapper.writeValueAsBytes(event)
-        ))
+    val request = HttpRequest(uri = uriPart, method = POST)
+                  .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider.apply())))
+                  .withEntity(ContentType(`application/json`), objectMapper.writeValueAsBytes(event))
+
+    logger.debug("sending [request={}]", request)
+
+    Source
+      .single(request)
       .via(outgoingHttpConnection(endpoint, port, securedConnection))
       .runWith(Sink.head)
       .map(response => if(response.status.intValue() < 200 || response.status.intValue() > 299)
