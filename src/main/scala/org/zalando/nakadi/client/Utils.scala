@@ -6,7 +6,7 @@ import javax.net.ssl.SSLContext
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http.OutgoingConnection
 import akka.http.scaladsl.model.{HttpResponse, HttpRequest}
-import akka.http.scaladsl.{HttpExt, Http, HttpsContext}
+import akka.http.scaladsl.{Http, HttpsContext}
 import akka.stream.scaladsl.Flow
 
 import scala.concurrent.{Future, Await}
