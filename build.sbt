@@ -1,3 +1,5 @@
+import scala.collection.JavaConverters._
+
 name := "nakadi-klients"
 
 version := "0.3.0-SNAPSHOT"
@@ -18,14 +20,17 @@ scalacOptions ++= Seq(
   "-Ywarn-numeric-widen" // Warn when numerics are widened.
 )
 
+resolvers += Resolver.mavenLocal
+resolvers += "Maven Central Server" at "http://repo1.maven.org/maven2"
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.11",
-  "com.typesafe.akka" %% "akka-http-experimental" % "2.0.2",
+  "com.google.guava" % "guava" % "19.0",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "ch.qos.logback" % "logback-classic" % "1.1.3",
   "com.fasterxml.jackson.core" % "jackson-core" % "2.7.0",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
-  "com.google.guava" % "guava" % "19.0",
+  "ch.qos.logback" % "logback-classic" % "1.1.3",
+  "com.typesafe.akka" %% "akka-http-experimental" % "2.0.2",
 
   "com.typesafe.akka" %% "akka-testkit" % "2.3.11" % "test",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",

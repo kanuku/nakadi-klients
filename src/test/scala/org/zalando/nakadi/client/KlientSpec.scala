@@ -10,8 +10,6 @@ import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HeaderValues, HttpString, Headers}
 import org.scalatest._
-import org.scalatest.concurrent.PatienceConfiguration.{Timeout => ScalaTestTimeout}
-import org.scalatest.concurrent.ScalaFutures
 import org.zalando.nakadi.client.actor.PartitionReceiver
 import org.zalando.nakadi.client.utils.NakadiTestService
 import org.zalando.nakadi.client.utils.NakadiTestService.Builder
@@ -22,7 +20,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 
-class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging with ScalaFutures {
+class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging {
   import KlientSpec._
 
   var klient: Klient = null
@@ -52,9 +50,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
     requests should not be null
 
     val request = Iterators.getLast(requests.iterator)
-      //
-      request.getRequestPath shouldBe expectedRequestPath
-      request.getRequestMethod shouldBe expectedRequestMethod
+    request.getRequestPath shouldBe expectedRequestPath
+    request.getRequestMethod shouldBe expectedRequestMethod
 
     val headerMap = request.getRequestHeaders
 
@@ -84,7 +81,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val requestPath = "/metrics"
       val responseStatusCode: Int = 200
 
-      service = new Builder().withHost(HOST)
+      val builder= new Builder
+      service = builder.withHost(HOST)
                        .withPort(PORT)
                        .withHandler(requestPath)
                        .withRequestMethod(requestMethod)
@@ -100,12 +98,13 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       ) match {
         case Left(error) => fail(s"could not retrieve metrics: $error")
         case Right(metrics) => logger.debug(s"metrics => $metrics")
-                                performStandardRequestChecks(requestPath, requestMethod)
+                               performStandardRequestChecks(requestPath, requestMethod)
       }
     }
 
     "retrieve Nakadi topics" in {
       val expectedResponse = List(Topic("test-topic-1"), Topic("test-topic-2"))
+
 
       val expectedResponseAsString = objectMapper.writeValueAsString(expectedResponse)
       val requestMethod = new HttpString("GET")
