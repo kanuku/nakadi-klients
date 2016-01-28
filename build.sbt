@@ -1,6 +1,6 @@
 import scala.collection.JavaConverters._
 
-name := """nakadi-klients"""
+name := "nakadi-klients"
 
 version := "0.3.0-SNAPSHOT"
 
