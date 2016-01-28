@@ -9,7 +9,7 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HeaderValues, HttpString, Headers}
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatest._
 import org.zalando.nakadi.client.utils.NakadiTestService
 import org.zalando.nakadi.client.utils.NakadiTestService.Builder
 
@@ -18,29 +18,8 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 
-class TestListener extends  Listener {
-  var receivedEvents = new AtomicReference[List[Event]](List[Event]())
-  var onConnectionClosed = false
-  var onConnectionOpened = false
-  var onConnectionFailed = false
-
-  override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit =  {
-    println(s"WAS CALLED [topic=$topic, partition=$partition, event=$event]" )
-
-    var old = List[Event]()
-    do {
-      old = receivedEvents.get()
-    }
-    while(! receivedEvents.compareAndSet(old, old ++ List(event)))
-  }
-  override def onConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor]): Unit = onConnectionClosed = true
-  override def onConnectionOpened(topic: String, partition: String): Unit = onConnectionOpened = true
-
-  override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = onConnectionFailed = true
-}
-
-
 class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging {
+  import KlientSpec._
 
   var klient: Klient = null
   var service: NakadiTestService = null
@@ -440,4 +419,42 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
     }
   }
+}
+
+// Moved this below the test steps so what a (human) reader gets first is the tests. This is supporting code.
+// By wrapping it in the companion object (and making 'private'), we clearly indicate its scope. AKa280116
+
+object KlientSpec extends WordSpecLike /*for 'info()'*/ {
+
+  private
+  class TestListener extends Listener {
+    var receivedEvents = new AtomicReference[List[Event]](List())
+    var onConnectionClosed = false
+    var onConnectionOpened = false
+    var onConnectionFailed = false
+
+    override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit = {
+
+      // Note: Changing 'println' to 'info' is a functional change. What is the intended action here?
+      //    - for giving information about tests being run, 'info' (or warning, etc.) are right. Their output
+      //      is placed alongside the test pass/fail reports, in the right location. 'println', on the other hand,
+      //      causes output not aligned with test reporting. IF things are intended to be visible "right then",
+      //      using 'System.err.println' could be yet another choice. AKa280116
+
+      info(s"WAS CALLED [topic=$topic, partition=$partition, event=$event]")
+
+      var old = List[Event]()
+      do {
+        old = receivedEvents.get()
+      }
+      while (!receivedEvents.compareAndSet(old, old ++ List(event)))    // Q: what is this doing? AKa280116
+    }
+
+    override def onConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor]): Unit = onConnectionClosed = true
+
+    override def onConnectionOpened(topic: String, partition: String): Unit = onConnectionOpened = true
+
+    override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = onConnectionFailed = true
+  }
+
 }
