@@ -222,4 +222,3 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
    */
   override def stop(): Unit = system.shutdown()
 }
-
