@@ -344,7 +344,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)
+      Thread.sleep(PartitionReceiver.NO_LISTENER_RECONNECT_DELAY_IN_S * 1000L + 2000L)
 
       //-- check received events
 
@@ -425,7 +425,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)
+      Thread.sleep(PartitionReceiver.NO_LISTENER_RECONNECT_DELAY_IN_S * 1000L + 2000L)
 
       service.stop()
       service = null
