@@ -5,7 +5,6 @@ Implementation of a client accessing the low level API of the [Nakadi event bus]
 
 ## Prerequisites
 - Java >= 1.8
-- SBT >= 1.0
-- Scala >= 2.11.x
+- SBT >=  0.13.8
 
 
