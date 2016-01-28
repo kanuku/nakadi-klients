@@ -416,22 +416,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val httpMethod = new HttpString("GET")
       val statusCode = 200
 
-      val builder = new Builder()
-      service = builder.withHost(HOST)
-        .withPort(PORT)
-        .withHandler(partitionsRequestPath)
-        .withRequestMethod(httpMethod)
-        .withResponseContentType(MEDIA_TYPE)
-        .withResponseStatusCode(statusCode)
-        .withResponsePayload(partitionsAsString)
-        .and
-        .withHandler(partition1EventsRequestPath)
-        .withRequestMethod(httpMethod)
-        .withResponseContentType(MEDIA_TYPE)
-        .withResponseStatusCode(statusCode)
-        .withResponsePayload(streamEvent1AsString)
-        .build
-      service.start()
+      startServiceForEventListening()
 
       val listener = new TestListener
 
@@ -443,6 +428,10 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       service.stop()
       service = null
       Thread.sleep(1000L)
+
+      startServiceForEventListening()
+
+      Thread.sleep(2000L)
 
       listener.onConnectionOpened should be > 1
       listener.onConnectionClosed should be > 1
@@ -465,18 +454,18 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         5 seconds)
 
       Thread.sleep(1000L)
+
       val receivedEvents = listener.receivedEvents
 
       klient.unsubscribeTopic(topic, listener)
 
       service.stop()
+
       Thread.sleep(1000L)
-
-
 
       startServiceForEventListening()
 
-      Thread.sleep(10000L)
+      Thread.sleep(1000L)
 
       receivedEvents should be(listener.receivedEvents)
     }

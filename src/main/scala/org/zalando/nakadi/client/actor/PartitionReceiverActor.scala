@@ -15,8 +15,17 @@ import org.zalando.nakadi.client.Utils.outgoingHttpConnection
 import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-
+/**
+ * Triggers new event polling request
+ */
 sealed case class Init()
+
+/**
+ * Shutdown actor without PoisonPill. The reason is that PoisonPill shuts down
+ * the actor immediately without having all messages in the queue processed.
+ */
+sealed case class Shutdown()
+
 case class NewListener(listenerId: String, listener: ActorRef)
 case class ConnectionOpened(topic: String, partition: String)
 case class ConnectionFailed(topic: String, partition: String, status: Int, error: String)
@@ -65,12 +74,18 @@ class PartitionReceiver (val endpoint: URI,
                                                    parameters.batchFlushTimeoutInSeconds,
                                                    parameters.streamLimit))
     }
-    case NewListener(listenerId, listener) => listeners = listeners + ((listenerId, listener))
+    case NewListener(listenerId, listener) => {
+      context.watch(listener)
+      listener ! ListenerSubscription(topic, partitionId)
+      listeners = listeners + ((listenerId, listener))
+    }
     case streamEvent: SimpleStreamEvent => streamEvent.events.foreach{event =>
       lastCursor = Some(streamEvent.cursor)
       listeners.values.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
     }
     case Unsubscription(_topic, _listener) => if(_topic == topic) listeners -= _listener.id
+    case Terminated(actor) => listeners = listeners.filterNot(_._2 == actor)
+    case Shutdown => context.stop(self)
   }
 
 
@@ -106,7 +121,7 @@ class PartitionReceiver (val endpoint: URI,
           else {
             log.info("stream to [topic={}, partition={}] has been closed and [automaticReconnect={}] -> shutting down",
                      topic, partitionId, automaticReconnect)
-            self ! PoisonPill.getInstance
+            self ! Shutdown()
           }
       })
     }

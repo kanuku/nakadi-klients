@@ -34,6 +34,9 @@ class KlientSupervisor(val endpoint: URI, val port: Int, val securedConnection: 
   import scala.concurrent.duration._
   import scala.language.postfixOps
 
+
+  var listenerMap: Map[String, ActorRef] = Map()
+
   override val supervisorStrategy = AllForOneStrategy(maxNrOfRetries = 100, withinTimeRange = 5 minutes) {
       case e: ArithmeticException      => Resume
       case e: NullPointerException     => Restart
@@ -44,17 +47,18 @@ class KlientSupervisor(val endpoint: URI, val port: Int, val securedConnection: 
 
   override def receive: Receive = {
     case NewSubscription(topic, partitionId, parameters, autoReconnect, listener) => {
-      if(autoReconnect) subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, None)
-      else {
+      if(autoReconnect) {
         resolveActor("partition-" + partitionId).onComplete(_ match {
           case Success(receiverActor) =>
-            receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(topic, listener)))
+            receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(listener)))
           case Failure(e: ActorNotFound) =>
             subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, Some(s"partition-$partitionId"))
           case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
         })
       }
+      else subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, None)
     }
+    case Terminated(actor) => listenerMap = listenerMap.filterNot(_._2 == actor)
   }
 
 
@@ -84,7 +88,17 @@ class KlientSupervisor(val endpoint: URI, val port: Int, val securedConnection: 
                                                             objectMapper))
     }
 
-    receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(topic, listener)))
+    val lActor = listenerMap.get(listener.id) match {
+      case Some(listenerActor) => listenerActor
+      case None => {
+         val listenerActor = context.actorOf(ListenerActor.props(listener))
+         context.watch(listenerActor)
+         listenerMap += ((listener.id, listenerActor))
+         listenerActor
+      }
+    }
+
+    receiverActor ! NewListener(listener.id, lActor)
   }
 
 
