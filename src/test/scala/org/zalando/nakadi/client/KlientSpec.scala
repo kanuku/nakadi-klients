@@ -10,7 +10,7 @@ import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HeaderValues, HttpString, Headers}
 import org.scalatest._
-import org.zalando.nakadi.client.utils.NakadiTestService
+import org.zalando.nakadi.client.utils.{Request => NakadiRequest, NakadiTestService}
 import org.zalando.nakadi.client.utils.NakadiTestService.Builder
 
 import scala.concurrent.Await
@@ -23,16 +23,6 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
   var klient: Klient = null
   var service: NakadiTestService = null
-  val objectMapper = new ObjectMapper
-  objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-  objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-  objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
-  objectMapper.registerModule(new DefaultScalaModule)
-
-  val MEDIA_TYPE = "application/json"
-  val TOKEN = "<OAUTH Token>"
-  val HOST = "localhost"
-  val PORT = 8081
 
   override  def beforeEach() = {
     klient = KlientBuilder()
@@ -44,6 +34,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
   override def afterEach(): Unit = {
     klient.stop()
+    klient = null
 
     if(Option(service).isDefined) {
       service.stop()
@@ -51,42 +42,27 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
     }
   }
 
-  private def performStandardRequestChecks(expectedRequestPath: String, expectedRequestMethod: HttpString) = {
+  private def performStandardRequestChecks(expectedRequestPath: String, expectedRequestMethod: HttpString): NakadiRequest = {
     val collectedRequestsMap = service.getCollectedRequests
     val requests = collectedRequestsMap.get(expectedRequestPath)
     requests should not be null
 
     val request = Iterators.getLast(requests.iterator)
-    request.getRequestPath should be(expectedRequestPath)
-    request.getRequestMethod should be(expectedRequestMethod)
+      //
+      request.getRequestPath shouldBe expectedRequestPath
+      request.getRequestMethod shouldBe expectedRequestMethod
 
     val headerMap = request.getRequestHeaders
 
-    var headerValues: HeaderValues = null
-
     if(request.getRequestMethod.equals(new HttpString("GET"))){
-      headerValues= headerMap.get(Headers.ACCEPT)
-      val mediaType= headerValues.getFirst
-      mediaType should be(MEDIA_TYPE)
-    }
-    else {
-      headerValues= headerMap.get(Headers.CONTENT_TYPE)
-      val mediaType= headerValues.getFirst
-      mediaType should be(MEDIA_TYPE)
+      headerMap.get(Headers.ACCEPT).getFirst shouldBe MEDIA_TYPE
+    } else {
+      headerMap.get(Headers.CONTENT_TYPE).getFirst shouldBe MEDIA_TYPE
     }
 
-
-    headerValues = headerMap.get(Headers.AUTHORIZATION)
-    val authorizationHeaderValue = headerValues.getFirst
-    authorizationHeaderValue should be(s"Bearer $TOKEN")
+    headerMap.get(Headers.AUTHORIZATION).getFirst shouldBe s"Bearer $TOKEN"
 
     request
-  }
-
-  private def checkQueryParameter(queryParameters: java.util.Map[String, util.Deque[String]], paramaterName: String, expectedValue: String) {
-    val paramDeque = queryParameters.get(paramaterName)
-    paramDeque should not be null
-    paramDeque.getFirst should be(expectedValue)
   }
 
   "A Klient" must {
@@ -152,7 +128,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
           case Left(error) => fail(s"could not retrieve topics: $error")
           case Right(topics) =>
             logger.info(s"topics => $topics")
-            topics should be(expectedResponse)
+            topics shouldBe expectedResponse
             performStandardRequestChecks(requestPath, requestMethod)
 
         }
@@ -193,7 +169,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
       val request = performStandardRequestChecks(requestPath, requestMethod)
       val sentEvent = objectMapper.readValue(request.getRequestBody, classOf[Event])
-      sentEvent should be(event)
+      sentEvent shouldBe event
     }
 
     "retreive partitions of a topic" in {
@@ -221,7 +197,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         case Left(error: String) => throw new RuntimeException(s"could not retrieve partitions: $error")
         case Right(partitions) => partitions
       }
-      receivedPartitions should be(expectedPartitions)
+      receivedPartitions shouldBe expectedPartitions
       performStandardRequestChecks(requestPath, requestMethod)
     }
 
@@ -251,7 +227,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         case Left(error)  => throw new RuntimeException(s"could not retrieve partition: $error")
         case Right(receivedTopic) => receivedTopic
       }
-      receivedPartition should be(expectedPartition)
+      receivedPartition shouldBe expectedPartition
 
       performStandardRequestChecks(requestPath, requestMethod)
     }
@@ -317,7 +293,9 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       service.start()
 
       val listener = new TestListener
-      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false)
+      Await.ready(
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false),
+        5 seconds)
 
       Thread.sleep(1500L)
 
@@ -327,8 +305,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       receivedEvents should contain(event)
       receivedEvents should contain(event2)
 
-      listener.onConnectionOpened should be(true)
-      listener.onConnectionClosed should be(true) // no long polling actitvated by test mock
+      listener.onConnectionOpened should be > 0
+      listener.onConnectionClosed should be > 0 // no long polling actitvated by test mock
 
 
       val collectedRequests = service.getCollectedRequests
@@ -339,6 +317,17 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       performStandardRequestChecks(partitionsRequestPath, httpMethod)
 
       val request = performStandardRequestChecks(partition1EventsRequestPath, httpMethod)
+
+      // Moved the function here, to be in least scope. Only this test needs it.
+      //
+      // Note: Could form it to take multiple key/values as a map (and even having the values as 'BeWord'
+      //      so not only pure 1-to-1 tests are possible. But there's no use for that right now. AKa280116
+
+      def checkQueryParameter(queryParameters: java.util.Map[String, util.Deque[String]], paramaterName: String, expectedValue: String) {
+        val paramDeque = queryParameters.get(paramaterName)
+        paramDeque should not be null
+        paramDeque.getFirst shouldBe expectedValue
+      }
 
       if(request.getRequestPath.contains(partition1EventsRequestPath)) {
         var queryParameters = request.getRequestQueryParameters
@@ -410,28 +399,120 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       service.start()
 
       val listener = new TestListener
-      klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false)
 
-      Thread.sleep(1500L)
+      Await.ready(
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
+        5 seconds)
+
+      Thread.sleep(1000L)
       service.stop()
       service = null
-      Thread.sleep(15000L)
+      Thread.sleep(1000L)
 
+      listener.onConnectionOpened should be > 1
+      listener.onConnectionClosed should be > 1
+      listener.onConnectionFailed should be > 0
     }
+
+    "unsubscribe listener" in {
+      val topic = "test-topic-1"
+
+      startServiceForEventListening()
+
+      val listener = new TestListener
+
+      Await.ready(
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
+        5 seconds)
+
+      Await.ready(
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
+        5 seconds)
+
+      Thread.sleep(1000L)
+      val receivedEvents = listener.receivedEvents
+
+      klient.unsubscribeTopic(topic, listener)
+
+      service.stop()
+      Thread.sleep(1000L)
+
+
+
+      startServiceForEventListening()
+
+      Thread.sleep(10000L)
+
+      receivedEvents shouldBe listener.receivedEvents
+    }
+  }
+
+
+  def startServiceForEventListening() = {
+
+    val partition = TopicPartition("p1", "0", "4")
+    val partition2 = TopicPartition("p2", "1", "1")
+    val partitions = List(partition, partition2)
+    val partitionsAsString = objectMapper.writeValueAsString(partitions)
+
+    val event = Event("type-1",
+      "ARTICLE:123456",
+      Map("tenant-id" -> "234567", "flow-id" -> "123456789"),
+      Map("greeting" -> "hello", "target" -> "world"))
+
+    val streamEvent1 = SimpleStreamEvent(Cursor("p1", "0"), List(event), List())
+
+    val streamEvent1AsString = objectMapper.writeValueAsString(streamEvent1) + "\n"
+
+    val topic = "test-topic-1"
+    val partitionsRequestPath = s"/topics/$topic/partitions"
+    val partition1EventsRequestPath = s"/topics/$topic/partitions/p1/events"
+
+    val httpMethod = new HttpString("GET")
+    val statusCode = 200
+
+    val builder = new Builder()
+    service = builder.withHost(HOST)
+      .withPort(PORT)
+      .withHandler(partitionsRequestPath)
+      .withRequestMethod(httpMethod)
+      .withResponseContentType(MEDIA_TYPE)
+      .withResponseStatusCode(statusCode)
+      .withResponsePayload(partitionsAsString)
+      .and
+      .withHandler(partition1EventsRequestPath)
+      .withRequestMethod(httpMethod)
+      .withResponseContentType(MEDIA_TYPE)
+      .withResponseStatusCode(statusCode)
+      .withResponsePayload(streamEvent1AsString)
+      .build
+    service.start()
   }
 }
 
 // Moved this below the test steps so what a (human) reader gets first is the tests. This is supporting code.
-// By wrapping it in the companion object (and making 'private'), we clearly indicate its scope. AKa280116
+// By wrapping it in the companion object, we clearly indicate its scope. Note: Could also tag these 'private',
+// but being on the test side that is probably obvious? AKa280116
 
-object KlientSpec extends WordSpecLike /*for 'info()'*/ {
+object KlientSpec extends WordSpecLike /*for 'info()'*/ with ShouldMatchers {
+
+  lazy val objectMapper = new ObjectMapper()
+    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+    .setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
+    .registerModule(new DefaultScalaModule)
+
+  val MEDIA_TYPE = "application/json"
+  val TOKEN = "<OAUTH Token>"
+  val HOST = "localhost"
+  val PORT = 8081
 
   private
   class TestListener extends Listener {
     var receivedEvents = new AtomicReference[List[Event]](List())
-    var onConnectionClosed = false
-    var onConnectionOpened = false
-    var onConnectionFailed = false
+    var onConnectionClosed, onConnectionOpened, onConnectionFailed = 0
+
+    override def id = "test"
 
     override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit = {
 
@@ -450,11 +531,11 @@ object KlientSpec extends WordSpecLike /*for 'info()'*/ {
       while (!receivedEvents.compareAndSet(old, old ++ List(event)))    // Q: what is this doing? AKa280116
     }
 
-    override def onConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor]): Unit = onConnectionClosed = true
+    override def onConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor]): Unit = onConnectionClosed += 1
 
-    override def onConnectionOpened(topic: String, partition: String): Unit = onConnectionOpened = true
+    override def onConnectionOpened(topic: String, partition: String): Unit = onConnectionOpened += 1
 
-    override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = onConnectionFailed = true
+    override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = onConnectionFailed += 1
   }
 
 }
