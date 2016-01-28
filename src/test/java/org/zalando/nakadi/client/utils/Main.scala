@@ -1,10 +1,10 @@
-package org.zalando.nakadi.client
+package org.zalando.nakadi.client.utils
 
 import java.net.URI
 
 import akka.actor.ActorSystem
-
 import akka.stream.ActorMaterializer
+import org.zalando.nakadi.client._
 
 
 object Main {

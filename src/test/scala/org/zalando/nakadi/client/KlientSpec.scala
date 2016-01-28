@@ -10,6 +10,7 @@ import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HeaderValues, HttpString, Headers}
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.zalando.nakadi.client.actor.PartitionReceiver
 import org.zalando.nakadi.client.utils.NakadiTestService
 import org.zalando.nakadi.client.utils.NakadiTestService.Builder
 
@@ -290,7 +291,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                         Map("tenant-id" -> "234567", "flow-id" -> "123456789"),
                         Map("greeting" -> "hello", "target" -> "world"))
 
-      val streamEvent1 = SimpleStreamEvent(Cursor("p1", "0"), List(event), List())
+      val streamEvent1 = SimpleStreamEvent(Cursor("p1", partition.newestAvailableOffset), List(event), List())
 
       val streamEvent1AsString = objectMapper.writeValueAsString(streamEvent1) + "\n"
 
@@ -301,7 +302,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                          Map("tenant-id" -> "234567", "flow-id" -> "123456789"),
                          Map("greeting" -> "hello", "target" -> "world"))
 
-      val streamEvent2 = SimpleStreamEvent(Cursor("p2", "0"), List(event2), List())
+      val streamEvent2 = SimpleStreamEvent(Cursor("p2", partition2.newestAvailableOffset), List(event2), List())
 
       val streamEvent2AsString = objectMapper.writeValueAsString(streamEvent2) + "\n"
 
@@ -340,10 +341,10 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
       val listener = new TestListener
       Await.ready(
-        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false),
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(1500L)
+      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)
 
       //-- check received events
 
@@ -424,7 +425,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(1000L)
+      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)
+
       service.stop()
       service = null
       Thread.sleep(1000L)

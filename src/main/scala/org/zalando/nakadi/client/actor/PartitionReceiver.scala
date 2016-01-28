@@ -22,6 +22,9 @@ import scala.concurrent.duration.Duration
 
 object PartitionReceiver{
 
+  val NO_LISTENER_RECONNECT_DELAY_IN_S: Int = 30  // TODO make configurable
+  val POLL_PARALLELISM: Int = 100 // TODO make configurable
+
   /**
    * Triggers new event polling request
    */
@@ -104,18 +107,18 @@ class PartitionReceiver private (val endpoint: URI,
 
     if(listeners.isEmpty) {
       log.info("no listeners registered -> not establishing connection to Nakadi")
-      reconnectIfActivated(30) // TODO make configurable
+      reconnectIfActivated(NO_LISTENER_RECONNECT_DELAY_IN_S)
     }
     else {
       log.debug("listening via [request={}]", request)
       Source
         .single(request)
         .via(outgoingHttpConnection(endpoint, port, securedConnection)(context.system))
-        .runWith(Sink.foreach(response =>
+        .runWith(Sink.foreachParallel(POLL_PARALLELISM)(response =>
         response.status match {
           case status if status.isSuccess() =>
             listeners.values.foreach(_ ! ConnectionOpened(topic, partitionId))
-            Await.ready(consumeStream(response), Duration.Inf) // TODO is there a better way?
+            Await.ready(consumeStream(response), Duration.Inf)// TODO is there a better way?
           case status =>
             listeners.values.foreach(_ ! ConnectionFailed(topic, partitionId, response.status.intValue(), response.entity.toString))
             reconnectIfActivated()
@@ -139,7 +142,6 @@ class PartitionReceiver private (val endpoint: URI,
       log.info("[automaticReconnect={}] -> reconnecting", automaticReconnect)
       import scala.concurrent.duration._
       import scala.language.postfixOps
-      // TODO make configurable
       context.system.scheduler.scheduleOnce(numerOfSeconds seconds, self, Init)
     }
     else log.info("[automaticReconnect={}] -> no reconnect", automaticReconnect)

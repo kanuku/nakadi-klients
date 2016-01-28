@@ -34,6 +34,7 @@ object Utils {
       http.setDefaultClientHttpsContext(HttpsContext(SSLContext.getDefault))
       http.outgoingConnectionTls(endpoint.toString, port)
     }
+
     else http.outgoingConnection(endpoint.toString, port)
   }
 
