@@ -10,15 +10,19 @@ import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HeaderValues, HttpString, Headers}
 import org.scalatest._
-import org.zalando.nakadi.client.utils.{Request => NakadiRequest, NakadiTestService}
+import org.scalatest.concurrent.PatienceConfiguration.{Timeout => ScalaTestTimeout}
+import org.scalatest.concurrent.ScalaFutures
+import org.zalando.nakadi.client.actor.PartitionReceiver
+import org.zalando.nakadi.client.utils.NakadiTestService
 import org.zalando.nakadi.client.utils.NakadiTestService.Builder
+import org.zalando.nakadi.client.utils.{Request => NakadiRequest}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 
-class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging {
+class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging with ScalaFutures {
   import KlientSpec._
 
   var klient: Klient = null
@@ -80,8 +84,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val requestPath = "/metrics"
       val responseStatusCode: Int = 200
 
-      val builder= new Builder
-      service = builder.withHost(HOST)
+      service = new Builder().withHost(HOST)
                        .withPort(PORT)
                        .withHandler(requestPath)
                        .withRequestMethod(requestMethod)
@@ -95,15 +98,14 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.getMetrics,
         5 seconds
       ) match {
-        case Left(error) => fail(s"could not retrieve metrics: $error")
-        case Right(metrics) => logger.debug(s"metrics => $metrics")
-                               performStandardRequestChecks(requestPath, requestMethod)
-      }
+          case Left(error) => fail(s"could not retrieve metrics: $error")
+          case Right(metrics) => logger.debug(s"metrics => $metrics")
+        performStandardRequestChecks(requestPath, requestMethod)
+        }
     }
 
     "retrieve Nakadi topics" in {
       val expectedResponse = List(Topic("test-topic-1"), Topic("test-topic-2"))
-
 
       val expectedResponseAsString = objectMapper.writeValueAsString(expectedResponse)
       val requestMethod = new HttpString("GET")
@@ -148,7 +150,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val requestPath = s"/topics/$topic/events"
       val responseStatusCode = 201
 
-      val builder = new NakadiTestService.Builder
+      val builder = new Builder
       service = builder.withHost(HOST)
                        .withPort(PORT)
                        .withHandler(requestPath)
@@ -166,6 +168,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         case Some(error) => fail(s"an error occurred while posting event to topic $topic")
         case None => logger.debug("event post request was successful")
       }
+
+      // Not exactly clear to me what's happening here; how the 'objectMapper' is connected...? AKa280116
 
       val request = performStandardRequestChecks(requestPath, requestMethod)
       val sentEvent = objectMapper.readValue(request.getRequestBody, classOf[Event])
@@ -244,7 +248,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                         Map("tenant-id" -> "234567", "flow-id" -> "123456789"),
                         Map("greeting" -> "hello", "target" -> "world"))
 
-      val streamEvent1 = SimpleStreamEvent(Cursor("p1", "0"), List(event), List())
+      val streamEvent1 = SimpleStreamEvent(Cursor("p1", partition.newestAvailableOffset), List(event), List())
 
       val streamEvent1AsString = objectMapper.writeValueAsString(streamEvent1) + "\n"
 
@@ -255,7 +259,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                          Map("tenant-id" -> "234567", "flow-id" -> "123456789"),
                          Map("greeting" -> "hello", "target" -> "world"))
 
-      val streamEvent2 = SimpleStreamEvent(Cursor("p2", "0"), List(event2), List())
+      val streamEvent2 = SimpleStreamEvent(Cursor("p2", partition2.newestAvailableOffset), List(event2), List())
 
       val streamEvent2AsString = objectMapper.writeValueAsString(streamEvent2) + "\n"
 
@@ -294,10 +298,10 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
 
       val listener = new TestListener
       Await.ready(
-        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = false),
+        klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(1500L)
+      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)    // what is this for? AKa280116
 
       //-- check received events
 
@@ -306,11 +310,11 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       receivedEvents should contain(event2)
 
       listener.onConnectionOpened should be > 0
-      listener.onConnectionClosed should be > 0 // no long polling actitvated by test mock
+      listener.onConnectionClosed should be > 0 // no long polling activated by test mock
 
 
       val collectedRequests = service.getCollectedRequests
-      collectedRequests should have size 3
+      collectedRequests.size shouldBe 3
 
       //-- check header and query parameters
 
@@ -328,6 +332,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         paramDeque should not be null
         paramDeque.getFirst shouldBe expectedValue
       }
+
+      // Q: what is the purpose of this logic?
 
       if(request.getRequestPath.contains(partition1EventsRequestPath)) {
         var queryParameters = request.getRequestQueryParameters
@@ -381,22 +387,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       val httpMethod = new HttpString("GET")
       val statusCode = 200
 
-      val builder = new Builder()
-      service = builder.withHost(HOST)
-        .withPort(PORT)
-        .withHandler(partitionsRequestPath)
-        .withRequestMethod(httpMethod)
-        .withResponseContentType(MEDIA_TYPE)
-        .withResponseStatusCode(statusCode)
-        .withResponsePayload(partitionsAsString)
-        .and
-        .withHandler(partition1EventsRequestPath)
-        .withRequestMethod(httpMethod)
-        .withResponseContentType(MEDIA_TYPE)
-        .withResponseStatusCode(statusCode)
-        .withResponsePayload(streamEvent1AsString)
-        .build
-      service.start()
+      startServiceForEventListening()
 
       val listener = new TestListener
 
@@ -404,10 +395,15 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(1000L)
+      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)
+
       service.stop()
       service = null
       Thread.sleep(1000L)
+
+      startServiceForEventListening()
+
+      Thread.sleep(2000L)
 
       listener.onConnectionOpened should be > 1
       listener.onConnectionClosed should be > 1
@@ -430,18 +426,18 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         5 seconds)
 
       Thread.sleep(1000L)
+
       val receivedEvents = listener.receivedEvents
 
       klient.unsubscribeTopic(topic, listener)
 
       service.stop()
+
       Thread.sleep(1000L)
-
-
 
       startServiceForEventListening()
 
-      Thread.sleep(10000L)
+      Thread.sleep(1000L)
 
       receivedEvents shouldBe listener.receivedEvents
     }
@@ -490,10 +486,6 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
   }
 }
 
-// Moved this below the test steps so what a (human) reader gets first is the tests. This is supporting code.
-// By wrapping it in the companion object, we clearly indicate its scope. Note: Could also tag these 'private',
-// but being on the test side that is probably obvious? AKa280116
-
 object KlientSpec extends WordSpecLike /*for 'info()'*/ with ShouldMatchers {
 
   lazy val objectMapper = new ObjectMapper()
@@ -506,6 +498,10 @@ object KlientSpec extends WordSpecLike /*for 'info()'*/ with ShouldMatchers {
   val TOKEN = "<OAUTH Token>"
   val HOST = "localhost"
   val PORT = 8081
+
+  // Moved this below the test steps so that a human reader gets first at the tests. By wrapping this in a companion
+  // object, we clearly indicate its scope (and can make it 'private' if we want - though with tests that's less
+  // relevant than with main code). AKa280116
 
   private
   class TestListener extends Listener {

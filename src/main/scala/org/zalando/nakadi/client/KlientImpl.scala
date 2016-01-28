@@ -1,11 +1,9 @@
 package org.zalando.nakadi.client
 
 import java.net.URI
-import javax.net.ssl.SSLContext
 
 import akka.actor._
 import akka.http.scaladsl.model.MediaTypes.`application/json`
-import akka.http.scaladsl.{HttpsContext, Http}
 import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.model._
@@ -17,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Utils.outgoingHttpConnection
+import org.zalando.nakadi.client.actor.KlientSupervisor._
 import org.zalando.nakadi.client.actor._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}

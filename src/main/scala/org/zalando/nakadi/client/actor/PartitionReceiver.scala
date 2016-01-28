@@ -12,18 +12,36 @@ import akka.stream.scaladsl.{Sink, Source}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.zalando.nakadi.client
 import org.zalando.nakadi.client.Utils.outgoingHttpConnection
+import org.zalando.nakadi.client.actor.KlientSupervisor._
+import org.zalando.nakadi.client.actor.ListenerActor._
 import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-
-
-sealed case class Init()
-case class NewListener(listenerId: String, listener: ActorRef)
-case class ConnectionOpened(topic: String, partition: String)
-case class ConnectionFailed(topic: String, partition: String, status: Int, error: String)
-case class ConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor])
+import scala.concurrent.duration.Duration
 
 
 object PartitionReceiver{
+
+  val NO_LISTENER_RECONNECT_DELAY_IN_S: Int = 30  // TODO make configurable
+  val POLL_PARALLELISM: Int = 100 // TODO make configurable
+
+  /**
+   * Triggers new event polling request
+   */
+  private object Init
+
+  /**
+   * Shutdown actor without PoisonPill. The reason is that PoisonPill shuts down
+   * the actor immediately without having all messages in the queue processed.
+   */
+  private object Shutdown
+
+  case class NewListener(listenerId: String, listener: ActorRef)
+  case class ConnectionOpened(topic: String, partition: String)
+  case class ConnectionFailed(topic: String, partition: String, status: Int, error: String)
+  case class ConnectionClosed(topic: String, partition: String, lastCursor: Option[Cursor])
+
+
   def props(endpoint: URI,
             port: Int,
             securedConnection: Boolean,
@@ -36,16 +54,18 @@ object PartitionReceiver{
     Props(new PartitionReceiver(endpoint, port, securedConnection, topic, partitionId, parameters, tokenProvider, automaticReconnect, objectMapper) )
 }
 
-class PartitionReceiver (val endpoint: URI,
-                         val port: Int,
-                         val securedConnection: Boolean,
-                         val topic: String,
-                         val partitionId: String,
-                         val parameters: ListenParameters,
-                         val tokenProvider: () => String,
-                         val automaticReconnect: Boolean,
-                         val objectMapper: ObjectMapper)  extends Actor with ActorLogging
+class PartitionReceiver private (val endpoint: URI,
+                                 val port: Int,
+                                 val securedConnection: Boolean,
+                                 val topic: String,
+                                 val partitionId: String,
+                                 val parameters: ListenParameters,
+                                 val tokenProvider: () => String,
+                                 val automaticReconnect: Boolean,
+                                 val objectMapper: ObjectMapper)  extends Actor with ActorLogging
 {
+  import PartitionReceiver._
+
   var listeners: Map[String, ActorRef] = Map()
 
   var lastCursor: Option[Cursor] = None
@@ -65,12 +85,17 @@ class PartitionReceiver (val endpoint: URI,
                                                    parameters.batchFlushTimeoutInSeconds,
                                                    parameters.streamLimit))
     }
-    case NewListener(listenerId, listener) => listeners = listeners + ((listenerId, listener))
+    case NewListener(listenerId, listener) =>
+      context.watch(listener)
+      listener ! ListenerSubscription(topic, partitionId)
+      listeners = listeners + ((listenerId, listener))
     case streamEvent: SimpleStreamEvent => streamEvent.events.foreach{event =>
       lastCursor = Some(streamEvent.cursor)
       listeners.values.foreach(listener => listener ! Tuple4(topic, partitionId, streamEvent.cursor, event))
     }
     case Unsubscription(_topic, _listener) => if(_topic == topic) listeners -= _listener.id
+    case Terminated(actor) => listeners = listeners.filterNot(_._2 == actor)
+    case Shutdown => context.stop(self)
   }
 
 
@@ -82,18 +107,18 @@ class PartitionReceiver (val endpoint: URI,
 
     if(listeners.isEmpty) {
       log.info("no listeners registered -> not establishing connection to Nakadi")
-      reconnectIfActivated(30) // TODO make configurable
+      reconnectIfActivated(NO_LISTENER_RECONNECT_DELAY_IN_S)
     }
     else {
       log.debug("listening via [request={}]", request)
       Source
         .single(request)
         .via(outgoingHttpConnection(endpoint, port, securedConnection)(context.system))
-        .runWith(Sink.foreach(response =>
+        .runWith(Sink.foreachParallel(POLL_PARALLELISM)(response =>
         response.status match {
           case status if status.isSuccess() =>
             listeners.values.foreach(_ ! ConnectionOpened(topic, partitionId))
-            consumeStream(response)
+            Await.ready(consumeStream(response), Duration.Inf)// TODO is there a better way?
           case status =>
             listeners.values.foreach(_ ! ConnectionFailed(topic, partitionId, response.status.intValue(), response.entity.toString))
             reconnectIfActivated()
@@ -106,7 +131,7 @@ class PartitionReceiver (val endpoint: URI,
           else {
             log.info("stream to [topic={}, partition={}] has been closed and [automaticReconnect={}] -> shutting down",
                      topic, partitionId, automaticReconnect)
-            self ! PoisonPill.getInstance
+            self ! Shutdown
           }
       })
     }
@@ -117,7 +142,6 @@ class PartitionReceiver (val endpoint: URI,
       log.info("[automaticReconnect={}] -> reconnecting", automaticReconnect)
       import scala.concurrent.duration._
       import scala.language.postfixOps
-      // TODO make configurable
       context.system.scheduler.scheduleOnce(numerOfSeconds seconds, self, Init)
     }
     else log.info("[automaticReconnect={}] -> no reconnect", automaticReconnect)
@@ -141,7 +165,7 @@ class PartitionReceiver (val endpoint: URI,
      *
      * See also http://json.org/ for string parsing semantics
      */
-    var stack: Int = 0
+    var depth: Int = 0
     var hasOpenString: Boolean = false
     val bout = new ByteArrayOutputStream(RECEIVE_BUFFER_SIZE)
 
@@ -151,15 +175,15 @@ class PartitionReceiver (val endpoint: URI,
           bout.write(byteItem.asInstanceOf[Int])
 
           if (byteItem == '"') hasOpenString = !hasOpenString
-          else if (!hasOpenString && byteItem == '{') stack += 1
+          else if (!hasOpenString && byteItem == '{') depth += 1
           else if (!hasOpenString && byteItem == '}') {
-            stack -= 1
+            depth -= 1
 
-            if (stack == 0 && bout.size != 0) {
+            if (depth == 0 && bout.size != 0) {
               val streamEvent = objectMapper.readValue(bout.toByteArray, classOf[SimpleStreamEvent])
 
               if (Option(streamEvent.events).isDefined && streamEvent.events.nonEmpty){
-                log.debug("received non-empty [streamEvent={}]", streamEvent)
+                log.info("received non-empty [streamEvent={}]", streamEvent)
                 self ! streamEvent
               }
               else log.debug(s"received empty [streamingEvent={}] --> ignored", streamEvent)

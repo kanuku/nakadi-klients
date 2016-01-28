@@ -6,33 +6,41 @@ import java.util.concurrent.TimeUnit
 import akka.actor._
 import akka.util.Timeout
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.zalando.nakadi.client.actor.PartitionReceiver._
 import org.zalando.nakadi.client.{Listener, KlientException, ListenParameters}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
-case class NewSubscription(topic: String,
-                           partitionId: String,
-                           parameters: ListenParameters,
-                           autoReconnect: Boolean,
-                           listener: Listener)
 
-case class Unsubscription(topic: String, listener: Listener)
 
 
 object KlientSupervisor{
+
+  case class NewSubscription(topic: String,
+                             partitionId: String,
+                             parameters: ListenParameters,
+                             autoReconnect: Boolean,
+                             listener: Listener)
+
+  case class Unsubscription(topic: String, listener: Listener)
+
   def props(endpoint: URI, port: Int, securedConnection: Boolean, tokenProvider: () => String, objectMapper: ObjectMapper) =
                                            Props(new KlientSupervisor(endpoint, port, securedConnection, tokenProvider, objectMapper))
 }
 
 
-class KlientSupervisor(val endpoint: URI, val port: Int, val securedConnection: Boolean, val tokenProvider: () => String, val objectMapper: ObjectMapper)
+class KlientSupervisor private (val endpoint: URI, val port: Int, val securedConnection: Boolean, val tokenProvider: () => String, val objectMapper: ObjectMapper)
   extends Actor with ActorLogging{
 
   import akka.actor.SupervisorStrategy._
   import scala.concurrent.duration._
   import scala.language.postfixOps
+  import org.zalando.nakadi.client.actor.KlientSupervisor._
+
+
+  var listenerMap: Map[String, ActorRef] = Map()
 
   override val supervisorStrategy = AllForOneStrategy(maxNrOfRetries = 100, withinTimeRange = 5 minutes) {
       case e: ArithmeticException      => Resume
@@ -43,18 +51,19 @@ class KlientSupervisor(val endpoint: URI, val port: Int, val securedConnection: 
 
 
   override def receive: Receive = {
-    case NewSubscription(topic, partitionId, parameters, autoReconnect, listener) => {
-      if(autoReconnect) subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, None)
-      else {
-        resolveActor("partition-" + partitionId).onComplete(_ match {
-          case Success(receiverActor) =>
-            receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(topic, listener)))
-          case Failure(e: ActorNotFound) =>
-            subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, Some(s"partition-$partitionId"))
-          case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
-        })
-      }
-    }
+    case NewSubscription(topic, partitionId, parameters, autoReconnect, listener) =>
+        if(autoReconnect) {
+          resolveActor("partition-" + partitionId).onComplete(_ match {
+            case Success(receiverActor) =>
+              receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(listener)))
+            case Failure(e: ActorNotFound) =>
+              subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, Some(s"partition-$partitionId"))
+            case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
+          })
+        }
+        else subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, None)
+
+    case Terminated(actor) => listenerMap = listenerMap.filterNot(_._2 == actor)
   }
 
 
@@ -84,7 +93,15 @@ class KlientSupervisor(val endpoint: URI, val port: Int, val securedConnection: 
                                                             objectMapper))
     }
 
-    receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(topic, listener)))
+    val lActor = listenerMap.get(listener.id) match {
+      case Some(listenerActor) => listenerActor
+      case None => val listenerActor = context.actorOf(ListenerActor.props(listener))
+                   context.watch(listenerActor)
+                   listenerMap += ((listener.id, listenerActor))
+                   listenerActor
+    }
+
+    receiverActor ! NewListener(listener.id, lActor)
   }
 
 
