@@ -98,10 +98,10 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.getMetrics,
         5 seconds
       ) match {
-          case Left(error) => fail(s"could not retrieve metrics: $error")
-          case Right(metrics) => logger.debug(s"metrics => $metrics")
-        performStandardRequestChecks(requestPath, requestMethod)
-        }
+        case Left(error) => fail(s"could not retrieve metrics: $error")
+        case Right(metrics) => logger.debug(s"metrics => $metrics")
+                                performStandardRequestChecks(requestPath, requestMethod)
+      }
     }
 
     "retrieve Nakadi topics" in {
