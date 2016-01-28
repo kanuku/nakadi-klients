@@ -23,6 +23,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 
 protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnection: Boolean, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
+  import KlientImpl._
+
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   checkNotNull(objectMapper, "objectMapper must not be null")
@@ -151,7 +153,7 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
   override def subscribeToTopic(topic: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean): Future[Unit] = {
     getPartitions(topic).map{_ match {
       case Left(errorMessage) =>
-          throw new KlientException(s"a problem ocurred while subscribing to [topic=$topic, errorMessage=$errorMessage]")
+          throw new KlientException(s"a problem ocurred while subscribing to [topic=$topic]: $errorMessage")
       case Right(partitions: List[TopicPartition]) =>
           partitions.foreach(p => listenForEvents(topic,
                                                   p.partitionId,
@@ -221,4 +223,8 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
    * Shuts down the communication system of the client
    */
   override def stop(): Unit = system.shutdown()
+}
+
+object KlientImpl {
+  class KlientException(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
 }

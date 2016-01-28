@@ -6,8 +6,9 @@ import java.util.concurrent.TimeUnit
 import akka.actor._
 import akka.util.Timeout
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.zalando.nakadi.client.KlientImpl.KlientException
 import org.zalando.nakadi.client.actor.PartitionReceiver._
-import org.zalando.nakadi.client.{Listener, KlientException, ListenParameters}
+import org.zalando.nakadi.client.{Listener, ListenParameters}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -58,7 +59,11 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
               receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(listener)))
             case Failure(e: ActorNotFound) =>
               subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, Some(s"partition-$partitionId"))
-            case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
+            case Failure(e: Throwable) =>
+              // Note: It's a bit weird we're throwing a 'KlientException' here, the same as 'KlientImpl' uses.
+              //      Are these in fact two different kinds of exceptions? Would anyone care of their types? AKa280116
+
+              throw new KlientException(e.getMessage, e)
           })
         }
         else subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, None)
