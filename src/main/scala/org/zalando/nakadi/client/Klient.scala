@@ -1,5 +1,7 @@
 package org.zalando.nakadi.client
 
+import akka.actor.Terminated
+
 import scala.concurrent.Future
 
 
@@ -108,5 +110,5 @@ trait Klient {
   /**
    * Shuts down the communication system of the client
    */
-  def stop(): Unit
+  def stop(): Future[Terminated]
 }

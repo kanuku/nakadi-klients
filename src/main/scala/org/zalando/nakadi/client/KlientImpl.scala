@@ -22,7 +22,11 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnection: Boolean, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
+protected class KlientImpl(val endpoint: URI,
+                           val port: Int,
+                           val securedConnection: Boolean,
+                           val tokenProvider: () => String,
+                           val objectMapper: ObjectMapper) extends Klient{
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   checkNotNull(objectMapper, "objectMapper must not be null")
@@ -177,7 +181,7 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
    * @param event  event to be posted
    * @return Option representing the error message or None in case of success
    */
-  override def postEvent(topic: String, event: Event): Future[Option[String]] ={
+  override def postEvent(topic: String, event: Event): Future[Option[String]] = {
      checkNotNull(topic, "topic must not be null")
      performEventPost(String.format(URI_EVENT_POST, topic), event)
   }
@@ -220,5 +224,5 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
   /**
    * Shuts down the communication system of the client
    */
-  override def stop(): Unit = system.shutdown()
+  override def stop(): Future[Terminated] = system.terminate()
 }
