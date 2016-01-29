@@ -12,7 +12,7 @@ object ListenerActor{
   def props(listener: Listener) = Props(new ListenerActor(listener))
 }
 
-class ListenerActor private (val listener: Listener) extends Actor with ActorLogging{
+class ListenerActor protected (val listener: Listener) extends Actor with ActorLogging{
   import ListenerActor._
 
   context.system.eventStream.subscribe(self, classOf[Unsubscription])

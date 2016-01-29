@@ -2,13 +2,12 @@ package org.zalando.nakadi.client
 
 import java.net.URI
 
-import akka.actor.Terminated
+import akka.actor.ActorSystem
 import com.fasterxml.jackson.databind.ObjectMapper
-import de.zalando.scoop.Scoop
-import org.zalando.nakadi.client.actor.KlientSupervisor.NewSubscription
-import org.zalando.nakadi.client.scoop.{ScoopListenerWrapper, ScoopClientWrapper}
+import com.typesafe.config.ConfigFactory
+import de.zalando.scoop.{ScoopClient, Scoop}
+import org.zalando.nakadi.client.actor.KlientSupervisor.{NewScoopAwareSubscription, NewSubscription}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 
 class ScoopAwareNakadiKlient(endpoint: URI,
@@ -22,21 +21,37 @@ class ScoopAwareNakadiKlient(endpoint: URI,
 
   val scoopTopic = scoopTopicOption.getOrElse(throw new IllegalArgumentException("no Scoop topic specified"))
   val scoop = scoopOption.getOrElse(throw new IllegalArgumentException("no Scoop builder given"))
-  val scoopSystem = scoop.build()
-  val scoopClient = ScoopClientWrapper(this, scoop.defaultClient(), scoopTopic)
+
+  override val system = ActorSystem("scoop-nakadi-client", ConfigFactory.defaultApplication()
+                                                                        .withFallback(scoop.buildConfiguration()))
+  scoop.startScoopActor(system)
+
+
+
 
   override def listenForEvents(topic: String,
                                partitionId: String,
                                parameters: ListenParameters,
                                listener: Listener,
-                               autoReconnect: Boolean = false): Unit =
-        super.listenForEvents(topic, partitionId, parameters, ScoopListenerWrapper(scoopClient, scoopTopic, listener))
+                               autoReconnect: Boolean = false): Unit = {
+    checkNotNull(topic, "topic must not be null")
+    checkNotNull(partitionId, "partitionId must not be null")
+    checkNotNull(parameters, "list parameters must not be null")
+    checkNotNull(listener, "listener must not be null")
+    checkNotNull(autoReconnect, "autoReconnect must not be null")
 
+    checkExists(parameters.batchFlushTimeoutInSeconds, "batchFlushTimeoutInSeconds is not set")
+    checkExists(parameters.batchLimit, "batchLimit is not set")
+    checkExists(parameters.startOffset, "startOffset is not specified")
+    checkExists(parameters.streamLimit, "streamLimit is not specified")
 
-  /**
-   * Shuts down the communication system of the client and Scoop and returns any Terminated instance.
-   */
-  override def stop(): Future[Terminated] = Future.sequence(Seq(super.stop(), scoopSystem.terminate()))
-                                                  .flatMap[Terminated]( seq => Future(seq.head))
-
+    supervisor !  NewScoopAwareSubscription(topic,
+                                            partitionId,
+                                            parameters,
+                                            autoReconnect,
+                                            listener,
+                                            this,
+                                            scoop.defaultClient(),
+                                            scoopTopic)
+  }
 }

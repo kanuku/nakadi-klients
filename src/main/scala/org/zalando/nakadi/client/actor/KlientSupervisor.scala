@@ -6,8 +6,9 @@ import java.util.concurrent.TimeUnit
 import akka.actor._
 import akka.util.Timeout
 import com.fasterxml.jackson.databind.ObjectMapper
+import de.zalando.scoop.ScoopClient
 import org.zalando.nakadi.client.actor.PartitionReceiver._
-import org.zalando.nakadi.client.{Listener, KlientException, ListenParameters}
+import org.zalando.nakadi.client.{Klient, Listener, KlientException, ListenParameters}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -23,6 +24,16 @@ object KlientSupervisor{
                              parameters: ListenParameters,
                              autoReconnect: Boolean,
                              listener: Listener)
+
+  case class NewScoopAwareSubscription(topic: String,
+                                       partitionId: String,
+                                       parameters: ListenParameters,
+                                       autoReconnect: Boolean,
+                                       listener: Listener,
+                                       klient: Klient,
+                                       scoopClient: ScoopClient,
+                                       scoopTopic: String)
+
 
   case class Unsubscription(topic: String, listener: Listener)
 
@@ -52,25 +63,42 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
 
   override def receive: Receive = {
     case NewSubscription(topic, partitionId, parameters, autoReconnect, listener) =>
-        if(autoReconnect) {
-          resolveActor("partition-" + partitionId).onComplete(_ match {
-            case Success(receiverActor) =>
-              receiverActor ! NewListener(listener.id, context.actorOf(ListenerActor.props(listener)))
-            case Failure(e: ActorNotFound) =>
-              subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, Some(s"partition-$partitionId"))
-            case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
-          })
-        }
-        else subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, None)
+      subscribe(topic,
+                partitionId,
+                parameters,
+                autoReconnect,
+                listener,
+                (l: Listener)=> context.actorOf(ListenerActor.props(l)))
+    case NewScoopAwareSubscription(topic, partitionId, parameters, autoReconnect, listener, klient, scoopClient, scoopTopic) =>
+      subscribe(topic,
+                partitionId,
+                parameters,
+                autoReconnect,
+                listener,
+                (l: Listener)=> context.actorOf(ScoopListenerActor.props(l, klient, scoopClient, scoopTopic)))
+    case Terminated(actor) =>
+      listenerMap = listenerMap.filterNot(_._2 == actor)
+  }
 
-    case Terminated(actor) => listenerMap = listenerMap.filterNot(_._2 == actor)
+
+  def subscribe(topic: String, partitionId: String, parameters: ListenParameters, autoReconnect: Boolean, listener: Listener, createListenerActor: (Listener) => ActorRef): Unit = {
+    if(autoReconnect) {
+      resolveActor("partition-" + partitionId).onComplete(_ match {
+        case Success(receiverActor) =>
+          receiverActor ! NewListener(listener.id, createListenerActor(listener))
+        case Failure(e: ActorNotFound) =>
+          subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, Some(s"partition-$partitionId"),createListenerActor)
+        case Failure(e: Throwable) => throw new KlientException(e.getMessage, e)
+      })
+    }
+    else subscribeToPartition(topic, partitionId, parameters, autoReconnect, listener, None, createListenerActor)
   }
 
 
   def asListenerPath(topic: String, listener: Listener): String = s"$topic-${listener.id}"
 
 
-  def subscribeToPartition(topic: String, partitionId: String, parameters: ListenParameters, autoReconnect: Boolean, listener: Listener, actorNameOption: Option[String]) = {
+  def subscribeToPartition(topic: String, partitionId: String, parameters: ListenParameters, autoReconnect: Boolean, listener: Listener,  actorNameOption: Option[String], createListenerActor: (Listener) => ActorRef) = {
     val receiverActor = actorNameOption match {
       case Some(actorName) => context.actorOf(PartitionReceiver.props(endpoint,
                                                                       port,
@@ -95,7 +123,7 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
 
     val lActor = listenerMap.get(listener.id) match {
       case Some(listenerActor) => listenerActor
-      case None => val listenerActor = context.actorOf(ListenerActor.props(listener))
+      case None => val listenerActor = createListenerActor(listener)
                    context.watch(listenerActor)
                    listenerMap += ((listener.id, listenerActor))
                    listenerActor
