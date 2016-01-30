@@ -9,10 +9,8 @@
     </appender>
 
     <logger name="org.zalando" level="DEBUG"/>
-
+    <logger name="de.zalando" level="DEBUG"/>
     <logger name="org.apache" level="OFF"/>
-    <logger name="de.zalando.nakadi" level="INFO"/>
-
 
     <root level="DEBUG">
         <appender-ref ref="STDOUT" />

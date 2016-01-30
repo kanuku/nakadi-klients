@@ -14,6 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object ScoopListenerActor{
   val UNREACHABLE_MEMBER_EVENT_TYPE: String = "/scoop-system/unreachable-member"
   val UNREACHABLE_MEMBER_EVENT_BODY_KEY: String = "unreachable_member"
+  val SCOOP_LISTENER_ID_PREFIX: String = "scoop-listener"
 
   private case class MemberUp(member: Member)
   private case class MemberUnreachable(member: Member)
@@ -40,17 +41,22 @@ class ScoopListenerActor(listener: Listener,
 
   var mayProcess: Boolean = false
 
-  val ID = s"scoop-listener-${System.nanoTime()}"
+  val ID = s"$SCOOP_LISTENER_ID_PREFIX-${System.nanoTime()}"
 
   val SELECTOR_FIELD = "id" // TODO make attribute configurable
 
-
   klient.subscribeToTopic(scoopTopic, ListenParameters(), this)
 
-
   override def preStart() = {
+    log.info("starting ScoopActorListener for [listener.id={}]", listener.id)
     context.system.eventStream.publish(new NewScoopListener(this))
     super.preStart()
+  }
+
+  override def postStop() = {
+    logger.info("stopping ScoopActorListener for [listener.id={}]", listener.id)
+    klient.unsubscribeTopic(scoopTopic, this)
+    super.postStop()
   }
 
   override def receive: Receive = {
@@ -79,7 +85,6 @@ class ScoopListenerActor(listener: Listener,
    * anymore.
    */
   def handleMemberUnreachable(member: Member): Unit = {
-
     currentCluster match {
       case Some(actualCluster) =>
         if(actualCluster.selfRoles.contains("leader")) { // TODO right role name?
@@ -164,8 +169,11 @@ class ScoopListenerActor(listener: Listener,
    * Needs to be stashed together with other notifications because the ScoopListener
    * notifications and Scoop specific Nakadi events influence the channel logic
    */
-  override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit =
+  override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit = {
+    log.debug("[listener.id={}, mayProcess={}] received [cursor={}, event={}]", listener.id, mayProcess, cursor, event)
     self ! NakadiEventReceived(topic, partition, cursor, event)
+  }
+
 
   override def onConnectionOpened(topic: String, partition: String): Unit =
     listener.onConnectionOpened(topic, partition)

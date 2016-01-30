@@ -26,12 +26,14 @@ protected class KlientImpl(val endpoint: URI,
                            val port: Int,
                            val securedConnection: Boolean,
                            val tokenProvider: () => String,
-                           val objectMapper: ObjectMapper) extends Klient{
+                           val objectMapper: ObjectMapper,
+                           val klientSystem: Option[ActorSystem] = None) extends Klient{
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   checkNotNull(objectMapper, "objectMapper must not be null")
 
-  implicit val system = ActorSystem("nakadi-client")
+  implicit val system = klientSystem.getOrElse(ActorSystem("nakadi-client"))
+
   val supervisor = system.actorOf(KlientSupervisor.props(endpoint, port, securedConnection, tokenProvider, objectMapper),
                                   "klient-supervisor")
 

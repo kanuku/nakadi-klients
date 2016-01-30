@@ -13,10 +13,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
-
-
-
-
 object KlientSupervisor{
 
   case class NewSubscription(topic: String,

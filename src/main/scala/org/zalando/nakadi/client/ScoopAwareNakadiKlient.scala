@@ -7,8 +7,20 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.config.ConfigFactory
 import de.zalando.scoop.{ScoopClient, Scoop}
 import org.zalando.nakadi.client.actor.KlientSupervisor.{NewScoopAwareSubscription, NewSubscription}
+import org.zalando.nakadi.client.actor.ScoopListenerActor
+import org.zalando.nakadi.client.actor.ScoopListenerActor.SCOOP_LISTENER_ID_PREFIX
 import scala.concurrent.ExecutionContext.Implicits.global
 
+object ScoopAwareNakadiKlient {
+
+  def initActorSystem(scoopOption: Option[Scoop]): Option[ActorSystem] ={
+    val scoop = scoopOption.getOrElse(throw new IllegalArgumentException("no Scoop builder given"))
+    Some(
+      ActorSystem("scoop-nakadi-client", ConfigFactory.defaultApplication()
+                                            .withFallback(scoop.buildConfiguration()))
+    )
+  }
+}
 
 class ScoopAwareNakadiKlient(endpoint: URI,
                              port: Int,
@@ -17,15 +29,17 @@ class ScoopAwareNakadiKlient(endpoint: URI,
                              objectMapper: ObjectMapper,
                              scoopOption: Option[Scoop],
                              scoopTopicOption: Option[String])
-  extends KlientImpl(endpoint, port, securedConnection, tokenProvider, objectMapper) {
+  extends KlientImpl(endpoint,
+                     port,
+                     securedConnection,
+                     tokenProvider,
+                     objectMapper,
+                     ScoopAwareNakadiKlient.initActorSystem(scoopOption)) {
 
   val scoopTopic = scoopTopicOption.getOrElse(throw new IllegalArgumentException("no Scoop topic specified"))
   val scoop = scoopOption.getOrElse(throw new IllegalArgumentException("no Scoop builder given"))
 
-  override val system = ActorSystem("scoop-nakadi-client", ConfigFactory.defaultApplication()
-                                                                        .withFallback(scoop.buildConfiguration()))
   scoop.startScoopActor(system)
-
 
 
 
@@ -45,13 +59,16 @@ class ScoopAwareNakadiKlient(endpoint: URI,
     checkExists(parameters.startOffset, "startOffset is not specified")
     checkExists(parameters.streamLimit, "streamLimit is not specified")
 
-    supervisor !  NewScoopAwareSubscription(topic,
-                                            partitionId,
-                                            parameters,
-                                            autoReconnect,
-                                            listener,
-                                            this,
-                                            scoop.defaultClient(),
-                                            scoopTopic)
+    if(listener.id.startsWith(SCOOP_LISTENER_ID_PREFIX)) // TODO find cleaner solution to avoid infinite recursion with ScoopListenerActor
+      super.listenForEvents(topic, partitionId, parameters, listener, autoReconnect)
+    else
+      supervisor !  NewScoopAwareSubscription(topic,
+                                              partitionId,
+                                              parameters,
+                                              autoReconnect,
+                                              listener,
+                                              this,
+                                              scoop.defaultClient(),
+                                              scoopTopic)
   }
 }
