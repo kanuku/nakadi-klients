@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.unmarshalling.Unmarshaller
+import akka.http.scaladsl.unmarshalling.{PredefinedFromEntityUnmarshallers, Unmarshaller}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import com.fasterxml.jackson.core.`type`.TypeReference
@@ -20,6 +20,7 @@ import org.zalando.nakadi.client.actor._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Success, Failure}
 
 
 protected class KlientImpl(val endpoint: URI,
@@ -198,13 +199,20 @@ protected class KlientImpl(val endpoint: URI,
 
     logger.debug("sending [request={}]", request)
 
+    import scala.concurrent.duration._
+    import scala.language.postfixOps
+
     Source
       .single(request)
       .via(outgoingHttpConnection(endpoint, port, securedConnection))
       .runWith(Sink.head)
-      .map(response => if(response.status.intValue() < 200 || response.status.intValue() > 299)
-            Left(response.entity.dataBytes.toString) else Right(()))
-    // TODO check entity handling
+      .flatMap(response => if(response.status.intValue() < 200 || response.status.intValue() > 299)
+                          response.entity.toStrict(5 seconds).map( x =>  Some(x.data.decodeString("UTF-8")))
+                       else Future.successful(None))
+      .map(_ match {
+        case None => Right(())
+        case Some(v) => println(v); Left(v.asInstanceOf[String])
+    })
   }
 
 

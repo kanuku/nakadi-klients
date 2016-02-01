@@ -1,5 +1,6 @@
 package org.zalando.nakadi.client;
 
+import akka.actor.Terminated;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Map;
@@ -89,8 +90,12 @@ public interface Client {
                           Listener listener,
                           boolean autoReconnect);
 
+
+    void unsubscribeTopic(String topic, Listener listener);
+
+
     /**
      * Shuts down the communication system of the client
      */
-    void stop();
+    Future<Terminated> stop();
 }

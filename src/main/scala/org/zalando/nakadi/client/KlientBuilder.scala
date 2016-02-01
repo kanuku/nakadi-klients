@@ -1,6 +1,7 @@
 package org.zalando.nakadi.client
 
 import java.net.URI
+import java.util.function.Supplier
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
 import com.fasterxml.jackson.databind._
@@ -28,6 +29,9 @@ class KlientBuilder private (val endpoint: URI = null,
                              val scoopTopic: Option[String] = None)
   extends LazyLogging
 {
+
+  def this() = this(null, 8080, false, null, None, None, None)
+
   private def checkNotNull[T](subject: T): T =
                                    if(Option(subject).isEmpty) throw new NullPointerException else subject
 
@@ -42,6 +46,10 @@ class KlientBuilder private (val endpoint: URI = null,
 
   def withTokenProvider(tokenProvider: () => String): KlientBuilder =
                                 new KlientBuilder(endpoint, port, securedConnection, checkNotNull(tokenProvider), objectMapper, scoop, scoopTopic)
+
+
+  def withJavaTokenProvider(tokenProvider: Supplier[String]) = withTokenProvider(() => tokenProvider.get())
+
 
   // TODO param check
   def withPort(port: Int): KlientBuilder = new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop, scoopTopic)

@@ -28,6 +28,7 @@ object Utils {
     }
   }
 
+
   def outgoingHttpConnection(endpoint: URI, port: Int, securedConnection: Boolean)(implicit system: ActorSystem): Flow[HttpRequest, HttpResponse, Future[OutgoingConnection]] = {
     val http = Http(system)
     if(securedConnection) {
@@ -37,5 +38,4 @@ object Utils {
 
     else http.outgoingConnection(endpoint.toString, port)
   }
-
 }
