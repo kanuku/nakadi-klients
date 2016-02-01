@@ -2,9 +2,7 @@ package org.zalando.nakadi.client.utils;
 
 
 import com.google.common.collect.Maps;
-import org.zalando.nakadi.client.Client;
-import org.zalando.nakadi.client.Event;
-import org.zalando.nakadi.client.KlientBuilder;
+import org.zalando.nakadi.client.*;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -14,6 +12,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 
+import scala.Option;
 import scala.collection.JavaConversions;
 import scala.util.Either;
 
@@ -24,7 +23,7 @@ public class Main {
     public static void main(final String[] args) throws Exception {
 
         final Client client = new KlientBuilder()
-                        .withEndpoint(new URI("192.168.99.100"))
+                        .withEndpoint(new URI("localhost"))
                         .withPort(8080)
                         .withSecuredConnection(false)
                         .withJavaTokenProvider(() -> "<my token>")
@@ -45,5 +44,38 @@ public class Main {
             System.out.println(">>POST EVENT - LEFT>>>" + postResult.left().get());
         else
             System.out.println(">>POST EVENT - LEFT>>>" + postResult.right().get());
+
+        client.subscribeToTopic("test", ListenParametersUtils.defaultInstance(), new MyListener(), true);
+
+
+        Thread.sleep(Long.MAX_VALUE);
+    }
+
+    private static final class MyListener implements Listener {
+
+        @Override
+        public String id() {
+            return getClass().getName();
+        }
+
+        @Override
+        public void onReceive(String topic, String partition, Cursor cursor, Event event) {
+            System.out.printf("onReceive -> " + event);
+        }
+
+        @Override
+        public void onConnectionOpened(String topic, String partition) {
+            System.out.println("onConnectionOpned " + topic + " " + partition);
+        }
+
+        @Override
+        public void onConnectionFailed(String topic, String partition, int status, String error) {
+            System.out.println("onConnectionFailed " + topic + " " + partition + " " + status + " " + error);
+        }
+
+        @Override
+        public void onConnectionClosed(String topic, String partition, Option<Cursor> lastCursor) {
+            System.out.println("onConnectionClosed " + topic + " " + partition + " " + lastCursor);
+        }
     }
 }

@@ -6,7 +6,7 @@ import scala.concurrent.Future
 
 
 /*
- * Paramters for listening on Nakadi
+ * Parameters for listening on Nakadi
  *
  * @param startOffset start position in 'queue' from which events are received
  * @param batchLimit  number of events which should be received at once (per poll). Must be > 0
@@ -20,6 +20,13 @@ case class ListenParameters(startOffset: Option[String] = None,
                             batchLimit: Option[Int] = Some(DEFAULT_BATCH_LIMIT),
                             batchFlushTimeoutInSeconds: Option[Int] = Some(DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS),
                             streamLimit: Option[Int] = Some(DEFAULT_STREAM_LIMIT))
+
+object ListenParametersUtils{
+  /**
+   * Convenience method for Java clients
+   */
+  def defaultInstance = new ListenParameters()
+}
 
 trait Klient {
   /**
