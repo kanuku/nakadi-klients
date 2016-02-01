@@ -210,8 +210,8 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       service.start()
 
       whenReady( klient.postEvent(topic, event), 10 seconds ) {
-        case Some(error) => fail(s"an error occurred while posting event to topic $topic")
-        case None => logger.debug("event post request was successful")
+        case Left(error) => fail(s"an error occurred while posting event to topic $topic")
+        case Right(_) => logger.debug("event post request was successful")
       }
 
       val request = performStandardRequestChecks(requestPath, requestMethod)

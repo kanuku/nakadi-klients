@@ -53,7 +53,7 @@ trait Klient {
    * @param event  event to be posted
    * @return Option representing the error message or None in case of success
    */
-  def postEvent(topic: String, event: Event): Future[Option[String]]
+  def postEvent(topic: String, event: Event): Future[Either[String,Unit]]
 
   /**
    * Get specific partition
@@ -73,7 +73,7 @@ trait Klient {
    * @param event event to be posted
    * @return Option representing the error message or None in case of success
    */
-  def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Option[String]]
+  def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Either[String,Unit]]
 
   /**
    * Blocking subscription to events of specified topic and partition.
