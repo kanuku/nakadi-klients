@@ -183,13 +183,13 @@ protected class KlientImpl(val endpoint: URI,
    * @param event  event to be posted
    * @return Option representing the error message or None in case of success
    */
-  override def postEvent(topic: String, event: Event): Future[Option[String]] = {
+  override def postEvent(topic: String, event: Event): Future[Either[String,Unit]] = {
      checkNotNull(topic, "topic must not be null")
      performEventPost(String.format(URI_EVENT_POST, topic), event)
   }
 
 
-  private def performEventPost(uriPart: String, event: Event): Future[Option[String]] = {
+  private def performEventPost(uriPart: String, event: Event): Future[Either[String,Unit]] = {
     checkNotNull(event, "event must not be null")
 
     val request = HttpRequest(uri = uriPart, method = POST)
@@ -203,7 +203,7 @@ protected class KlientImpl(val endpoint: URI,
       .via(outgoingHttpConnection(endpoint, port, securedConnection))
       .runWith(Sink.head)
       .map(response => if(response.status.intValue() < 200 || response.status.intValue() > 299)
-            Some(response.entity.dataBytes.toString) else None)
+            Left(response.entity.dataBytes.toString) else Right(()))
     // TODO check entity handling
   }
 
@@ -217,7 +217,7 @@ protected class KlientImpl(val endpoint: URI,
    * @param event event to be posted
    * @return Option representing the error message or None in case of success
    */
-  override def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Option[String]] = {
+  override def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Either[String,Unit]] = {
     checkNotNull(topic, "topic must not be null")
     performEventPost(String.format(URI_EVENTS_ON_PARTITION, topic, partitionId), event)
   }

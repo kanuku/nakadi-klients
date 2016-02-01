@@ -37,9 +37,9 @@ public interface Client {
      * hash over Event.orderingKey).
      * @param topic  target topic
      * @param event  event to be posted
-     * @return Option representing the error message or None in case of success
+     * @return Void in case of success
      */
-    Future<Option<String>> postEvent(final String topic, final Event event);
+    Future<Either<String,Void>> postEvent(final String topic, final Event event);
 
     /**
      * Get specific partition
@@ -57,9 +57,9 @@ public interface Client {
      * @param topic  topic where the partition is located
      * @param partitionId  id of the target partition
      * @param event event to be posted
-     * @return Option representing the error message or None in case of success
+     * @return Void in case of success
      */
-    Future<Option<String>> postEventToPartition(String topic, String partitionId, Event event);
+    Future<Either<String,Void>> postEventToPartition(String topic, String partitionId, Event event);
 
     /**
      * Blocking subscription to events of specified topic and partition.

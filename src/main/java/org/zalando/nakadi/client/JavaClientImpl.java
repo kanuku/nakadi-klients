@@ -34,8 +34,8 @@ class JavaClientImpl implements Client {
     }
 
     @Override
-    public Future<Option<String>> postEvent(final String topic, final Event event) {
-        return Utils.convert(klient.postEvent(topic, event));
+    public Future<Either<String,Void>> postEvent(final String topic, final Event event) {
+        return Utils.convert((scala.concurrent.Future) klient.postEvent(topic, event));
     }
 
     @Override
@@ -44,8 +44,8 @@ class JavaClientImpl implements Client {
     }
 
     @Override
-    public Future<Option<String>> postEventToPartition(final String topic, final String partitionId, final Event event) {
-        return Utils.convert(klient.postEventToPartition(topic, partitionId, event));
+    public Future<Either<String,Void>> postEventToPartition(final String topic, final String partitionId, final Event event) {
+        return Utils.convert((scala.concurrent.Future) klient.postEventToPartition(topic, partitionId, event));
     }
 
     @Override
