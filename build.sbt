@@ -4,7 +4,11 @@ name := "nakadi-klients"
 
 version := "0.3.0-SNAPSHOT"
 
+organization := "org.zalando.nakadi.client"
+
 scalaVersion := "2.11.6"
+
+crossPaths := false
 
 scalacOptions ++= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
