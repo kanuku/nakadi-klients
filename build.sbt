@@ -45,9 +45,6 @@ libraryDependencies ++= Seq(
 )
 
 // see http://www.scala-sbt.org/0.13/docs/Publishing.html
-
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
-
 publishTo := {
   val nexus = "https://maven.zalando.net/"
   if (isSnapshot.value)
