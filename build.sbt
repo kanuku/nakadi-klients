@@ -6,7 +6,6 @@ version := "0.3.0-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
-
 scalacOptions ++= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
   "-feature", // Emit warning and location for usages of features that should be imported explicitly.
@@ -40,3 +39,15 @@ libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-io" % "1.3.2" % "test",
   "com.google.code.findbugs" % "jsr305" % "1.3.9" % "test"
 )
+
+// see http://www.scala-sbt.org/0.13/docs/Publishing.html
+
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
+publishTo := {
+  val nexus = "https://maven.zalando.net/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases"  at nexus + "content/repositories/releases")
+}
