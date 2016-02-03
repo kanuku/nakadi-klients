@@ -1,4 +1,3 @@
-import scala.collection.JavaConverters._
 
 name := "nakadi-klients"
 

@@ -2,9 +2,7 @@ package org.zalando.nakadi.client;
 
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import scala.Option;
 import scala.collection.JavaConversions;
 
 import java.util.Map;

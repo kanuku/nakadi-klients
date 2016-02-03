@@ -2,7 +2,6 @@ package org.zalando.nakadi.client;
 
 import akka.actor.Terminated;
 import com.google.common.base.MoreObjects;
-import scala.Option;
 import scala.util.Either;
 
 import java.util.List;
