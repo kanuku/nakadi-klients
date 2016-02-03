@@ -2,10 +2,10 @@ package org.zalando.nakadi.client;
 
 import akka.actor.Terminated;
 import scala.Option;
-import scala.collection.immutable.List;
-import scala.collection.immutable.Map;
 import scala.util.Either;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 public interface Client {
@@ -15,7 +15,7 @@ public interface Client {
      *
      * @return immutable map of metrics data (value can be another Map again)
      */
-    Future<Either<String, Map<String, Object>>> getMetrics();
+    Future<Map<String, Object>> getMetrics();
 
     /**
      * Lists all known `Topics` in Event Store.

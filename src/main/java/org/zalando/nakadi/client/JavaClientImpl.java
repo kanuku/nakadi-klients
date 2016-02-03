@@ -3,9 +3,10 @@ package org.zalando.nakadi.client;
 import akka.actor.Terminated;
 import com.google.common.base.MoreObjects;
 import scala.Option;
-import scala.collection.immutable.List;
-import scala.collection.immutable.Map;
 import scala.util.Either;
+
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -21,20 +22,20 @@ class JavaClientImpl implements Client {
 
 
     @Override
-    public Future<Either<String, Map<String, Object>>> getMetrics() {
-        return Utils.convert(klient.getMetrics());
+    public Future<Map<String, Object>> getMetrics() {
+        return Utils.convertForMapRetrieval(klient.getMetrics());
     }
 
 
     @Override
     public Future<Either<String, List<Topic>>> getTopics() {
-        return Utils.convert((scala.concurrent.Future) klient.getTopics());
+        return Utils.convertForListRetrieval((scala.concurrent.Future) klient.getTopics());
     }
 
 
     @Override
     public Future<Either<String, List<TopicPartition>>> getPartitions(String topic) {
-        return Utils.convert((scala.concurrent.Future) klient.getPartitions(topic));
+        return Utils.convertForListRetrieval((scala.concurrent.Future) klient.getPartitions(topic));
     }
 
 

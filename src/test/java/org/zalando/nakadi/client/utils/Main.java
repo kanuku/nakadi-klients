@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -26,10 +27,10 @@ public class Main {
                         .withEndpoint(new URI("localhost"))
                         .withPort(8080)
                         .withSecuredConnection(false)
-                        .withJavaTokenProvider(() -> "<my token>")
+                        .withJavaTokenProvider(() -> "b099a178-acf7-467b-b106-4c0656285153")
                         .buildJavaClient();
 
-        System.out.println("---> " + client.getMetrics().get());
+        System.out.println("-METRICS--> " + client.getMetrics().get());
 
 
         final HashMap<String,Object> meta = Maps.newHashMap();
@@ -45,13 +46,13 @@ public class Main {
         else
             System.out.println(">>POST EVENT - LEFT>>>" + postResult.right().get());
 
-        client.subscribeToTopic("test", ListenParametersUtils.defaultInstance(), new MyListener(), true);
+        client.subscribeToTopic("test", ListenParametersUtils.defaultInstance(), new JListenerWrapper(new MyListener()), true);
 
 
         Thread.sleep(Long.MAX_VALUE);
     }
 
-    private static final class MyListener implements Listener {
+    private static final class MyListener implements JListener{
 
         @Override
         public String id() {
@@ -59,7 +60,7 @@ public class Main {
         }
 
         @Override
-        public void onReceive(String topic, String partition, Cursor cursor, Event event) {
+        public void onReceive(String topic, String partition, Cursor cursor, JEvent event) {
             System.out.printf("onReceive -> " + event);
         }
 
@@ -74,7 +75,7 @@ public class Main {
         }
 
         @Override
-        public void onConnectionClosed(String topic, String partition, Option<Cursor> lastCursor) {
+        public void onConnectionClosed(String topic, String partition, Optional<Cursor> lastCursor) {
             System.out.println("onConnectionClosed " + topic + " " + partition + " " + lastCursor);
         }
     }

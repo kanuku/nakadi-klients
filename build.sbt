@@ -2,7 +2,7 @@ import scala.collection.JavaConverters._
 
 name := "nakadi-klients"
 
-version := "0.3.0-SNAPSHOT"
+version := "0.3.1-SNAPSHOT"
 
 organization := "org.zalando.nakadi.client"
 
