@@ -7,8 +7,9 @@ import akka.actor._
 import akka.util.Timeout
 import com.fasterxml.jackson.databind.ObjectMapper
 import de.zalando.scoop.ScoopClient
+import org.zalando.nakadi.client.Klient.KlientException
 import org.zalando.nakadi.client.actor.PartitionReceiver._
-import org.zalando.nakadi.client.{Klient, Listener, KlientException, ListenParameters}
+import org.zalando.nakadi.client.{Klient, Listener, ListenParameters}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
