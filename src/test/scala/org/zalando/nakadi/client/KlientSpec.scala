@@ -490,14 +490,6 @@ object KlientSpec extends WordSpecLike /*info*/ with ShouldMatchers {
 
     override def onReceive(topic: String, partition: String, cursor: Cursor, event: Event): Unit = {
 
-      // Note: Changing 'println' to 'info' is a functional change. What is the intended action here?
-      //    - for giving information about tests being run, 'info' (or warning, etc.) are right. Their output
-      //      is placed alongside the test pass/fail reports, in the right location. 'println', on the other hand,
-      //      causes output not aligned with test reporting. IF things are intended to be visible "right then",
-      //      using 'System.err.println' could be yet another choice. AKa280116
-
-      info(s"WAS CALLED [topic=$topic, partition=$partition, event=$event]")
-
       var old = List[Event]()
       do {
         old = receivedEvents.get()
