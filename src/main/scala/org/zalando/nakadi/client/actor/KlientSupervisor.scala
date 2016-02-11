@@ -49,7 +49,7 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
 
   var listenerMap: Map[String, ActorRef] = Map()
 
-  override val supervisorStrategy = AllForOneStrategy(maxNrOfRetries = 100, withinTimeRange = 5 minutes) {
+  override val supervisorStrategy = AllForOneStrategy(maxNrOfRetries = 100, withinTimeRange = 5 minutes) {    // config?
       case e: ArithmeticException      => Resume
       case e: NullPointerException     => Restart
       case e: IllegalArgumentException => Stop
@@ -131,6 +131,6 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
 
   def resolveActor(actorSelectionPath: String): Future[ActorRef] = {
     val receiverSelection = context.actorSelection(actorSelectionPath)
-    receiverSelection.resolveOne()(Timeout(1L, TimeUnit.SECONDS))
+    receiverSelection.resolveOne()(Timeout(1L, TimeUnit.SECONDS))     // config?
   }
 }

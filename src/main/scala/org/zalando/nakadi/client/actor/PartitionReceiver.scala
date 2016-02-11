@@ -14,7 +14,7 @@ import org.zalando.nakadi.client
 import org.zalando.nakadi.client.Utils.outgoingHttpConnection
 import org.zalando.nakadi.client.actor.KlientSupervisor._
 import org.zalando.nakadi.client.actor.ListenerActor._
-import org.zalando.nakadi.client.{Cursor, SimpleStreamEvent, ListenParameters}
+import org.zalando.nakadi.client.{Conf, Cursor, SimpleStreamEvent, ListenParameters}
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
@@ -22,8 +22,8 @@ import scala.concurrent.duration.Duration
 
 object PartitionReceiver{
 
-  val NO_LISTENER_RECONNECT_DELAY_IN_S: Int = 10  // TODO make configurable
-  val POLL_PARALLELISM: Int = 100 // TODO make configurable
+  val NO_LISTENER_RECONNECT_DELAY_IN_S: Int = (Conf.noListenerReconnectDelay.toMillis / 1000).toInt   // note: has no '.toSeconds'
+  val POLL_PARALLELISM: Int = Conf.pollParallelism
 
   /**
    * Triggers new event polling request
@@ -71,7 +71,7 @@ class PartitionReceiver private (val endpoint: URI,
   var lastCursor: Option[Cursor] = None
   implicit val materializer = ActorMaterializer()
 
-  val RECEIVE_BUFFER_SIZE: Int = 1024
+  val RECEIVE_BUFFER_SIZE: Int = 1024   // config?
 
   context.system.eventStream.subscribe(self, classOf[Unsubscription])
 
