@@ -14,6 +14,7 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+import org.zalando.nakadi.client.Klient.KlientException
 import org.zalando.nakadi.client.Utils.outgoingHttpConnection
 import org.zalando.nakadi.client.actor.KlientSupervisor._
 import org.zalando.nakadi.client.actor._
@@ -158,7 +159,7 @@ protected class KlientImpl(val endpoint: URI,
   override def subscribeToTopic(topic: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean): Future[Unit] = {
     getPartitions(topic).map{_ match {
       case Left(errorMessage) =>
-          throw new KlientException(s"a problem ocurred while subscribing to [topic=$topic, errorMessage=$errorMessage]")
+          throw new KlientException(s"a problem ocurred while subscribing to [topic=$topic]: $errorMessage")
       case Right(partitions: List[TopicPartition]) =>
           partitions.foreach(p => listenForEvents(topic,
                                                   p.partitionId,
@@ -180,6 +181,7 @@ protected class KlientImpl(val endpoint: URI,
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
    * The partition resolution strategy is defined per topic and is managed by event store (currently resolved from
    * hash over Event.orderingKey).
+ *
    * @param topic  target topic
    * @param event  event to be posted
    * @return Option representing the error message or None in case of success
