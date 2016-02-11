@@ -1,10 +1,12 @@
 package org.zalando.nakadi.client
 
+import akka.actor.Terminated
+
 import scala.concurrent.Future
 
 
 /*
- * Paramters for listening on Nakadi
+ * Parameters for listening on Nakadi
  *
  * @param startOffset start position in 'queue' from which events are received
  * @param batchLimit  number of events which should be received at once (per poll). Must be > 0
@@ -18,6 +20,13 @@ case class ListenParameters(startOffset: Option[String] = None,
                             batchLimit: Option[Int] = Some(DEFAULT_BATCH_LIMIT),
                             batchFlushTimeoutInSeconds: Option[Int] = Some(DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS),
                             streamLimit: Option[Int] = Some(DEFAULT_STREAM_LIMIT))
+
+object ListenParametersUtils{
+  /**
+   * Convenience method for Java clients
+   */
+  def defaultInstance = new ListenParameters()
+}
 
 trait Klient {
   /**
@@ -51,7 +60,7 @@ trait Klient {
    * @param event  event to be posted
    * @return Option representing the error message or None in case of success
    */
-  def postEvent(topic: String, event: Event): Future[Option[String]]
+  def postEvent(topic: String, event: Event): Future[Either[String,Unit]]
 
   /**
    * Get specific partition
@@ -71,7 +80,7 @@ trait Klient {
    * @param event event to be posted
    * @return Option representing the error message or None in case of success
    */
-  def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Option[String]]
+  def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Either[String,Unit]]
 
   /**
    * Blocking subscription to events of specified topic and partition.
@@ -108,5 +117,9 @@ trait Klient {
   /**
    * Shuts down the communication system of the client
    */
-  def stop(): Unit
+  def stop(): Future[Terminated]
+}
+
+object Klient {
+  class KlientException(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
 }

@@ -7,29 +7,35 @@ import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.unmarshalling.Unmarshaller
+import akka.http.scaladsl.unmarshalling.{PredefinedFromEntityUnmarshallers, Unmarshaller}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+import org.zalando.nakadi.client.Klient.KlientException
 import org.zalando.nakadi.client.Utils.outgoingHttpConnection
 import org.zalando.nakadi.client.actor.KlientSupervisor._
 import org.zalando.nakadi.client.actor._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Success, Failure}
 
 
-protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnection: Boolean, val tokenProvider: () => String, val objectMapper: ObjectMapper) extends Klient{
-  import KlientImpl._
-
+protected class KlientImpl(val endpoint: URI,
+                           val port: Int,
+                           val securedConnection: Boolean,
+                           val tokenProvider: () => String,
+                           val objectMapper: ObjectMapper,
+                           val klientSystem: Option[ActorSystem] = None) extends Klient{
   checkNotNull(endpoint, "endpoint must not be null")
   checkNotNull(tokenProvider, "tokenProvider must not be null")
   checkNotNull(objectMapper, "objectMapper must not be null")
 
-  implicit val system = ActorSystem("nakadi-client")
+  implicit val system = klientSystem.getOrElse(ActorSystem("nakadi-client"))
+
   val supervisor = system.actorOf(KlientSupervisor.props(endpoint, port, securedConnection, tokenProvider, objectMapper),
                                   "klient-supervisor")
 
@@ -175,17 +181,18 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
    * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
    * The partition resolution strategy is defined per topic and is managed by event store (currently resolved from
    * hash over Event.orderingKey).
+ *
    * @param topic  target topic
    * @param event  event to be posted
    * @return Option representing the error message or None in case of success
    */
-  override def postEvent(topic: String, event: Event): Future[Option[String]] ={
+  override def postEvent(topic: String, event: Event): Future[Either[String,Unit]] = {
      checkNotNull(topic, "topic must not be null")
      performEventPost(String.format(URI_EVENT_POST, topic), event)
   }
 
 
-  private def performEventPost(uriPart: String, event: Event): Future[Option[String]] = {
+  private def performEventPost(uriPart: String, event: Event): Future[Either[String,Unit]] = {
     checkNotNull(event, "event must not be null")
 
     val request = HttpRequest(uri = uriPart, method = POST)
@@ -194,13 +201,20 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
 
     logger.debug("sending [request={}]", request)
 
+    import scala.concurrent.duration._
+    import scala.language.postfixOps
+
     Source
       .single(request)
       .via(outgoingHttpConnection(endpoint, port, securedConnection))
       .runWith(Sink.head)
-      .map(response => if(response.status.intValue() < 200 || response.status.intValue() > 299)
-            Some(response.entity.dataBytes.toString) else None)
-    // TODO check entity handling
+      .flatMap(response => if(response.status.intValue() < 200 || response.status.intValue() > 299)
+                          response.entity.toStrict(5 seconds).map( x =>  Some(x.data.decodeString("UTF-8")))
+                       else Future.successful(None))
+      .map(_ match {
+        case None => Right(())
+        case Some(v) => println(v); Left(v.asInstanceOf[String])
+    })
   }
 
 
@@ -213,7 +227,7 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
    * @param event event to be posted
    * @return Option representing the error message or None in case of success
    */
-  override def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Option[String]] = {
+  override def postEventToPartition(topic: String, partitionId: String, event: Event): Future[Either[String,Unit]] = {
     checkNotNull(topic, "topic must not be null")
     performEventPost(String.format(URI_EVENTS_ON_PARTITION, topic, partitionId), event)
   }
@@ -222,9 +236,5 @@ protected class KlientImpl(val endpoint: URI, val port: Int, val securedConnecti
   /**
    * Shuts down the communication system of the client
    */
-  override def stop(): Unit = system.shutdown()
-}
-
-object KlientImpl {
-  class KlientException(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
+  override def stop(): Future[Terminated] = system.terminate()
 }

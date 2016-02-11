@@ -42,7 +42,7 @@ class KlientBuilderSpec extends WordSpec with Matchers {
       val klient: KlientImpl = KlientBuilder()
         .withEndpoint(new URI("localhost:8080"))
         .withTokenProvider(() => "my-token")
-        .withObjectMapper(objectMapper)
+        .withObjectMapper(Some(objectMapper))
         .build().asInstanceOf[KlientImpl]
 
       klient.objectMapper == objectMapper should be(true)

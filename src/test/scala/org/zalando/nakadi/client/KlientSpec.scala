@@ -9,6 +9,8 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HeaderValues, HttpString, Headers}
+import org.scalatest.concurrent.PatienceConfiguration.{Timeout => ScalaTestTimeout}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import org.zalando.nakadi.client.actor.PartitionReceiver
 import org.zalando.nakadi.client.utils.NakadiTestService
@@ -17,6 +19,7 @@ import org.zalando.nakadi.client.utils.NakadiTestService.Builder
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.language.implicitConversions
 
 
 class TestListener extends  Listener {
@@ -42,7 +45,7 @@ class TestListener extends  Listener {
 }
 
 
-class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging {
+class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging with ScalaFutures {
 
   var klient: Klient = null
   var service: NakadiTestService = null
@@ -112,6 +115,12 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
     paramDeque.getFirst should be(expectedValue)
   }
 
+  // 'whenReady' requires the timeout in its own special way. Note: move this to companion object, later. AKa280116
+  //
+  implicit def conv(x: FiniteDuration): ScalaTestTimeout = {
+    new ScalaTestTimeout(x)
+  }
+
   "A Klient" must {
     "retrieve Nakadi metrics" in {
       val expectedResponse = Map("post_event" -> Map("calls_per_second" -> "0.005",
@@ -138,10 +147,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build
       service.start()
 
-      Await.result(
-        klient.getMetrics,
-        5 seconds
-      ) match {
+      whenReady( klient.getMetrics, 5 seconds) {
         case Left(error) => fail(s"could not retrieve metrics: $error")
         case Right(metrics) => logger.debug(s"metrics => $metrics")
                                performStandardRequestChecks(requestPath, requestMethod)
@@ -168,17 +174,14 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build
       service.start()
 
-      Await.result(
-        klient.getTopics,
-        10 seconds
-      ) match {
-          case Left(error) => fail(s"could not retrieve topics: $error")
-          case Right(topics) =>
-            logger.info(s"topics => $topics")
-            topics should be(expectedResponse)
-            performStandardRequestChecks(requestPath, requestMethod)
+      whenReady( klient.getTopics, 10 seconds ) {
+        case Left(error) => fail(s"could not retrieve topics: $error")
+        case Right(topics) =>
+          logger.info(s"topics => $topics")
+          topics should be(expectedResponse)
+          performStandardRequestChecks(requestPath, requestMethod)
 
-        }
+      }
     }
 
     "post events to Nakadi topics" in {
@@ -206,12 +209,9 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build
       service.start()
 
-      Await.result(
-        klient.postEvent(topic, event),
-        10 seconds
-      ) match {
-        case Some(error) => fail(s"an error occurred while posting event to topic $topic")
-        case None => logger.debug("event post request was successful")
+      whenReady( klient.postEvent(topic, event), 10 seconds ) {
+        case Left(error) => fail(s"an error occurred while posting event to topic $topic")
+        case Right(_) => logger.debug("event post request was successful")
       }
 
       val request = performStandardRequestChecks(requestPath, requestMethod)
@@ -240,7 +240,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build
       service.start()
 
-      val receivedPartitions = Await.result(klient.getPartitions(topic), 10 seconds) match {
+      val receivedPartitions = whenReady( klient.getPartitions(topic), 10 seconds) {
         case Left(error: String) => throw new RuntimeException(s"could not retrieve partitions: $error")
         case Right(partitions) => partitions
       }
@@ -270,7 +270,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build()
       service.start()
 
-      val receivedPartition = Await.result(klient.getPartition(topic, partitionId), 10 seconds) match {
+      val receivedPartition = whenReady(klient.getPartition(topic, partitionId), 10 seconds) {
         case Left(error)  => throw new RuntimeException(s"could not retrieve partition: $error")
         case Right(receivedTopic) => receivedTopic
       }
@@ -344,7 +344,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)
+      Thread.sleep(PartitionReceiver.NO_LISTENER_RECONNECT_DELAY_IN_S * 1000L + 2000L)
 
       //-- check received events
 
@@ -425,7 +425,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)
+      Thread.sleep(PartitionReceiver.NO_LISTENER_RECONNECT_DELAY_IN_S * 1000L + 2000L)
 
       service.stop()
       service = null

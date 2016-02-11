@@ -1,10 +1,10 @@
-package org.zalando.nakadi.client.utils
+package org.zalando.nakadi.client
 
 import java.net.URI
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import org.zalando.nakadi.client._
+import de.zalando.scoop.Scoop
 
 
 object Main {
@@ -15,11 +15,18 @@ object Main {
 
   def main (args: Array[String]) {
 
+
+    val scoop = new Scoop().withBindHostName("localhost")
+                           .withSeed("akka.tcp://scoop-nakadi-client@localhost:25551")
+
     val klient = KlientBuilder()
-      .withEndpoint(new URI("eventstore-laas.laas.zalan.do"))
-      .withPort(443)
-      .withSecuredConnection()
-      .withTokenProvider(() => "<my token>").build()
+      .withEndpoint(new URI("localhost"))
+      .withPort(8080)
+      .withSecuredConnection(false)
+      .withTokenProvider(() => "<my token>")
+      .withScoop(Some(scoop))
+      .withScoopTopic(Some("scoop"))
+      .build()
 
     val listener = new Listener {
 
@@ -34,7 +41,7 @@ object Main {
       override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = println(s"connection failed [topic=$topic, partition=$partition, status=$status, error=$error]")
     }
 
-    klient.subscribeToTopic("items", ListenParameters(Some("0")), listener, true)
+    klient.subscribeToTopic("test", ListenParameters(Some("0")), listener, true)
 
     Thread.sleep(Long.MaxValue)
 
