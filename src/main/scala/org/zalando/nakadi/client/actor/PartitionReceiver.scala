@@ -22,7 +22,7 @@ import scala.concurrent.duration.Duration
 
 object PartitionReceiver{
 
-  val NO_LISTENER_RECONNECT_DELAY_IN_S: Int = (Conf.noListenerReconnectDelay.toMillis / 1000).toInt   // note: has no '.toSeconds'
+  val NO_LISTENER_RECONNECT_DELAY_IN_S: Int = Conf.noListenerReconnectDelay.toSeconds.toInt
   val POLL_PARALLELISM: Int = Conf.pollParallelism
 
   /**

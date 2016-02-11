@@ -17,9 +17,9 @@ import scala.concurrent.Future
  *                    {streamLimit} events). If 0 or undefined, will stream indefinitely. Must be > -1
  */
 case class ListenParameters(startOffset: Option[String] = None,
-                            batchLimit: Option[Int] = Some(DEFAULT_BATCH_LIMIT),
-                            batchFlushTimeoutInSeconds: Option[Int] = Some(DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS),
-                            streamLimit: Option[Int] = Some(DEFAULT_STREAM_LIMIT))
+                            batchLimit: Option[Int] = Some( Conf.defaultBatchLimit ),
+                            batchFlushTimeoutInSeconds: Option[Int] = Some( Conf.defaultBatchFlushTimeout.toSeconds.toInt ),
+                            streamLimit: Option[Int] = Some( Conf.defaultStreamLimit ))
 
 object ListenParametersUtils{
   /**
