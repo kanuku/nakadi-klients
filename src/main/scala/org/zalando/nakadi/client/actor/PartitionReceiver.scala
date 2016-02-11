@@ -22,7 +22,7 @@ import scala.concurrent.duration.Duration
 
 object PartitionReceiver{
 
-  val NO_LISTENER_RECONNECT_DELAY_IN_S: Int = 30  // TODO make configurable
+  val NO_LISTENER_RECONNECT_DELAY_IN_S: Int = 10  // TODO make configurable
   val POLL_PARALLELISM: Int = 100 // TODO make configurable
 
   /**
@@ -151,7 +151,10 @@ class PartitionReceiver private (val endpoint: URI,
     String.format(client.URI_EVENT_LISTENING,
       topic,
       partitionId,
-      parameters.startOffset.getOrElse(throw new IllegalStateException("no startOffset set")),
+      parameters.startOffset match {
+        case Some(offset) => s"start_from=$offset"
+        case None => ""
+      },
       parameters.batchLimit.getOrElse(throw new IllegalStateException("no batchLimit set")).toString,
       parameters.batchFlushTimeoutInSeconds.getOrElse(throw new IllegalStateException("no batchFlushTimeoutInSeconds set")).toString,
       parameters.streamLimit.getOrElse(throw new IllegalStateException("no streamLimit set")).toString)

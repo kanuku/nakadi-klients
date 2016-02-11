@@ -1,10 +1,11 @@
 package org.zalando.nakadi.client;
 
+import akka.actor.Terminated;
 import scala.Option;
-import scala.collection.immutable.List;
-import scala.collection.immutable.Map;
 import scala.util.Either;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 public interface Client {
@@ -14,7 +15,7 @@ public interface Client {
      *
      * @return immutable map of metrics data (value can be another Map again)
      */
-    Future<Either<String, Map<String, Object>>> getMetrics();
+    Future<Map<String, Object>> getMetrics();
 
     /**
      * Lists all known `Topics` in Event Store.
@@ -37,9 +38,9 @@ public interface Client {
      * hash over Event.orderingKey).
      * @param topic  target topic
      * @param event  event to be posted
-     * @return Option representing the error message or None in case of success
+     * @return Void in case of success
      */
-    Future<Option<String>> postEvent(final String topic, final Event event);
+    Future<Either<String,Void>> postEvent(final String topic, final Event event);
 
     /**
      * Get specific partition
@@ -57,9 +58,9 @@ public interface Client {
      * @param topic  topic where the partition is located
      * @param partitionId  id of the target partition
      * @param event event to be posted
-     * @return Option representing the error message or None in case of success
+     * @return Void in case of success
      */
-    Future<Option<String>> postEventToPartition(String topic, String partitionId, Event event);
+    Future<Either<String,Void>> postEventToPartition(String topic, String partitionId, Event event);
 
     /**
      * Blocking subscription to events of specified topic and partition.
@@ -89,8 +90,12 @@ public interface Client {
                           Listener listener,
                           boolean autoReconnect);
 
+
+    void unsubscribeTopic(String topic, Listener listener);
+
+
     /**
      * Shuts down the communication system of the client
      */
-    void stop();
+    Future<Terminated> stop();
 }

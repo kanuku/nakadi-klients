@@ -1,10 +1,11 @@
 package org.zalando.nakadi.client;
 
+import akka.actor.Terminated;
 import com.google.common.base.MoreObjects;
-import scala.Option;
-import scala.collection.immutable.List;
-import scala.collection.immutable.Map;
 import scala.util.Either;
+
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -18,35 +19,42 @@ class JavaClientImpl implements Client {
         this.klient = checkNotNull(klient, "Klient instance must not be null");
     }
 
+
     @Override
-    public Future<Either<String, Map<String, Object>>> getMetrics() {
-        return Utils.convert(klient.getMetrics());
+    public Future<Map<String, Object>> getMetrics() {
+        return Utils.convertForMapRetrieval(klient.getMetrics());
     }
+
 
     @Override
     public Future<Either<String, List<Topic>>> getTopics() {
-        return Utils.convert((scala.concurrent.Future) klient.getTopics());
+        return Utils.convertForListRetrieval((scala.concurrent.Future) klient.getTopics());
     }
+
 
     @Override
     public Future<Either<String, List<TopicPartition>>> getPartitions(String topic) {
-        return Utils.convert((scala.concurrent.Future) klient.getPartitions(topic));
+        return Utils.convertForListRetrieval((scala.concurrent.Future) klient.getPartitions(topic));
     }
 
+
     @Override
-    public Future<Option<String>> postEvent(final String topic, final Event event) {
-        return Utils.convert(klient.postEvent(topic, event));
+    public Future<Either<String,Void>> postEvent(final String topic, final Event event) {
+        return Utils.convert((scala.concurrent.Future) klient.postEvent(topic, event));
     }
+
 
     @Override
     public Future<Either<String, TopicPartition>> getPartition(final String topic, final String partitionId) {
         return Utils.convert((scala.concurrent.Future) klient.getPartition(topic, partitionId));
     }
 
+
     @Override
-    public Future<Option<String>> postEventToPartition(final String topic, final String partitionId, final Event event) {
-        return Utils.convert(klient.postEventToPartition(topic, partitionId, event));
+    public Future<Either<String,Void>> postEventToPartition(final String topic, final String partitionId, final Event event) {
+        return Utils.convert((scala.concurrent.Future) klient.postEventToPartition(topic, partitionId, event));
     }
+
 
     @Override
     public void listenForEvents(final String topic,
@@ -65,10 +73,18 @@ class JavaClientImpl implements Client {
         klient.subscribeToTopic(topic, parameters, listener, autoReconnect);
     }
 
+
     @Override
-    public void stop() {
-        klient.stop();
+    public void unsubscribeTopic(final String topic, final Listener listener) {
+        klient.unsubscribeTopic(topic, listener);
     }
+
+
+    @Override
+    public Future<Terminated> stop() {
+        return Utils.convert(klient.stop());
+    }
+
 
     @Override
     public String toString() {

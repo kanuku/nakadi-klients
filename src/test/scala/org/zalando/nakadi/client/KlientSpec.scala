@@ -9,6 +9,8 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.{HeaderValues, HttpString, Headers}
+import org.scalatest.concurrent.PatienceConfiguration.{Timeout => ScalaTestTimeout}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest._
 import org.zalando.nakadi.client.actor.PartitionReceiver
 import org.zalando.nakadi.client.utils.NakadiTestService
@@ -18,9 +20,10 @@ import org.zalando.nakadi.client.utils.{Request => NakadiRequest}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.language.implicitConversions
 
 
-class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging {
+class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with LazyLogging with ScalaFutures {
   import KlientSpec._
 
   var klient: Klient = null
@@ -92,10 +95,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build
       service.start()
 
-      Await.result(
-        klient.getMetrics,
-        5 seconds
-      ) match {
+      whenReady( klient.getMetrics, 5 seconds) {
         case Left(error) => fail(s"could not retrieve metrics: $error")
         case Right(metrics) => logger.debug(s"metrics => $metrics")
                                performStandardRequestChecks(requestPath, requestMethod)
@@ -122,17 +122,14 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build
       service.start()
 
-      Await.result(
-        klient.getTopics,
-        10 seconds
-      ) match {
-          case Left(error) => fail(s"could not retrieve topics: $error")
-          case Right(topics) =>
-            logger.info(s"topics => $topics")
-            topics shouldBe expectedResponse
-            performStandardRequestChecks(requestPath, requestMethod)
+      whenReady( klient.getTopics, 10 seconds ) {
+        case Left(error) => fail(s"could not retrieve topics: $error")
+        case Right(topics) =>
+          logger.info(s"topics => $topics")
+          topics shouldBe expectedResponse
+          performStandardRequestChecks(requestPath, requestMethod)
 
-        }
+      }
     }
 
     "post events to Nakadi topics" in {
@@ -160,12 +157,9 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build
       service.start()
 
-      Await.result(
-        klient.postEvent(topic, event),
-        10 seconds
-      ) match {
-        case Some(error) => fail(s"an error occurred while posting event to topic $topic")
-        case None => logger.debug("event post request was successful")
+      whenReady( klient.postEvent(topic, event), 10 seconds ) {
+        case Left(error) => fail(s"an error occurred while posting event to topic $topic")
+        case Right(_) => logger.debug("event post request was successful")
       }
 
       // Not exactly clear to me what's happening here; how the 'objectMapper' is connected...? AKa280116
@@ -196,7 +190,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build
       service.start()
 
-      val receivedPartitions = Await.result(klient.getPartitions(topic), 10 seconds) match {
+      val receivedPartitions = whenReady( klient.getPartitions(topic), 10 seconds) {
         case Left(error: String) => throw new RuntimeException(s"could not retrieve partitions: $error")
         case Right(partitions) => partitions
       }
@@ -226,7 +220,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
                        .build()
       service.start()
 
-      val receivedPartition = Await.result(klient.getPartition(topic, partitionId), 10 seconds) match {
+      val receivedPartition = whenReady(klient.getPartition(topic, partitionId), 10 seconds) {
         case Left(error)  => throw new RuntimeException(s"could not retrieve partition: $error")
         case Right(receivedTopic) => receivedTopic
       }
@@ -300,7 +294,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)    // what is this for? AKa280116
+      Thread.sleep(PartitionReceiver.NO_LISTENER_RECONNECT_DELAY_IN_S * 1000L + 2000L)
 
       //-- check received events
 
@@ -320,17 +314,6 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
       performStandardRequestChecks(partitionsRequestPath, httpMethod)
 
       val request = performStandardRequestChecks(partition1EventsRequestPath, httpMethod)
-
-      // Moved the function here, to be in least scope. Only this test needs it.
-      //
-      // Note: Could form it to take multiple key/values as a map (and even having the values as 'BeWord'
-      //      so not only pure 1-to-1 tests are possible. But there's no use for that right now. AKa280116
-
-      def checkQueryParameter(queryParameters: java.util.Map[String, util.Deque[String]], paramaterName: String, expectedValue: String) {
-        val paramDeque = queryParameters.get(paramaterName)
-        paramDeque should not be null
-        paramDeque.getFirst shouldBe expectedValue
-      }
 
       // Q: what is the purpose of this logic?
 
@@ -394,7 +377,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
         klient.subscribeToTopic(topic, ListenParameters(Some("0")), listener, autoReconnect = true),
         5 seconds)
 
-      Thread.sleep(PartitionReceiver.POLL_PARALLELISM * 1000L + 2000L)
+      Thread.sleep(PartitionReceiver.NO_LISTENER_RECONNECT_DELAY_IN_S * 1000L + 2000L)
 
       service.stop()
       service = null
@@ -485,7 +468,7 @@ class KlientSpec extends WordSpec with Matchers with BeforeAndAfterEach with Laz
   }
 }
 
-object KlientSpec extends WordSpecLike /*for 'info()'*/ with ShouldMatchers {
+object KlientSpec extends WordSpecLike /*info*/ with ShouldMatchers {
 
   lazy val objectMapper = new ObjectMapper()
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -497,10 +480,6 @@ object KlientSpec extends WordSpecLike /*for 'info()'*/ with ShouldMatchers {
   val TOKEN = "<OAUTH Token>"
   val HOST = "localhost"
   val PORT = 8081
-
-  // Moved this below the test steps so that a human reader gets first at the tests. By wrapping this in a companion
-  // object, we clearly indicate its scope (and can make it 'private' if we want - though with tests that's less
-  // relevant than with main code). AKa280116
 
   private
   class TestListener extends Listener {
@@ -533,4 +512,13 @@ object KlientSpec extends WordSpecLike /*for 'info()'*/ with ShouldMatchers {
     override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit = onConnectionFailed += 1
   }
 
+  private
+  def checkQueryParameter(queryParameters: java.util.Map[String, util.Deque[String]], paramaterName: String, expectedValue: String) {
+    val paramDeque = queryParameters.get(paramaterName)
+    paramDeque should not be null
+    paramDeque.getFirst shouldBe expectedValue
+  }
+
+  private
+  implicit def conv(x: FiniteDuration): ScalaTestTimeout = { new ScalaTestTimeout(x) }
 }

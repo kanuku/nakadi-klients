@@ -8,7 +8,8 @@
         </encoder>
     </appender>
 
-    <logger name="org.zalando.nakadi" level="DEBUG"/>
+    <logger name="org.zalando" level="DEBUG"/>
+    <logger name="de.zalando" level="DEBUG"/>
 
     <logger name="org.apache" level="OFF"/>
 
