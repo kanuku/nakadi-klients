@@ -88,7 +88,7 @@ class ScoopListenerActor(listener: Listener,
   def handleMemberUnreachable(member: Member): Unit = {
     currentCluster match {
       case Some(actualCluster) =>
-        if(actualCluster.selfRoles.contains("leader")) { // TODO right role name?
+        if(actualCluster.selfRoles.contains("leader")) { // TODO right role name?   // config?
           logger.info("I AM the LEADER and I am notifying other Scoop aware clients about [unreachableMember={}]", member)
           val event = Event(UNREACHABLE_MEMBER_EVENT_TYPE,
             "scoop-system",
