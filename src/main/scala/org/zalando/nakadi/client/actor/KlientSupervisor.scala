@@ -9,12 +9,16 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import de.zalando.scoop.ScoopClient
 import org.zalando.nakadi.client.Klient.KlientException
 import org.zalando.nakadi.client.actor.PartitionReceiver._
-import org.zalando.nakadi.client.{Klient, Listener, ListenParameters}
+import org.zalando.nakadi.client.{Conf, Klient, Listener, ListenParameters}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object KlientSupervisor{
+  private val MAX_NR_OF_RETRIES = Conf.supervisor.maxNrOfRetries    // 100
+  private val WITHIN_TIME_RANGE = Conf.supervisor.withinTimeRange   // 5 minutes
+
+  private val RESOLVE_ACTOR_TIMEOUT = Conf.supervisor.resolveActorTimeout   // Timeout(1L, TimeUnit.SECONDS)
 
   case class NewSubscription(topic: String,
                              partitionId: String,
@@ -46,11 +50,11 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
   import scala.concurrent.duration._
   import scala.language.postfixOps
   import org.zalando.nakadi.client.actor.KlientSupervisor._
-
+  import KlientSupervisor._
 
   var listenerMap: Map[String, ActorRef] = Map()
 
-  override val supervisorStrategy = AllForOneStrategy(maxNrOfRetries = 100, withinTimeRange = 5 minutes) {
+  override val supervisorStrategy = AllForOneStrategy(maxNrOfRetries = MAX_NR_OF_RETRIES, withinTimeRange = WITHIN_TIME_RANGE) {
       case e: ArithmeticException      => Resume
       case e: NullPointerException     => Restart
       case e: IllegalArgumentException => Stop
@@ -132,6 +136,6 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
 
   def resolveActor(actorSelectionPath: String): Future[ActorRef] = {
     val receiverSelection = context.actorSelection(actorSelectionPath)
-    receiverSelection.resolveOne()(Timeout(1L, TimeUnit.SECONDS))
+    receiverSelection.resolveOne()( RESOLVE_ACTOR_TIMEOUT )
   }
 }

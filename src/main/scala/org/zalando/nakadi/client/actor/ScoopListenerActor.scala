@@ -10,11 +10,12 @@ import de.zalando.scoop.{ScoopListener, ScoopClient}
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client._
 import scala.concurrent.ExecutionContext.Implicits.global
+import org.zalando.nakadi.client.Conf
 
 object ScoopListenerActor{
   val UNREACHABLE_MEMBER_EVENT_TYPE: String = "/scoop-system/unreachable-member"
   val UNREACHABLE_MEMBER_EVENT_BODY_KEY: String = "unreachable_member"
-  val SCOOP_LISTENER_ID_PREFIX: String = "scoop-listener"
+  val SCOOP_LISTENER_ID_PREFIX: String = "scoop-listener"               // @Benjamin: to config? probably voted 'yes' in https://github.com/zalando/nakadi-klients/pull/21
 
   private case class MemberUp(member: Member)
   private case class MemberUnreachable(member: Member)
@@ -43,7 +44,7 @@ class ScoopListenerActor(listener: Listener,
 
   val ID = s"$SCOOP_LISTENER_ID_PREFIX-${System.nanoTime()}"
 
-  val SELECTOR_FIELD = "id" // TODO make attribute configurable
+  val SELECTOR_FIELD: String = Conf.scoopListener.selectorField   // "id"
 
   klient.subscribeToTopic(scoopTopic, ListenParameters(), this)
 
@@ -91,7 +92,7 @@ class ScoopListenerActor(listener: Listener,
           logger.info("I AM the LEADER and I am notifying other Scoop aware clients about [unreachableMember={}]", member)
           val event = Event(UNREACHABLE_MEMBER_EVENT_TYPE,
             "scoop-system",
-            Map("id" -> UUID.randomUUID().toString),
+            Map(ID -> UUID.randomUUID().toString),
             Map(UNREACHABLE_MEMBER_EVENT_BODY_KEY -> member.address.toString))
 
           klient.postEvent(scoopTopic, event).map(error =>

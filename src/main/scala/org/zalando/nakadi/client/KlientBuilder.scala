@@ -11,13 +11,15 @@ import de.zalando.scoop.Scoop
 
 object KlientBuilder{
   def apply(endpoint: URI = null,
-            port: Int = 8080,
+            port: Int = DEFAULT_PORT,
             securedConnection: Boolean = false,
             tokenProvider: () => String = null,
             objectMapper: Option[ObjectMapper] = None,
             scoop: Option[Scoop] = None,
             scoopTopic: Option[Scoop] = None) =
       new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)
+
+  private val DEFAULT_PORT = 8080    // having such a default is probably a bad idea. Rework later. tbd AKa120216
 }
 
 class KlientBuilder private (val endpoint: URI = null,
@@ -29,8 +31,7 @@ class KlientBuilder private (val endpoint: URI = null,
                              val scoopTopic: Option[String] = None)
   extends LazyLogging
 {
-
-  def this() = this(null, 8080, false, null, None, None, None)
+  def this() = this(null, KlientBuilder.DEFAULT_PORT, false, null, None, None, None)
 
   private def checkNotNull[T](subject: T): T =
                                    if(Option(subject).isEmpty) throw new NullPointerException else subject
