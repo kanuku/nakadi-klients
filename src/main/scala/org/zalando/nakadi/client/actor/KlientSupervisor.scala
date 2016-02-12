@@ -15,8 +15,10 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object KlientSupervisor{
-  private val MAX_NR_OF_RETRIES = Conf.supervisorStrategy.maxNrOfRetries    // 100
-  private val WITHIN_TIME_LIMIT = Conf.supervisorStrategy.withinTimeLimit   // 5 minutes
+  private val MAX_NR_OF_RETRIES = Conf.supervisor.maxNrOfRetries    // 100
+  private val WITHIN_TIME_RANGE = Conf.supervisor.withinTimeRange   // 5 minutes
+
+  private val RESOLVE_ACTOR_TIMEOUT = Conf.supervisor.resolveActorTimeout   // Timeout(1L, TimeUnit.SECONDS)
 
   case class NewSubscription(topic: String,
                              partitionId: String,
@@ -52,7 +54,7 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
 
   var listenerMap: Map[String, ActorRef] = Map()
 
-  override val supervisorStrategy = AllForOneStrategy(maxNrOfRetries = MAX_NR_OF_RETRIES, withinTimeRange = WITHIN_TIME_LIMIT) {
+  override val supervisorStrategy = AllForOneStrategy(maxNrOfRetries = MAX_NR_OF_RETRIES, withinTimeRange = WITHIN_TIME_RANGE) {
       case e: ArithmeticException      => Resume
       case e: NullPointerException     => Restart
       case e: IllegalArgumentException => Stop
@@ -134,6 +136,6 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
 
   def resolveActor(actorSelectionPath: String): Future[ActorRef] = {
     val receiverSelection = context.actorSelection(actorSelectionPath)
-    receiverSelection.resolveOne()(Timeout(1L, TimeUnit.SECONDS))     // config?
+    receiverSelection.resolveOne()( RESOLVE_ACTOR_TIMEOUT )
   }
 }

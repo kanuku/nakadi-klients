@@ -31,9 +31,7 @@ class KlientBuilder private (val endpoint: URI = null,
                              val scoopTopic: Option[String] = None)
   extends LazyLogging
 {
-  import KlientBuilder._
-
-  def this() = this(null, DEFAULT_PORT, false, null, None, None, None)
+  def this() = this(null, KlientBuilder.DEFAULT_PORT, false, null, None, None, None)
 
   private def checkNotNull[T](subject: T): T =
                                    if(Option(subject).isEmpty) throw new NullPointerException else subject

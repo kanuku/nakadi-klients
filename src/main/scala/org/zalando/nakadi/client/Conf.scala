@@ -1,5 +1,6 @@
 package org.zalando.nakadi.client
 
+import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.concurrent.duration.Duration
@@ -36,11 +37,13 @@ object Conf {
   val defaultBatchLimit = root.getInt("defaultBatchLimit")
   val defaultStreamLimit = root.getInt("defaultStreamLimit")
 
-  class cSupervisorStrategy(cfg: Config) {
-    val maxNrOfRetries= cfg.getString("maxNrOfRetries")
-    val withinTimeLimit: Duration = cfg.getDuration("withinTimeLimit")
+  class cSupervisor(cfg: Config) {
+    val maxNrOfRetries= cfg.getInt("maxNrOfRetries")
+    val withinTimeRange: Duration = cfg.getDuration("withinTimeRange")
+
+    val resolveActorTimeout = Timeout( cfg.getDuration("resolveActorTimeout") )
   }
-  val supervisorStrategy= new cSupervisorStrategy( root.getConfig("supervisorStrategy") )
+  val supervisor= new cSupervisor( root.getConfig("supervisor") )
 
   // ^^^ new entries above, please ^^^
 
