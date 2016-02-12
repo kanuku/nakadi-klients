@@ -24,6 +24,7 @@ object PartitionReceiver{
 
   val NO_LISTENER_RECONNECT_DELAY_IN_S: Int = Conf.noListenerReconnectDelay.toSeconds.toInt
   val POLL_PARALLELISM: Int = Conf.pollParallelism
+  val RECEIVE_BUFFER_SIZE: Long = Conf.receiveBufferSize.toBytes  // 1024
 
   /**
    * Triggers new event polling request
@@ -70,8 +71,6 @@ class PartitionReceiver private (val endpoint: URI,
 
   var lastCursor: Option[Cursor] = None
   implicit val materializer = ActorMaterializer()
-
-  val RECEIVE_BUFFER_SIZE: Int = 1024   // config?
 
   context.system.eventStream.subscribe(self, classOf[Unsubscription])
 
@@ -163,14 +162,14 @@ class PartitionReceiver private (val endpoint: URI,
   def consumeStream(response: HttpResponse) = {
     /*
      * We can not simply rely on EOL for the end of each JSON object as
-     * Nakadi puts the in the middle of the response body sometimes.
+     * Nakadi puts the in the middle of the response body sometimes.            // <-- "puts the"... what? in the middle AKa120216
      * For this reason, we need to apply some very simple JSON parsing logic.
      *
      * See also http://json.org/ for string parsing semantics
      */
     var depth: Int = 0
     var hasOpenString: Boolean = false
-    val bout = new ByteArrayOutputStream(RECEIVE_BUFFER_SIZE)
+    val bout = new ByteArrayOutputStream(RECEIVE_BUFFER_SIZE.toInt)
 
     response.entity.dataBytes.runForeach {
       byteString => {

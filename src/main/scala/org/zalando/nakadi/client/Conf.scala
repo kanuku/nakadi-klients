@@ -27,6 +27,7 @@ object Conf {
 
   val noListenerReconnectDelay: Duration = root.getDuration("noListenerReconnectDelay")
   val pollParallelism = root.getInt("pollParallelism")
+  val receiveBufferSize = root.getMemorySize("receiveBufferSize")
 
   class cScoopListener(cfg: Config) {
     val selectorField = cfg.getString("selectorField")
