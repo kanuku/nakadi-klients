@@ -19,8 +19,6 @@ object Conf {
   val root = ConfigFactory.load.getConfig("nakadi.client")
 
   // Typesafe Config is Java/Scala compatible and thus stores durations as 'java.time.Duration'.
-  // Import this implicit in the application code, to get them as 'scala.concurrent.duration.Duration'.
-  //
   // See -> http://stackoverflow.com/questions/32076311/converting-java-to-scala-durations
   //
   private implicit
@@ -37,6 +35,12 @@ object Conf {
   val defaultBatchFlushTimeout: Duration = root.getDuration("defaultBatchFlushTimeout")
   val defaultBatchLimit = root.getInt("defaultBatchLimit")
   val defaultStreamLimit = root.getInt("defaultStreamLimit")
+
+  class cSupervisorStrategy(cfg: Config) {
+    val maxNrOfRetries= cfg.getString("maxNrOfRetries")
+    val withinTimeLimit: Duration = cfg.getDuration("withinTimeLimit")
+  }
+  val supervisorStrategy= new cSupervisorStrategy( root.getConfig("supervisorStrategy") )
 
   // ^^^ new entries above, please ^^^
 
