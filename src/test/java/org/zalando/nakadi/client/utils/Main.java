@@ -36,15 +36,9 @@ public class Main {
         final HashMap<String,Object> meta = Maps.newHashMap();
         meta.put("id", "1234567890");
 
-        final Future<Either<String, Void>> f =
-                                            client.postEvent("test", new Event("eventType", "orderingKey", meta, "{}"));
+        final Future<Void> f = client.postEvent("test", new Event("eventType", "orderingKey", meta, "{}"));
 
-        final Either<String, Void> postResult = f.get();
-
-        if(postResult.isLeft())
-            System.out.println(">>POST EVENT - LEFT>>>" + postResult.left().get());
-        else
-            System.out.println(">>POST EVENT - LEFT>>>" + postResult.right().get());
+        f.get();
 
         client.subscribeToTopic("test", ListenParametersUtils.defaultInstance(), new JListenerWrapper(new MyListener()), true);
 

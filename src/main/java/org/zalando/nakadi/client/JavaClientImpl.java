@@ -27,31 +27,31 @@ class JavaClientImpl implements Client {
 
 
     @Override
-    public Future<Either<String, List<Topic>>> getTopics() {
+    public Future<List<Topic>> getTopics() {
         return Utils.convertForListRetrieval((scala.concurrent.Future) klient.getTopics());
     }
 
 
     @Override
-    public Future<Either<String, List<TopicPartition>>> getPartitions(String topic) {
+    public Future<List<TopicPartition>> getPartitions(String topic) {
         return Utils.convertForListRetrieval((scala.concurrent.Future) klient.getPartitions(topic));
     }
 
 
     @Override
-    public Future<Either<String,Void>> postEvent(final String topic, final Event event) {
+    public Future<Void> postEvent(final String topic, final Event event) {
         return Utils.convert((scala.concurrent.Future) klient.postEvent(topic, event));
     }
 
 
     @Override
-    public Future<Either<String, TopicPartition>> getPartition(final String topic, final String partitionId) {
+    public Future<TopicPartition> getPartition(final String topic, final String partitionId) {
         return Utils.convert((scala.concurrent.Future) klient.getPartition(topic, partitionId));
     }
 
 
     @Override
-    public Future<Either<String,Void>> postEventToPartition(final String topic, final String partitionId, final Event event) {
+    public Future<Void> postEventToPartition(final String topic, final String partitionId, final Event event) {
         return Utils.convert((scala.concurrent.Future) klient.postEventToPartition(topic, partitionId, event));
     }
 
@@ -64,6 +64,7 @@ class JavaClientImpl implements Client {
                                 final boolean autoReconnect) {
         klient.listenForEvents(topic, partitionId, parameters, listener, autoReconnect);
     }
+
 
     @Override
     public void subscribeToTopic(final String topic,
@@ -82,7 +83,7 @@ class JavaClientImpl implements Client {
 
     @Override
     public Future<Terminated> stop() {
-        return Utils.convert(klient.stop());
+        return Utils.convertSimple(klient.stop());
     }
 
 

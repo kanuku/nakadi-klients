@@ -22,7 +22,7 @@ public interface Client {
      *
      * @return immutable list of known topics
      */
-    Future<Either<String, List<Topic>>> getTopics();
+    Future<List<Topic>> getTopics();
 
     /**
      * Get partition information of a given topic
@@ -30,7 +30,7 @@ public interface Client {
      * @param topic   target topic
      * @return immutable list of topic's partitions information
      */
-    Future<Either<String, List<TopicPartition>>> getPartitions(String topic);
+    Future<List<TopicPartition>> getPartitions(String topic);
 
     /**
      * Post a single event to the given topic.  Partition selection is done using the defined partition resolution.
@@ -40,7 +40,7 @@ public interface Client {
      * @param event  event to be posted
      * @return Void in case of success
      */
-    Future<Either<String,Void>> postEvent(final String topic, final Event event);
+    Future<Void> postEvent(final String topic, final Event event);
 
     /**
      * Get specific partition
@@ -49,7 +49,7 @@ public interface Client {
      * @param partitionId  id of the target partition
      * @return Either error message or TopicPartition in case of success
      */
-    Future<Either<String, TopicPartition>> getPartition(String topic, String partitionId);
+    Future<TopicPartition> getPartition(String topic, String partitionId);
 
     /**
      * Post event to specific partition.
@@ -60,7 +60,7 @@ public interface Client {
      * @param event event to be posted
      * @return Void in case of success
      */
-    Future<Either<String,Void>> postEventToPartition(String topic, String partitionId, Event event);
+    Future<Void> postEventToPartition(String topic, String partitionId, Event event);
 
     /**
      * Blocking subscription to events of specified topic and partition.

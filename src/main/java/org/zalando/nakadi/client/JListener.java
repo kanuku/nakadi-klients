@@ -3,8 +3,10 @@ package org.zalando.nakadi.client;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import scala.collection.JavaConversions;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -57,11 +59,31 @@ public interface JListener {
         }
 
         public Map<String, Object> getMetaData() {
-            return metaData;
+            return mapDeeply(metaData);
+        }
+
+
+        private Map<String, Object> mapDeeply(final Map<String, Object> m) {
+            final HashMap<String, Object> newMap = Maps.newHashMap();
+
+            for(Map.Entry<String, Object> entry : m.entrySet()) {
+                final String key = entry.getKey();
+                final Object value = entry.getValue();
+
+                if(value instanceof scala.collection.Map) {
+                    final scala.collection.Map scalaMap = (scala.collection.Map) value;
+                    newMap.put(key, mapDeeply((JavaConversions.mapAsJavaMap(scalaMap))));
+                }
+                else {
+                    newMap.put(key, value);
+                }
+            }
+
+            return newMap;
         }
 
         public Map<String, Object> getBody() {
-            return body;
+            return mapDeeply(body);
         }
 
         @Override

@@ -41,7 +41,8 @@ libraryDependencies ++= Seq(
   "io.undertow" % "undertow-core"    % "1.2.12.Final" % "test",
   "io.undertow" % "undertow-servlet" % "1.2.12.Final" % "test",
   "org.apache.commons" % "commons-io" % "1.3.2" % "test",
-  "com.google.code.findbugs" % "jsr305" % "1.3.9" % "test"
+  "com.google.code.findbugs" % "jsr305" % "1.3.9" % "test",
+  "junit" % "junit" % "4.12" % "test"
 )
 
 // see http://www.scala-sbt.org/0.13/docs/Publishing.html
