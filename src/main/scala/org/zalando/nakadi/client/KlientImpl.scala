@@ -159,7 +159,7 @@ protected class KlientImpl(val endpoint: URI,
   override def subscribeToTopic(topic: String, parameters: ListenParameters, listener: Listener, autoReconnect: Boolean): Future[Unit] = {
     getPartitions(topic).map{_ match {
       case Left(errorMessage) =>
-          throw new KlientException(s"a problem ocurred while subscribing to [topic=$topic]: $errorMessage")
+          throw new KlientException(s"a problem occurred while subscribing to [topic=$topic]: $errorMessage")
       case Right(partitions: List[TopicPartition]) =>
           partitions.foreach(p => listenForEvents(topic,
                                                   p.partitionId,

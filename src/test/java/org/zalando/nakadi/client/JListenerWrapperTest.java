@@ -2,7 +2,6 @@ package org.zalando.nakadi.client;
 
 
 import com.google.common.collect.Maps;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.zalando.nakadi.client.utils.TestUtils;

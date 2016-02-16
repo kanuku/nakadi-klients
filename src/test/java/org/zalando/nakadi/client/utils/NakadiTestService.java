@@ -168,10 +168,10 @@ public class NakadiTestService {
             return this;
         }
 
-        public HandlerBuilder withResponseStatusCode(final int responsStatusCode) {
-            checkArgument(responsStatusCode > 0 && responsStatusCode < 1000,
-                    "invalid response status code %s", responsStatusCode);
-            this.responseStatusCode = responsStatusCode;
+        public HandlerBuilder withResponseStatusCode(final int responseStatusCode) {
+            checkArgument(responseStatusCode > 0 && responseStatusCode < 1000,
+                    "invalid response status code %s", responseStatusCode);
+            this.responseStatusCode = responseStatusCode;
             return this;
         }
 

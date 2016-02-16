@@ -5,17 +5,9 @@ import com.google.common.collect.Maps;
 import org.zalando.nakadi.client.*;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
-
-import scala.Option;
-import scala.collection.JavaConversions;
-import scala.util.Either;
 
 
 public class Main {
@@ -60,7 +52,7 @@ public class Main {
 
         @Override
         public void onConnectionOpened(String topic, String partition) {
-            System.out.println("onConnectionOpned " + topic + " " + partition);
+            System.out.println("onConnectionOpened " + topic + " " + partition);
         }
 
         @Override

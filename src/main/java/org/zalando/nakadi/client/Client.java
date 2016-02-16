@@ -1,8 +1,6 @@
 package org.zalando.nakadi.client;
 
 import akka.actor.Terminated;
-import scala.Option;
-import scala.util.Either;
 
 import java.util.List;
 import java.util.Map;

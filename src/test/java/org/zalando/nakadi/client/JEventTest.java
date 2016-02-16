@@ -1,7 +1,6 @@
 package org.zalando.nakadi.client;
 
 import com.google.common.collect.Maps;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.zalando.nakadi.client.utils.TestUtils;
@@ -30,12 +29,12 @@ public class JEventTest {
         body.put("c", utils.toScalaMap(bodyTmp));
 
 
-        final Event atctualEvent = new Event("eventType",
+        final Event actualEvent = new Event("eventType",
                                              "orderingKey",
                                              utils.toScalaMap(meta),
                                              utils.toScalaMap(body));
 
-        event = new JListener.JEvent(atctualEvent);
+        event = new JListener.JEvent(actualEvent);
     }
 
 

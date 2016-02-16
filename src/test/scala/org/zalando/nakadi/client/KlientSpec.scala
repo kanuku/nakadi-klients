@@ -505,8 +505,8 @@ object KlientSpec extends WordSpecLike /*info*/ with ShouldMatchers {
   }
 
   private
-  def checkQueryParameter(queryParameters: java.util.Map[String, util.Deque[String]], paramaterName: String, expectedValue: String) {
-    val paramDeque = queryParameters.get(paramaterName)
+  def checkQueryParameter(queryParameters: java.util.Map[String, util.Deque[String]], parameterName: String, expectedValue: String) {
+    val paramDeque = queryParameters.get(parameterName)
     paramDeque should not be null
     paramDeque.getFirst shouldBe expectedValue
   }
