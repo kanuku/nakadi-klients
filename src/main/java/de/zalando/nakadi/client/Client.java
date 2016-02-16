@@ -126,11 +126,13 @@ public interface Client {
      * the listener listens to all partitions of a topic (one thread each).
      * (batchLimit is set to 1, batch flush timeout to 1,  and streamLimit to 0 -> infinite streaming receiving 1 event per poll)
      *
+     *
      * @param threadPool  thread pool to be utilized for listener threads
      * @param topic  subscription topic
      * @param listener  listener consuming all received events
      * @return {Future} instance of listener threads
      */
+    @Deprecated
     List<Future> subscribeToTopic(final ExecutorService threadPool,
                                   final String topic,
                                   final EventListener listener);

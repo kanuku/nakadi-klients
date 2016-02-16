@@ -1,6 +1,9 @@
 package de.zalando.nakadi.client;
 
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.google.common.collect.ImmutableList;
@@ -23,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -42,9 +46,6 @@ class NakadiClientImpl implements Client {
     protected static final String URI_PARTITION = "/topics/%s/partitions/%s";
     protected static final String URI_EVENTS_ON_PARTITION = "/topics/%s/partitions/%s/events";
     protected static final String URI_EVENT_LISTENING = "/topics/%s/partitions/%s/events?start_from=%s&batch_limit=%s&batch_flush_timeout=%s&stream_limit=%s";
-
-    protected static final int EOL = '\n';
-    protected static final int INITIAL_RECEIVE_BUFFER_SIZE = 1024; // 1 KB
 
     protected static final int DEFAULT_BATCH_FLUSH_TIMEOUT_IN_SECONDS = 5;
     protected static final int DEFAULT_BATCH_LIMIT = 1;  // 1 event / batch
@@ -191,7 +192,7 @@ class NakadiClientImpl implements Client {
 
     @Override
     public void postEventToPartition(final String topic, final String partitionId, final Event event) {
-        checkArgument(! isNullOrEmpty(topic), "topic must not be null or empty");
+        checkArgument(!isNullOrEmpty(topic), "topic must not be null or empty");
         checkArgument(! isNullOrEmpty(partitionId), "partition id must not be null or empty");
         checkArgument(event != null, "event must not be null");
 
@@ -209,7 +210,6 @@ class NakadiClientImpl implements Client {
     }
 
 
-
     @Override
     public void listenForEvents(final String topic,
                                 final String partitionId,
@@ -218,6 +218,33 @@ class NakadiClientImpl implements Client {
                                 final int batchFlushTimeoutInSeconds,
                                 final int streamLimit,
                                 final EventListener listener) {
+        checkArgument(!isNullOrEmpty(topic), "topic must not be null or empty");
+        checkArgument(!isNullOrEmpty(partitionId), "partition id must not be null or empty");
+        checkArgument(!isNullOrEmpty(startOffset), "start offset must not be null or empty");
+        checkArgument(batchLimit > 0, "batch limit must be > 0. Given: %s", batchLimit);
+        checkArgument(batchFlushTimeoutInSeconds > -1, "batch flush timeout must be > -1. Given: %s", batchFlushTimeoutInSeconds);
+        checkArgument(streamLimit > -1, "stream limit must be > -1. Given: %s", streamLimit);
+
+        listenForEvents(topic,
+                        partitionId,
+                        startOffset,
+                        batchLimit,
+                        batchFlushTimeoutInSeconds,
+                        streamLimit,
+                        listener,
+                        (SimpleStreamEvent streamEvent) -> notifyEvent(listener, streamEvent));
+    }
+
+
+    protected void listenForEvents(final String topic,
+                                final String partitionId,
+                                final String startOffset,
+                                final int batchLimit,
+                                final int batchFlushTimeoutInSeconds,
+                                final int streamLimit,
+                                final EventListener listener,
+                                final Consumer<SimpleStreamEvent> streamEventConsumer) {
+
         checkArgument(! isNullOrEmpty(topic), "topic must not be null or empty");
         checkArgument(! isNullOrEmpty(partitionId), "partition id must not be null or empty");
         checkArgument(! isNullOrEmpty(startOffset), "start offset must not be null or empty");
@@ -232,60 +259,40 @@ class NakadiClientImpl implements Client {
 
         try {
             final InputStream contentInputStream = response.getEntity().getContent();
-            final ByteArrayOutputStream bout = new ByteArrayOutputStream(INITIAL_RECEIVE_BUFFER_SIZE);
-
-            SimpleStreamEvent streamingEvent;
-            List<Event> events;
-            int byteItem;
-            while ((byteItem = contentInputStream.read()) != -1) {
-                bout.write(byteItem);
-
-                if(byteItem == EOL) {
-                    final byte[] receiveBuffer = bout.toByteArray();
-                    if(hasNonWhiteCharacters(receiveBuffer)){
-                        streamingEvent = objectMapper.readValue(receiveBuffer, SimpleStreamEvent.class);
-                        LOGGER.debug("received [streamingEvent={}]", streamingEvent);
-                        final Cursor cursor = streamingEvent.getCursor();
-                        events = streamingEvent.getEvents();
-                        if(events == null || events.isEmpty()) {
-                            LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
-                        }
-                        else {
-                            streamingEvent.getEvents().forEach( event -> {
-                                try {
-                                    listener.onReceive(cursor, event);
-                                }
-                                catch(final Exception e) {
-                                    LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
-                                            cursor, event,listener, e);
-                                }
-                            });
-                        }
-                    }
-                    else {
-                        LOGGER.debug("receive buffer consists of one EOL character only -> skipped");
-                    }
-
-                    bout.reset();
-                }
-            }
+            StreamReader.read(  contentInputStream,
+                                objectMapper,
+                                streamEventConsumer);
             LOGGER.info("stream from [response={}] retrieved from [URI={}] was closed", response, uri);
         } catch (final IOException e) {
+            if(listener instanceof  EventListener2) ((EventListener2) listener).onConnectionClosed(topic, partitionId, e);
             throw new ClientException(e);
         }
+
+        if(listener instanceof  EventListener2) ((EventListener2) listener).onConnectionClosed(topic, partitionId);
     }
 
 
-    protected boolean hasNonWhiteCharacters(final byte[] buffer) {
-        final int bufferLength  =buffer.length;
-        for (int i = 0; i < bufferLength; i++){
-            if(! Character.isWhitespace(buffer[i])){
-                return true;
-            }
+    private void notifyEvent(final EventListener listener,
+                             final SimpleStreamEvent streamingEvent){
+
+        LOGGER.debug("received [streamingEvent={}]", streamingEvent);
+        final Cursor cursor = streamingEvent.getCursor();
+        final List<Event> events = streamingEvent.getEvents();
+        if(events == null || events.isEmpty()) {
+            LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
         }
-
-        return false;
+        else {
+            streamingEvent.getEvents().forEach(event -> {
+                try {
+                    listener.onReceive(cursor, event);
+                } catch (final Exception e) {
+                    LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
+                            cursor, event, listener, e);
+                }
+            });
+        }
     }
+
 
 
     @Override

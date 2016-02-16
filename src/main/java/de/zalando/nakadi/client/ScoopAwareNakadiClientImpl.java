@@ -21,6 +21,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -29,7 +33,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 
 public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
-        implements ScoopListener, EventListener {
+        implements ScoopListener, EventListener2 {
 
     private final ObjectMapper objectMapper;
     private final ActorSystem scoopSystem;
@@ -39,8 +43,14 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
 
     private volatile boolean mayIProcessEvents;
 
+    private volatile  List<Future> subsciptionFutures;
+
+
     public static final String UNREACHABLE_MEMBER_EVENT_TYPE = "/scoop-system/unreachable-member";
     private static final String UNREACHABLE_MEMBER_EVENT_BODY_KEY = "unreachable_member";
+    private static final long SUBSCRIPTION_FUTURE_TIMEOUT = 5000L;
+
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ScoopAwareNakadiClientImpl.class);
 
     ScoopAwareNakadiClientImpl(final URI endpoint,
@@ -59,7 +69,7 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
         this.scoopTopic = scoopTopic;
         this.mayIProcessEvents = true;
 
-        subscribeToTopic(this.scoopTopic, this);
+        subsciptionFutures = subscribeToTopic(this.scoopTopic, this);
     }
 
 
@@ -73,79 +83,60 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
                                 final EventListener listener) {
         checkArgument(!isNullOrEmpty(topic), "topic must not be null or empty");
         checkArgument(!isNullOrEmpty(partitionId), "partition id must not be null or empty");
-        checkArgument(! isNullOrEmpty(startOffset), "start offset must not be null or empty");
+        checkArgument(!isNullOrEmpty(startOffset), "start offset must not be null or empty");
         checkArgument(batchLimit > 0, "batch limit must be > 0. Given: %s", batchLimit);
         checkArgument(batchFlushTimeoutInSeconds > -1, "batch flush timeout must be > -1. Given: %s", batchFlushTimeoutInSeconds);
         checkArgument(streamLimit > -1, "stream limit must be > -1. Given: %s", streamLimit);
 
-        final String uri = String.format(URI_EVENT_LISTENING, topic, partitionId, startOffset, batchLimit, batchFlushTimeoutInSeconds, streamLimit);
-        final HttpRequestBase request = setUpRequest(HttpMethod.GET, uri);
-        final CloseableHttpResponse response = performRequest(request);
+        listenForEvents(topic,
+                partitionId,
+                startOffset,
+                batchLimit,
+                batchFlushTimeoutInSeconds,
+                streamLimit,
+                listener,
+                (SimpleStreamEvent streamEvent) -> notifyEvent(listener, streamEvent));
+    }
 
 
-        try {
-            final InputStream contentInputStream = response.getEntity().getContent();
-            final ByteArrayOutputStream bout = new ByteArrayOutputStream(INITIAL_RECEIVE_BUFFER_SIZE);
+    private void notifyEvent(final EventListener listener,
+                             final SimpleStreamEvent streamingEvent){
 
-            SimpleStreamEvent streamingEvent;
-            List<Event> events;
-            int byteItem;
-            while ((byteItem = contentInputStream.read()) != -1) {
-                bout.write(byteItem);
+        final Cursor cursor = streamingEvent.getCursor();
+        final List<Event> events = streamingEvent.getEvents();
+        if(events == null || events.isEmpty()) {
+            LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
+        }
+        else {
+            streamingEvent.getEvents().forEach(event -> {
 
-                if(byteItem == EOL) {
-                    final byte[] receiveBuffer = bout.toByteArray();
-                    if(hasNonWhiteCharacters(receiveBuffer)){
-                        streamingEvent = objectMapper.readValue(bout.toByteArray(), SimpleStreamEvent.class);
-                        LOGGER.debug("received [streamingEvent={}]", streamingEvent);
-                        final Cursor cursor = streamingEvent.getCursor();
-                        events = streamingEvent.getEvents();
-                        if(events == null || events.isEmpty()) {
-                            LOGGER.debug("received [streamingEvent={}] does not contain any event ", streamingEvent);
+                if (mayIProcessEvents) {
+                    try {
+                        final Map<String, Object> meta = event.getMetadata();
+                        final String id = (String) meta.get("id");
+
+                        if (id == null) {
+                            LOGGER.warn("meta data 'id' is not set in [event={}] -> consuming event", event);
+                            listener.onReceive(cursor, event);
+                        } else if (scoopClient.isHandledByMe(id)) {
+                            LOGGER.debug("scoop: [event={}] IS handled by me", event);
+                            listener.onReceive(cursor, event);
+                        } else if (Objects.equals(event.getEventType(), UNREACHABLE_MEMBER_EVENT_TYPE)) {
+                            LOGGER.debug("[event={}] is handled because it has scoop internal [eventType={}]",
+                                    event, UNREACHABLE_MEMBER_EVENT_TYPE);
+                            listener.onReceive(cursor, event);
+                        } else {
+                            LOGGER.debug("scoop: [event={}] is NOT handled by me", event);
                         }
-                        else {
-                            streamingEvent.getEvents().forEach( event -> {
-
-                                if (mayIProcessEvents) {
-                                    try {
-                                        final Map<String, Object> meta = event.getMetadata();
-                                        final String id = (String) meta.get("id");
-
-                                        if (id == null) {
-                                            LOGGER.warn("meta data 'id' is not set in [event={}] -> consuming event", event);
-                                            listener.onReceive(cursor, event);
-                                        } else if (scoopClient.isHandledByMe(id)) {
-                                            LOGGER.debug("scoop: [event={}] IS handled by me", event);
-                                            listener.onReceive(cursor, event);
-                                        } else if (Objects.equals(event.getEventType(), UNREACHABLE_MEMBER_EVENT_TYPE)) {
-                                            LOGGER.debug("[event={}] is handled because it has scoop internal [eventType={}]",
-                                                    event, UNREACHABLE_MEMBER_EVENT_TYPE);
-                                            listener.onReceive(cursor, event);
-                                        } else {
-                                            LOGGER.debug("scoop: [event={}] is NOT handled by me", event);
-                                        }
-                                    } catch (final Exception e) {
-                                        LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
-                                                cursor, event, listener, e);
-                                    }
-                                }
-                                else {
-                                    LOGGER.info("received [event={}] but I must not process it as I am not reachable by " +
-                                            "my cluster -> ignored", event);
-                                }
-                            });
-                        }
+                    } catch (final Exception e) {
+                        LOGGER.warn("a problem occurred while passing [cursor={}, event={}] to [listener={}] -> continuing with next events",
+                                cursor, event, listener, e);
                     }
-                    else {
-                        LOGGER.debug("receive buffer consists of one EOL character only -> skipped");
-                    }
-
-                    bout.reset();
+                } else {
+                    LOGGER.info("received [event={}] but I must not process it as I am not reachable by " +
+                            "my cluster -> ignored", event);
                 }
-            }
-            LOGGER.info("stream from [response={}] retrieved from [URI={}] was closed", response, uri);
-        } catch (final IOException e) {
-            throw new ClientException(e);
+            });
         }
     }
 
@@ -245,5 +236,32 @@ public class ScoopAwareNakadiClientImpl extends NakadiClientImpl
     @Override
     public void onRebalanced(int partitionId, int numberOfPartitions) {
         // do nothing
+    }
+
+    @Override
+    public void onConnectionClosed(final String topic, final String partitionId) {
+        LOGGER.info("connection was closed [topic={}, partitionsId={}] -> reconnecting", topic, partitionId);
+        reconnect();
+    }
+
+    @Override
+    public void onConnectionClosed(String topic, String partitionId, Exception cause) {
+        LOGGER.warn("connection was closed [topic={}, partitionsId={}] because of [cause={}]-> reconnecting",
+                topic, partitionId, cause);
+        reconnect();
+    }
+
+    private void reconnect(){
+        final List<Future> futures = subsciptionFutures;
+        futures.forEach(f -> f.cancel(true));
+        futures.forEach(f -> {
+            try {
+                f.get(SUBSCRIPTION_FUTURE_TIMEOUT, TimeUnit.MILLISECONDS);
+            } catch (final Exception e) {
+                LOGGER.warn("a problem occurred while waiting for subscription future shutdown", e);
+            }
+        });
+
+        subsciptionFutures = subscribeToTopic(this.scoopTopic, this);
     }
 }
