@@ -10,6 +10,34 @@ Implementation of a client accessing the low level API of the [Nakadi event bus]
 
 ## Tutorial
 
+### Configuration
+
+nakadi.client {
+  noListenerReconnectDelay = 10 seconds   // if no listener could be found, no connection to Nakadi is established.
+                                          // noListenerReconnectDelay specifies the delay  after which the actor
+                                          // should try again to connect
+  pollParallelism = 100                   // number of parallel polls from a specific host
+  receiveBufferSize = 1024 bytes          // initial buffer size for event retrieval
+
+  defaultBatchFlushTimeout = 5 seconds   // default batch flush timeout set in ListenParameters
+  defaultBatchLimit = 1                  // default batch limit set in ListenParameters
+  defaultStreamLimit = 0                 // default stream limit set in ListenParameters
+
+  scoopListener {
+    selectorField = "id" // Scoop selector field controlling the event consumption
+  }
+
+  supervisor {
+    // note: Supervisor strategy parameter names are from the Akka - keep them like this
+    maxNrOfRetries = 100
+    withinTimeRange = 5 minutes
+
+    resolveActorTimeout = 1 second // timeout for resolving PartitionReceiver actor reference
+  }
+}
+
+
+
 ### Instantiate Client
 
 `Scala`
