@@ -12,6 +12,7 @@ Implementation of a client accessing the low level API of the [Nakadi event bus]
 
 ### Configuration
 
+```
 nakadi.client {
   noListenerReconnectDelay = 10 seconds   // if no listener could be found, no connection to Nakadi is established.
                                           // noListenerReconnectDelay specifies the delay  after which the actor
@@ -35,7 +36,7 @@ nakadi.client {
     resolveActorTimeout = 1 second // timeout for resolving PartitionReceiver actor reference
   }
 }
-
+```
 
 
 ### Instantiate Client
