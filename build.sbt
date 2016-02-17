@@ -1,7 +1,7 @@
 
 name := "nakadi-klients"
 
-version := "0.3.1-SNAPSHOT"
+version := "0-SNAPSHOT"
 
 organization := "org.zalando.nakadi.client"
 
