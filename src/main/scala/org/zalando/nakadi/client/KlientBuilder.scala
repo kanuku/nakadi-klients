@@ -16,8 +16,8 @@ object KlientBuilder{
             tokenProvider: () => String = null,
             objectMapper: Option[ObjectMapper] = None,
             scoop: Option[Scoop] = None,
-            scoopTopic: Option[Scoop] = None) =
-      new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)
+            scoopTopic: Option[String] = None) =
+      new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop, scoopTopic)
 
   private val DEFAULT_PORT = 8080    // having such a default is probably a bad idea. Rework later. tbd AKa120216
 }
@@ -42,31 +42,79 @@ class KlientBuilder private (val endpoint: URI = null,
 
 
   def withEndpoint(endpoint: URI): KlientBuilder =
-                                new KlientBuilder(checkNotNull(endpoint), port, securedConnection, tokenProvider, objectMapper, scoop)
+                                new KlientBuilder(
+                                  checkNotNull(endpoint),
+                                  port,
+                                  securedConnection,
+                                  tokenProvider,
+                                  objectMapper,
+                                  scoop,
+                                  scoopTopic)
 
 
   def withTokenProvider(tokenProvider: () => String): KlientBuilder =
-                                new KlientBuilder(endpoint, port, securedConnection, checkNotNull(tokenProvider), objectMapper, scoop, scoopTopic)
+                                new KlientBuilder(
+                                  endpoint,
+                                  port,
+                                  securedConnection,
+                                  checkNotNull(tokenProvider),
+                                  objectMapper,
+                                  scoop,
+                                  scoopTopic)
 
 
   def withJavaTokenProvider(tokenProvider: Supplier[String]) = withTokenProvider(() => tokenProvider.get())
 
 
   // TODO param check
-  def withPort(port: Int): KlientBuilder = new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop, scoopTopic)
+  def withPort(port: Int): KlientBuilder =
+                                new KlientBuilder(
+                                  endpoint,
+                                  port,
+                                  securedConnection,
+                                  tokenProvider,
+                                  objectMapper,
+                                  scoop,
+                                  scoopTopic)
 
 
-  def withSecuredConnection(securedConnection: Boolean = true) = new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop, scoopTopic)
+  def withSecuredConnection(securedConnection: Boolean = true) =
+                                new KlientBuilder(
+                                  endpoint,
+                                  port,
+                                  securedConnection,
+                                  tokenProvider,
+                                  objectMapper,
+                                  scoop,
+                                  scoopTopic)
 
 
-  def withScoop(scoop: Option[Scoop]) = new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop, scoopTopic)
+  def withScoop(scoop: Option[Scoop]) =
+                                new KlientBuilder(
+                                  endpoint,
+                                  port,
+                                  securedConnection,
+                                  tokenProvider,
+                                  objectMapper,
+                                  scoop,
+                                  scoopTopic)
 
-  def withScoopTopic(scoopTopic: Option[String]) = new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop, scoopTopic)
+
+  def withScoopTopic(scoopTopic: Option[String]) =
+                                new KlientBuilder(
+                                  endpoint,
+                                  port,
+                                  securedConnection,
+                                  tokenProvider,
+                                  objectMapper,
+                                  scoop,
+                                  scoopTopic)
+
 
   def withObjectMapper(objectMapper: Option[ObjectMapper]): KlientBuilder =  {
     if(objectMapper.isDefined) objectMapper.get.registerModule(new DefaultScalaModule)
 
-    new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop)
+    new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop, scoopTopic)
   }
 
 
@@ -77,9 +125,13 @@ class KlientBuilder private (val endpoint: URI = null,
     mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     mapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
     mapper.addHandler(new DeserializationProblemHandler() {
-      override def handleUnknownProperty(ctxt: DeserializationContext, jp: JsonParser, deserializer: JsonDeserializer[_], beanOrClass: AnyRef, propertyName: String): Boolean = {
+      override def handleUnknownProperty(ctxt: DeserializationContext,
+                                         jp: JsonParser, deserializer:
+                                         JsonDeserializer[_],
+                                         beanOrClass: AnyRef,
+                                         propertyName: String): Boolean = {
         logger.warn(s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
-       true
+        true
       }
     })
     mapper
@@ -92,7 +144,8 @@ class KlientBuilder private (val endpoint: URI = null,
         checkState(endpoint, (s: URI) => Option(s).isDefined, "endpoint is not set -> try withEndpoint()"),
         checkState(port, (s: Int) => port > 0, s"port $port is invalid"),
         securedConnection,
-        checkState(tokenProvider, (s: () => String) => Option(s).isDefined, "tokenProvider is not set -> try withTokenProvider()"),
+        checkState(tokenProvider, (s: () => String) => Option(s).isDefined,
+                   "tokenProvider is not set -> try withTokenProvider()"),
         objectMapper.getOrElse(defaultObjectMapper),
         scoop,
         scoopTopic)
@@ -101,7 +154,8 @@ class KlientBuilder private (val endpoint: URI = null,
                     checkState(endpoint, (s: URI) => Option(s).isDefined, "endpoint is not set -> try withEndpoint()"),
                     checkState(port, (s: Int) => port > 0, s"port $port is invalid"),
                     securedConnection,
-                    checkState(tokenProvider, (s: () => String) => Option(s).isDefined, "tokenProvider is not set -> try withTokenProvider()"),
+                    checkState(tokenProvider, (s: () => String) => Option(s).isDefined,
+                               "tokenProvider is not set -> try withTokenProvider()"),
                     objectMapper.getOrElse(defaultObjectMapper))
 
 
