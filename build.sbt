@@ -1,11 +1,11 @@
 
 name := "nakadi-klients"
 
-version := "0-SNAPSHOT"
-
 organization := "org.zalando.nakadi.client"
 
 scalaVersion := "2.11.6"
+
+lazy val root = (project in file(".")).enablePlugins(GitVersioning)
 
 crossPaths := false
 
@@ -53,3 +53,5 @@ publishTo := {
   else
     Some("releases"  at nexus + "content/repositories/releases")
 }
+
+git.useGitDescribe := true
