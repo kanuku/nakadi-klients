@@ -54,12 +54,20 @@ publishTo := {
     Some("releases"  at nexus + "content/repositories/releases")
 }
 
-val gitVersion = settingKey[String]("The head commit git hash.")
-
-gitVersion := git.gitCurrentBranch.value
-
-version :={
-  println("####### Current branch:"+git.gitCurrentBranch.value)
-  println("####### Current branch:"+git.gitHeadCommit.value.get)
-  git.gitCurrentBranch.value
+git.useGitDescribe := true
+git.baseVersion := "0.0.0"
+val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
+git.gitTagToVersionNumber := {
+  case VersionRegex(v,"") =>
+    println("###### Some 1")
+   Some(v)
+  case VersionRegex(v,"SNAPSHOT") =>
+println("###### Some 2")
+   Some(s"$v-SNAPSHOT")
+  case VersionRegex(v,s) =>
+println("###### Some 3")
+  Some(s"$v-$s-SNAPSHOT")
+  case _ =>
+println("###### Some 4")
+   None
 }
