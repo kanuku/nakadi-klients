@@ -54,14 +54,7 @@ publishTo := {
     Some("releases"  at nexus + "content/repositories/releases")
 }
 
-git.baseVersion := "0.0.0"
-git.useGitDescribe := true
-val VersionRegex = "([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
-git.gitTagToVersionNumber := {
-  //case VersionRegex(v,"") => Some(v)
-  //case VersionRegex(v,"SNAPSHOT") => Some(s"$v-SNAPSHOT")
-  //case VersionRegex(v,s) => Some(s"$v-$s-SNAPSHOT")
-  case v =>
-  println(s"########### $v")
-  Some(s"$v-SNAPSHOT")
+version :={
+  println("####### Current branch:"+git.gitCurrentBranch.value)
+  git.gitCurrentBranch.value
 }
