@@ -53,3 +53,5 @@ publishTo := {
   else
     Some("releases"  at nexus + "content/repositories/releases")
 }
+
+git.baseVersion := "0.0.0"
