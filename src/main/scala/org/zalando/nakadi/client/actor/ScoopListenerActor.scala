@@ -5,8 +5,8 @@ import java.util.UUID
 import akka.actor.Props
 import akka.cluster.{Member, Cluster}
 import com.typesafe.scalalogging.Logger
-import de.zalando.scoop.ScoopCommunication.NewScoopListener
-import de.zalando.scoop.{ScoopListener, ScoopClient}
+//import de.zalando.scoop.ScoopCommunication.NewScoopListener
+//import de.zalando.scoop.{ScoopListener, ScoopClient}
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,16 +24,13 @@ object ScoopListenerActor{
 
   private case class NakadiEventReceived(topic: String, partition: String, cursor: Cursor, event: Event)
 
-  def props(listener: Listener, klient: Klient, scoopClient: ScoopClient, scoopTopic: String) =
-                                                    Props(new ScoopListenerActor(listener, klient, scoopClient, scoopTopic))
+  def props(listener: Listener, klient: Klient) =
+                                                    Props(new ScoopListenerActor(listener, klient))
 }
 
 class ScoopListenerActor(listener: Listener,
-                         val klient: Klient,
-                         val scoopClient: ScoopClient,
-                         val scoopTopic: String) extends ListenerActor(listener)
-                                                 with Listener
-                                                 with ScoopListener {
+                         val klient: Klient) extends ListenerActor(listener)
+                                             with Listener {
   import ScoopListenerActor._
 
   val logger = Logger(LoggerFactory.getLogger("ScoopListenerActor"))
@@ -46,17 +43,14 @@ class ScoopListenerActor(listener: Listener,
 
   val SELECTOR_FIELD: String = Conf.scoopListener.selectorField   // "id"
 
-  klient.subscribeToTopic(scoopTopic, ListenParameters(), this)
 
   override def preStart() = {
     log.info("starting ScoopActorListener for [listener.id={}]", listener.id)
-    context.system.eventStream.publish(new NewScoopListener(this))
     super.preStart()
   }
 
   override def postStop() = {
     logger.info("stopping ScoopActorListener for [listener.id={}]", listener.id)
-    klient.unsubscribeTopic(scoopTopic, this)
     super.postStop()
   }
 
@@ -95,8 +89,6 @@ class ScoopListenerActor(listener: Listener,
             Map(ID -> UUID.randomUUID().toString),
             Map(UNREACHABLE_MEMBER_EVENT_BODY_KEY -> member.address.toString))
 
-          klient.postEvent(scoopTopic, event).map(error =>
-            logger.warn("could not notify cluster about unreachable member [error={}]", error))
         }
         else logger.debug("received event about [unreachableMember={}] but I am NOT the LEADER -> ignored", member)
 
@@ -135,11 +127,12 @@ class ScoopListenerActor(listener: Listener,
     case event: Event if(mayProcess) =>
       event.metadata.get(SELECTOR_FIELD) match {
         case Some(value: String) =>
-          if (scoopClient.isHandledByMe(value)) {
+          /**if (scoopClient.isHandledByMe(value)) {
             logger.debug("event [{}={}] is handled by me", SELECTOR_FIELD, value)
             listener.onReceive(topic, partition, cursor, event)
           }
-          else logger.debug("event [{}={}] is NOT handled by me", SELECTOR_FIELD, value)
+          else***/
+          logger.debug("event [{}={}] is NOT handled by me", SELECTOR_FIELD, value)
         case Some(unknown) =>
           logger.warn("[{}={}] is NOT a String -> there must be configuration problem -> ignored",
                       SELECTOR_FIELD, unknown.toString)

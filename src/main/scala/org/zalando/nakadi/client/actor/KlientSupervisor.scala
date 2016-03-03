@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor._
 import akka.util.Timeout
 import com.fasterxml.jackson.databind.ObjectMapper
-import de.zalando.scoop.ScoopClient
+//import de.zalando.scoop.ScoopClient
 import org.zalando.nakadi.client.Klient.KlientException
 import org.zalando.nakadi.client.actor.PartitionReceiver._
 import org.zalando.nakadi.client.{Conf, Klient, Listener, ListenParameters}
@@ -31,9 +31,7 @@ object KlientSupervisor{
                                        parameters: ListenParameters,
                                        autoReconnect: Boolean,
                                        listener: Listener,
-                                       klient: Klient,
-                                       scoopClient: ScoopClient,
-                                       scoopTopic: String)
+                                       klient: Klient)
 
 
   case class Unsubscription(topic: String, listener: Listener)
@@ -70,13 +68,13 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
                 autoReconnect,
                 listener,
                 (l: Listener)=> context.actorOf(ListenerActor.props(l)))
-    case NewScoopAwareSubscription(topic, partitionId, parameters, autoReconnect, listener, klient, scoopClient, scoopTopic) =>
+    case NewScoopAwareSubscription(topic, partitionId, parameters, autoReconnect, listener, klient) =>
       subscribe(topic,
                 partitionId,
                 parameters,
                 autoReconnect,
                 listener,
-                (l: Listener)=> context.actorOf(ScoopListenerActor.props(l, klient, scoopClient, scoopTopic)))
+                (l: Listener)=> context.actorOf(ScoopListenerActor.props(l, klient)))
     case Terminated(actor) =>
       listenerMap = listenerMap.filterNot(_._2 == actor)
   }

@@ -33,7 +33,6 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
   "ch.qos.logback" % "logback-classic" % "1.1.3",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.2",
-  // "de.zalando.scoop" % "scoop" % "0.1.0-SNAPSHOT",
   "com.typesafe" % "config" % "1.3.0",    // good to mention to fix the version (though Akka brings it in as a transitive dependency)
 
   "com.typesafe.akka" %% "akka-testkit" % "2.3.11" % "test",
