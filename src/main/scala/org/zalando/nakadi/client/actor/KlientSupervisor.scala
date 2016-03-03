@@ -6,7 +6,6 @@ import java.util.concurrent.TimeUnit
 import akka.actor._
 import akka.util.Timeout
 import com.fasterxml.jackson.databind.ObjectMapper
-//import de.zalando.scoop.ScoopClient
 import org.zalando.nakadi.client.Klient.KlientException
 import org.zalando.nakadi.client.actor.PartitionReceiver._
 import org.zalando.nakadi.client.{Conf, Klient, Listener, ListenParameters}
