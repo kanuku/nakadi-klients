@@ -5,8 +5,6 @@ import java.util.UUID
 import akka.actor.Props
 import akka.cluster.{Member, Cluster}
 import com.typesafe.scalalogging.Logger
-//import de.zalando.scoop.ScoopCommunication.NewScoopListener
-//import de.zalando.scoop.{ScoopListener, ScoopClient}
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -178,17 +176,4 @@ class ScoopListenerActor(listener: Listener,
   override def onConnectionFailed(topic: String, partition: String, status: Int, error: String): Unit =
     listener.onConnectionFailed(topic, partition, status, error)
 
-
-  /*
-   * ScoopListener implementation
-   */
-  override def onMemberUp(member: Member): Unit = self ! MemberUp(member)
-
-  override def onMemberUnreachable(member: Member): Unit = self ! MemberUnreachable(member)
-
-  override def init(cluster: Cluster): Unit = self ! ClusterInit(cluster)
-
-  override def onRebalanced(i: Int, i1: Int): Unit = ( /* do nothing */ )
-
-  override def onMemberRemoved(member: Member): Unit = self ! MemberRemoved(member)
 }

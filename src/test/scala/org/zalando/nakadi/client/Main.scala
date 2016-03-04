@@ -4,7 +4,6 @@ import java.net.URI
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import de.zalando.scoop.Scoop
 
 
 object Main {

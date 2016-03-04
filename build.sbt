@@ -27,6 +27,7 @@ resolvers += "Maven Central Server" at "http://repo1.maven.org/maven2"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.4.1",
+  "com.typesafe.akka" %% "akka-cluster" % "2.4.1",
   "com.google.guava" % "guava" % "19.0",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
   "com.fasterxml.jackson.core" % "jackson-core" % "2.7.0",

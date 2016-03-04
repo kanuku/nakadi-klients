@@ -3,7 +3,6 @@ package org.zalando.nakadi.client
 import java.net.URI
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import de.zalando.scoop.Scoop
 import org.scalatest.{WordSpec, Matchers}
 
 class KlientBuilderSpec extends WordSpec with Matchers {
