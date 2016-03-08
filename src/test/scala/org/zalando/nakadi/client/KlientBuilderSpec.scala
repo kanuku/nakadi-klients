@@ -77,24 +77,6 @@ class KlientBuilderSpec extends WordSpec with Matchers {
       compareKlientBuilderInstance(initialBuilder, nextBuilder, compareObjectMapper = false)
     }
 
-    "create a new KlientBuilder instance containing all original settings together with changed Scoop" in {
-      val initialBuilder = KlientBuilder()
-
-      val newScoop = Some(new Scoop())
-      val nextBuilder = initialBuilder.withScoop(newScoop)
-      nextBuilder.scoop should be (newScoop)
-      compareKlientBuilderInstance(initialBuilder, nextBuilder, compareScoop = false)
-    }
-
-    "create a new KlientBuilder instance containing all original settings together with changed Scoop topic" in {
-      val initialBuilder = KlientBuilder()
-
-      val newScoopTopic = Some("tadaaaa!!")
-      val nextBuilder = initialBuilder.withScoopTopic(newScoopTopic)
-      nextBuilder.scoopTopic should be (newScoopTopic)
-      compareKlientBuilderInstance(initialBuilder, nextBuilder, compareScoopTopic = false)
-    }
-
     "create a new KlientBuilder instance containing all original settings together with changed Secured Connection setting" in {
       val initialBuilder = KlientBuilder()
 
@@ -120,16 +102,12 @@ class KlientBuilderSpec extends WordSpec with Matchers {
                                    compareEndpoint: Boolean = true,
                                    comparePort: Boolean = true,
                                    compareObjectMapper: Boolean = true,
-                                   compareScoop: Boolean = true,
-                                   compareScoopTopic: Boolean = true,
                                    compareSecuredConnection: Boolean = true,
                                    compareTokenProvider: Boolean = true) = {
 
     if(compareEndpoint) nextBuilder.endpoint should be(initialBuilder.endpoint)
     if(comparePort) nextBuilder.port should be (initialBuilder.port)
     if(compareObjectMapper) nextBuilder.objectMapper should be (initialBuilder.objectMapper)
-    if(compareScoop) nextBuilder.scoop should be(initialBuilder.scoop)
-    if(compareScoopTopic) nextBuilder.scoopTopic should be(initialBuilder.scoopTopic)
     if(compareSecuredConnection) nextBuilder.securedConnection should be(initialBuilder.securedConnection)
     if(compareTokenProvider) nextBuilder.tokenProvider should be(initialBuilder.tokenProvider)
 
