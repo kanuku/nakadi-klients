@@ -25,13 +25,6 @@ object KlientSupervisor{
                              autoReconnect: Boolean,
                              listener: Listener)
 
-  case class NewScoopAwareSubscription(topic: String,
-                                       partitionId: String,
-                                       parameters: ListenParameters,
-                                       autoReconnect: Boolean,
-                                       listener: Listener,
-                                       klient: Klient)
-
 
   case class Unsubscription(topic: String, listener: Listener)
 
@@ -67,13 +60,7 @@ class KlientSupervisor private (val endpoint: URI, val port: Int, val securedCon
                 autoReconnect,
                 listener,
                 (l: Listener)=> context.actorOf(ListenerActor.props(l)))
-    case NewScoopAwareSubscription(topic, partitionId, parameters, autoReconnect, listener, klient) =>
-      subscribe(topic,
-                partitionId,
-                parameters,
-                autoReconnect,
-                listener,
-                (l: Listener)=> context.actorOf(ScoopListenerActor.props(l, klient)))
+
     case Terminated(actor) =>
       listenerMap = listenerMap.filterNot(_._2 == actor)
   }

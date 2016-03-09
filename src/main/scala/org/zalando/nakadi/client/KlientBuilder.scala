@@ -26,7 +26,7 @@ class KlientBuilder private (val endpoint: URI = null,
                              val objectMapper: Option[ObjectMapper] = None)
   extends LazyLogging
 {
-  def this() = this(null, KlientBuilder.DEFAULT_PORT, false, null, None)//, None, None)
+  def this() = this(null, KlientBuilder.DEFAULT_PORT, false, null, None)
 
   private def checkNotNull[T](subject: T): T =
                                    if(Option(subject).isEmpty) throw new NullPointerException else subject
@@ -79,7 +79,7 @@ class KlientBuilder private (val endpoint: URI = null,
   def withObjectMapper(objectMapper: Option[ObjectMapper]): KlientBuilder =  {
     if(objectMapper.isDefined) objectMapper.get.registerModule(new DefaultScalaModule)
 
-    new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)//, scoop, scoopTopic)
+    new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)
   }
 
 
