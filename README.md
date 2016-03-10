@@ -26,10 +26,6 @@ nakadi.client {
   defaultBatchLimit = 1                  // default batch limit set in ListenParameters
   defaultStreamLimit = 0                 // default stream limit set in ListenParameters
 
-  scoopListener {
-    selectorField = "id" // Scoop selector field controlling the event consumption
-  }
-
   supervisor {
     // note: Supervisor strategy parameter names are from the Akka - keep them like this
     maxNrOfRetries = 100
@@ -50,8 +46,6 @@ val klient = KlientBuilder()
               .withPort(8080)
               .withSecuredConnection(false)
               .withTokenProvider(() => "<my token>")
-              .withScoop(Some(scoop))
-              .withScoopTopic(Some("scoop"))
               .build()
 ```
 
@@ -184,55 +178,14 @@ client.listenForEvent("topic",
                       new JListenerWrapper(new MyListener()));
 ```
 
-### Scoop integration
-`Nakadi-Klients` has [Scoop](https://github.com/zalando/scoop) integrated to reduce the consumption of the same event 
-by multiple instances of an application where each instance subscribes to `Nakadi` This feature is rather specific for 
-[STUPS](https://github.com/zalando-stups) deployments. Please checkout the 
-[Scoop documentation](https://github.com/zalando/scoop), if you want to use this feature.
-
-`Scala`
-```scala
-val scoop = new Scoop().withBindHostName("hecate")
-                       .withClusterPort(25551)
-                       .withPort(25551)
-                       .withAwsConfig()
-
-val klient = KlientBuilder().withEndpoint(new URI("localhost"))
-                            .withPort(8080)
-                            .withSecuredConnection(false)
-                            .withTokenProvider(() => "<my token>")
-                            .withScoop(Some(scoop))
-                            .withScoopTopic(Some("scoop"))
-                            .build()
-```
-
-`Java`
-```java
-final Scoop scoop = new Scoop().withBindHostName("hecate")
-                               .withClusterPort(25551)
-                               .withPort(25551)
-                               .withAwsConfig();
-
-final Client client = new KlientBuilder()
-                .withEndpoint(new URI("localhost"))
-                .withPort(8080)
-                .withSecuredConnection(false)
-                .withJavaTokenProvider(() -> "<my token>")
-                .withScoop(new Some<>(scoop))
-                .withScoopTopic(new Some<>("scoop"))
-                .buildJavaClient();
-```
-
 
 ## See
 - [Nakadi event bus](https://github.com/zalando/nakadi)
 - [STUPS](https://github.com/zalando-stups)
 - [STUPS' tokens library](https://github.com/zalando-stups/tokens)
-- [Scoop](https://github.com/zalando/scoop)
 
 ## TODO
 - [ ] handle case where separate clusters consisting of 1 member are built
-- [ ] automated tests for Scoop integration
 
 ## License
 http://opensource.org/licenses/MIT

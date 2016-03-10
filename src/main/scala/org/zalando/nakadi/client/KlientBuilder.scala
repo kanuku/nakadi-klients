@@ -7,17 +7,14 @@ import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
 import com.fasterxml.jackson.databind._
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.typesafe.scalalogging.LazyLogging
-import de.zalando.scoop.Scoop
 
 object KlientBuilder{
   def apply(endpoint: URI = null,
             port: Int = DEFAULT_PORT,
             securedConnection: Boolean = false,
             tokenProvider: () => String = null,
-            objectMapper: Option[ObjectMapper] = None,
-            scoop: Option[Scoop] = None,
-            scoopTopic: Option[String] = None) =
-      new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop, scoopTopic)
+            objectMapper: Option[ObjectMapper] = None) =
+      new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)
 
   private val DEFAULT_PORT = 8080    // having such a default is probably a bad idea. Rework later. tbd AKa120216
 }
@@ -26,12 +23,10 @@ class KlientBuilder private (val endpoint: URI = null,
                              val port: Int,
                              val securedConnection: Boolean,
                              val tokenProvider: () => String = null,
-                             val objectMapper: Option[ObjectMapper] = None,
-                             val scoop: Option[Scoop] = None,
-                             val scoopTopic: Option[String] = None)
+                             val objectMapper: Option[ObjectMapper] = None)
   extends LazyLogging
 {
-  def this() = this(null, KlientBuilder.DEFAULT_PORT, false, null, None, None, None)
+  def this() = this(null, KlientBuilder.DEFAULT_PORT, false, null, None)
 
   private def checkNotNull[T](subject: T): T =
                                    if(Option(subject).isEmpty) throw new NullPointerException else subject
@@ -47,9 +42,7 @@ class KlientBuilder private (val endpoint: URI = null,
                                   port,
                                   securedConnection,
                                   tokenProvider,
-                                  objectMapper,
-                                  scoop,
-                                  scoopTopic)
+                                  objectMapper)
 
 
   def withTokenProvider(tokenProvider: () => String): KlientBuilder =
@@ -58,9 +51,7 @@ class KlientBuilder private (val endpoint: URI = null,
                                   port,
                                   securedConnection,
                                   checkNotNull(tokenProvider),
-                                  objectMapper,
-                                  scoop,
-                                  scoopTopic)
+                                  objectMapper)
 
 
   def withJavaTokenProvider(tokenProvider: Supplier[String]) = withTokenProvider(() => tokenProvider.get())
@@ -73,9 +64,7 @@ class KlientBuilder private (val endpoint: URI = null,
                                   port,
                                   securedConnection,
                                   tokenProvider,
-                                  objectMapper,
-                                  scoop,
-                                  scoopTopic)
+                                  objectMapper)
 
 
   def withSecuredConnection(securedConnection: Boolean = true) =
@@ -84,37 +73,13 @@ class KlientBuilder private (val endpoint: URI = null,
                                   port,
                                   securedConnection,
                                   tokenProvider,
-                                  objectMapper,
-                                  scoop,
-                                  scoopTopic)
-
-
-  def withScoop(scoop: Option[Scoop]) =
-                                new KlientBuilder(
-                                  endpoint,
-                                  port,
-                                  securedConnection,
-                                  tokenProvider,
-                                  objectMapper,
-                                  scoop,
-                                  scoopTopic)
-
-
-  def withScoopTopic(scoopTopic: Option[String]) =
-                                new KlientBuilder(
-                                  endpoint,
-                                  port,
-                                  securedConnection,
-                                  tokenProvider,
-                                  objectMapper,
-                                  scoop,
-                                  scoopTopic)
+                                  objectMapper)
 
 
   def withObjectMapper(objectMapper: Option[ObjectMapper]): KlientBuilder =  {
     if(objectMapper.isDefined) objectMapper.get.registerModule(new DefaultScalaModule)
 
-    new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper, scoop, scoopTopic)
+    new KlientBuilder(endpoint, port, securedConnection, tokenProvider, objectMapper)
   }
 
 
@@ -139,17 +104,6 @@ class KlientBuilder private (val endpoint: URI = null,
 
 
   def build(): Klient =
-    if(scoop.isDefined && scoopTopic.isDefined)
-      new ScoopAwareNakadiKlient(
-        checkState(endpoint, (s: URI) => Option(s).isDefined, "endpoint is not set -> try withEndpoint()"),
-        checkState(port, (s: Int) => port > 0, s"port $port is invalid"),
-        securedConnection,
-        checkState(tokenProvider, (s: () => String) => Option(s).isDefined,
-                   "tokenProvider is not set -> try withTokenProvider()"),
-        objectMapper.getOrElse(defaultObjectMapper),
-        scoop,
-        scoopTopic)
-    else
       new KlientImpl(
                     checkState(endpoint, (s: URI) => Option(s).isDefined, "endpoint is not set -> try withEndpoint()"),
                     checkState(port, (s: Int) => port > 0, s"port $port is invalid"),

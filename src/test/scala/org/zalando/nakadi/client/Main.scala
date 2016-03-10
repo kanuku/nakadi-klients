@@ -4,7 +4,6 @@ import java.net.URI
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import de.zalando.scoop.Scoop
 
 
 object Main {
@@ -15,17 +14,11 @@ object Main {
 
   def main (args: Array[String]) {
 
-
-    val scoop = new Scoop().withBindHostName("localhost")
-                           .withSeed("akka.tcp://scoop-nakadi-client@localhost:25551")
-
     val klient = KlientBuilder()
       .withEndpoint(new URI("localhost"))
       .withPort(8080)
       .withSecuredConnection(false)
       .withTokenProvider(() => "<my token>")
-      .withScoop(Some(scoop))
-      .withScoopTopic(Some("scoop"))
       .build()
 
     val listener = new Listener {
