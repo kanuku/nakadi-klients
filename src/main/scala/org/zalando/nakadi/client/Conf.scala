@@ -29,10 +29,6 @@ object Conf {
   val pollParallelism = root.getInt("pollParallelism")
   val receiveBufferSize = root.getMemorySize("receiveBufferSize")
 
-  class cScoopListener(cfg: Config) {
-    val selectorField = cfg.getString("selectorField")
-  }
-  val scoopListener = new cScoopListener( root.getConfig("scoopListener") )
 
   val defaultBatchFlushTimeout: Duration = root.getDuration("defaultBatchFlushTimeout")
   val defaultBatchLimit = root.getInt("defaultBatchLimit")

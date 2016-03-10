@@ -9,9 +9,6 @@ class KlientBuilderSpec extends WordSpec with Matchers {
 
   "A Klient builder" must {
 
-    // These things get tested by other things, anyways, so I'm not sure it's useful to test it (in development phase,
-    // it's probably been useful). AKa280116
-    //
     "build a Klient instance, if everything is set up properly" in {
       KlientBuilder()
         .withEndpoint(new URI("localhost:8080"))
@@ -19,9 +16,6 @@ class KlientBuilderSpec extends WordSpec with Matchers {
         .build()
     }
 
-    // This could be changed to a "must provide '.buildJavaClient' method (but not test the construction that was
-    // already tested above). I.e. keep tests short, and orthogonal. AKa280116
-    //
     "build a Java client instance, if everything is set up properly" in {
       KlientBuilder()
         .withEndpoint(new URI("localhost:8080"))
@@ -30,11 +24,6 @@ class KlientBuilderSpec extends WordSpec with Matchers {
     }
 
     "throw an exception, if not all mandatory arguments are provided" in {
-
-      // Since the arguments are mandatory, what's the point of having a builder, exactly? We can probably
-      // do the same (better) with constructor and named arguments, or abstract members that need to be
-      // provided by the application. Do you want me to make a suggestion? AKa280116
-      //
       an [IllegalStateException] must be thrownBy {
         KlientBuilder()
           .withTokenProvider(() => "my-token")
@@ -47,11 +36,7 @@ class KlientBuilderSpec extends WordSpec with Matchers {
       }
     }
 
-    // hmm.. ObjectMapper is about the Jackson JSON conversions, right?
-    // Would you like to see how spray-json does it? It's just one of Scala JSON libraries, but pretty "magical". :)
-
     "use the specified ObjectMapper" in {
-
       val objectMapper = new ObjectMapper()
 
       val klient: KlientImpl = KlientBuilder()
@@ -60,7 +45,76 @@ class KlientBuilderSpec extends WordSpec with Matchers {
         .withObjectMapper(Some(objectMapper))
         .build().asInstanceOf[KlientImpl]
 
-      klient.objectMapper == objectMapper should be(true)   // what is this actually testing?
+      klient.objectMapper == objectMapper should be(true)
+    }
+
+    "create a new KlientBuilder instance containing all original settings together with changed endpoint" in {
+      val initialBuilder = KlientBuilder()
+
+      val newURI = new URI("www.zalando.de")
+      val nextBuilder = initialBuilder.withEndpoint(newURI)
+
+      nextBuilder.endpoint should be(newURI)
+      compareKlientBuilderInstance(initialBuilder, nextBuilder, compareEndpoint = false)
+    }
+
+    "create a new KlientBuilder instance containing all original settings together with changed port" in {
+      val initialBuilder = KlientBuilder()
+
+      val newPort = 9999
+      val nextBuilder = initialBuilder.withPort(newPort)
+
+      nextBuilder.port should be (newPort)
+      compareKlientBuilderInstance(initialBuilder, nextBuilder, comparePort = false)
+    }
+
+    "create a new KlientBuilder instance containing all original settings together with changed ObjectMapper" in {
+      val initialBuilder = KlientBuilder()
+
+      val newObjectMapper = Some(new ObjectMapper())
+      val nextBuilder = initialBuilder.withObjectMapper(newObjectMapper)
+      nextBuilder.objectMapper should be (newObjectMapper)
+      compareKlientBuilderInstance(initialBuilder, nextBuilder, compareObjectMapper = false)
+    }
+
+    "create a new KlientBuilder instance containing all original settings together with changed Secured Connection setting" in {
+      val initialBuilder = KlientBuilder()
+
+      val hasSecuredConnection = ! initialBuilder.securedConnection
+      val nextBuilder = initialBuilder.withSecuredConnection(hasSecuredConnection)
+      nextBuilder.securedConnection should be (hasSecuredConnection)
+      compareKlientBuilderInstance(initialBuilder, nextBuilder, compareSecuredConnection = false)
+    }
+
+    "create a new KlientBuilder instance containing all original settings together with changed token provider" in {
+      val initialBuilder = KlientBuilder()
+
+      val newTokenProvider = () => "some token"
+      val nextBuilder = initialBuilder.withTokenProvider(newTokenProvider)
+      nextBuilder.tokenProvider should be (newTokenProvider)
+      compareKlientBuilderInstance(initialBuilder, nextBuilder, compareTokenProvider = false)
     }
   }
+
+
+  def compareKlientBuilderInstance(initialBuilder: KlientBuilder,
+                                   nextBuilder: KlientBuilder,
+                                   compareEndpoint: Boolean = true,
+                                   comparePort: Boolean = true,
+                                   compareObjectMapper: Boolean = true,
+                                   compareSecuredConnection: Boolean = true,
+                                   compareTokenProvider: Boolean = true) = {
+
+    if(compareEndpoint) nextBuilder.endpoint should be(initialBuilder.endpoint)
+    if(comparePort) nextBuilder.port should be (initialBuilder.port)
+    if(compareObjectMapper) nextBuilder.objectMapper should be (initialBuilder.objectMapper)
+    if(compareSecuredConnection) nextBuilder.securedConnection should be(initialBuilder.securedConnection)
+    if(compareTokenProvider) nextBuilder.tokenProvider should be(initialBuilder.tokenProvider)
+
+  }
+
+
+
+
 }
+
