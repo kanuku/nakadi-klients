@@ -1,11 +1,11 @@
 
 name := "nakadi-klients"
 
-version := "0-SNAPSHOT"
-
 organization := "org.zalando.nakadi.client"
 
 scalaVersion := "2.11.6"
+
+lazy val root = (project in file(".")).enablePlugins(GitVersioning)
 
 crossPaths := false
 
@@ -44,11 +44,4 @@ libraryDependencies ++= Seq(
   "junit" % "junit" % "4.12" % "test"
 )
 
-// see http://www.scala-sbt.org/0.13/docs/Publishing.html
-publishTo := {
-  val nexus = "https://maven.zalando.net/"
-  if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases"  at nexus + "content/repositories/releases")
-}
+git.baseVersion := "0.0.0"

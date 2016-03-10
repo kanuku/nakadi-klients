@@ -10,6 +10,7 @@ Please note that the client provides a Scala as well as a Java interface.
 - Scala >=  2.11
 
 
+
 ## Tutorial
 
 ### Configuration
