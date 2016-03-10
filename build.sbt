@@ -45,13 +45,4 @@ libraryDependencies ++= Seq(
   "junit" % "junit" % "4.12" % "test"
 )
 
-// see http://www.scala-sbt.org/0.13/docs/Publishing.html
-publishTo := {
-  val nexus = "https://maven.zalando.net/"
-  if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases"  at nexus + "content/repositories/releases")
-}
-
 git.baseVersion := "0.0.0"
