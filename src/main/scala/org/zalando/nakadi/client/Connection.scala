@@ -61,6 +61,9 @@ trait Client {
    * @param name - Name of the EventType
    */
   def deleteEventType(name: String): Future[HttpResponse]
+  
+  
+  
 
   /**
    * Starts a stream delivery for the specified partitions of the given EventType.
@@ -157,7 +160,7 @@ private[client] class Connection(host: String, port: Int, tokenProvider: () => S
 object Main extends App {
 
   val host = "nakadi-sandbox.aruha-test.zalan.do"
-  val OAuth2Token = () => "5748c4f2-8673-410e-b02d-7fbdd71ac095"
+  val OAuth2Token = () =>  ""
   val port = 443
   val client = new Connection(host, port, OAuth2Token, true, false)
   val response = client.eventTypes()
