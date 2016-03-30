@@ -6,7 +6,7 @@
 .history
 .lib/
 dist/*
-target/
+**target/
 lib_managed/
 src_managed/
 project/boot/
@@ -27,13 +27,13 @@ dist
 /*.iml
 /out
 /.idea_modules
-/.classpath
-/.project
+**/.classpath
+**/.project
 /RUNNING_PID
-/.settings
-/.cache-main
-/.cache-tests
-/bin
+**/.settings
+**/.cache-main
+**/.cache-tests
+**/bin
 .DS_Store
 
 #misc
