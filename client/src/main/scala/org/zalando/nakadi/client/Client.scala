@@ -12,6 +12,7 @@ import akka.protobuf.ByteString
 import org.zalando.nakadi.client.model.EventType
 import akka.http.scaladsl.unmarshalling._
 import org.zalando.nakadi.client.model.DefaultMarshaller
+import scala.concurrent.Await
 
 trait Client {
 
@@ -44,7 +45,7 @@ trait Client {
    * @param event - The EventType to create.
    *
    */
-  def newEventType(eventType: Any): Future[Boolean]
+  def newEventType(eventType: EventType): Future[Boolean]
 
   /**
    * Returns the EventType identified by its name.
@@ -159,27 +160,29 @@ private[client] class ClientImpl(connection: Connection) extends Client {
   def metrics(): Future[HttpResponse] = ???
 
   def eventTypes()(implicit marshaller: FromEntityUnmarshaller[EventType], charset: String = "UTF-8"): Future[EventType] = {
-    connection.get(URI_EVENT_TYPES).flatMap(evaluateResponse(_))  }
-
-  private def evaluateResponse[T](response: HttpResponse)(implicit unmarshaller: FromEntityUnmarshaller[T], m: Manifest[T], charset: String = "UTF-8"): Future[T] = response.status match {
-    case status if (status.isSuccess()) =>
-      logger.debug("Result is successfull ({}) ", status.intValue().toString())
-      logger.debug("Result =>> ", response.entity.toStrict(5.seconds).map(x => Some(x.data.decodeString("UTF-8"))))
-      Unmarshal(response.entity).to[T].map { x => 
-      logger.info("YOOOOOOOOOOOOOOOOOOO")
-        
-        x }
-      
-    case status if (status.isRedirection()) =>
-      logger.info("Result is a redirect with http-status ({}) ", status.intValue().toString())
-      //TODO: Implement logic for following redirects
-      Unmarshal(response.entity).to[T]
-    case status if (status.isFailure()) =>
-      logger.warn("An error occurred with http-status ({}) and reason:{} ", status.reason(), status.intValue().toString())
-      Unmarshal(response.entity).to[T]
+    connection.get(URI_EVENT_TYPES).flatMap(evaluateResponse(_))
   }
 
-  def newEventType(eventType: Any): Future[Boolean] = ???
+  def evaluateResponse[T](response: HttpResponse)(implicit unmarshaller: FromEntityUnmarshaller[T], m: Manifest[T], charset: String = "UTF-8"): Future[T] = {
+    logger.debug("received [response={}]", response)
+    response.status match {
+      case status if (status.isSuccess()) =>
+        logger.info("Result is successfull ({}) ", status.intValue().toString())
+        Unmarshal(response.entity).to[T]
+      case status if (status.isRedirection()) =>
+        logger.info("Result is a redirect with http-status ({}) ", status.intValue().toString())
+        //TODO: Implement logic for following redirects
+        Unmarshal(response.entity).to[T].map { x =>
+          logger.info("#####  >>>>> ")
+          x
+        }
+
+      case status if (status.isFailure()) =>
+        logger.warn("An error occurred with http-status ({}) and reason:{} ", status.reason(), status.intValue().toString())
+        Unmarshal(response.entity).to[T]
+    }
+  }
+  def newEventType(eventType: EventType): Future[Boolean] = ???
 
   def eventType(name: String): Future[HttpResponse] = ???
 
@@ -207,11 +210,12 @@ private[client] class ClientImpl(connection: Connection) extends Client {
 
 object Main extends App with DefaultMarshaller {
   val host = "nakadi-sandbox.aruha-test.zalan.do"
-  val OAuth2Token = () => ""
+  val OAuth2Token = () => "3ba41b94-a30a-4dee-a90e-237f4e77edde"
   val port = 443
   val client = new ClientImpl(Connection.newConnection(host, port, OAuth2Token, true, false))
 
   val response = client.eventTypes()
+  Await.result(response, 10.second)
   response.map(r =>
     println("########################  " + r))
 

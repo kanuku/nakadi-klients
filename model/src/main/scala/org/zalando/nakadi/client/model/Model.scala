@@ -18,8 +18,6 @@ case class Event(
   additionalProperties: Boolean,
   title: String)
 
-  
-  
 /**
  * Metadata for this Event. Contains commons fields for both Business and DataChange Events. Most are enriched by Nakadi upon reception, but they in general MIGHT be set by the client.
  * @param eid Identifier of this Event. Clients are allowed to generate this and this SHOULD be guaranteed to be unique from the perspective of the producer. Consumers MIGHT use this value to assert uniqueness of reception of the Event.
@@ -82,7 +80,7 @@ case class Problem(
   detail: String,
   instance: String)
 
-case class Metrics(metrics:String) //TODO: It is not defined yet!
+case class Metrics(metrics: String) //TODO: It is not defined yet!
 
 /**
  * Partition information. Can be helpful when trying to start a stream using an unmanaged API. This information is not related to the state of the consumer clients.
@@ -189,4 +187,4 @@ case object DataOperation extends Enumeration {
 
 }
 
-
+ 

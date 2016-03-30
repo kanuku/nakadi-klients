@@ -8,6 +8,8 @@ object NakadiClient extends Build {
 
 EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
+EclipseKeys.withSource := true
+
 val defaultOptions= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
   "-feature", // Emit warning and location for usages of features that should be imported explicitly.

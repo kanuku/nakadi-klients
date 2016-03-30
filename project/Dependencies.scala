@@ -2,8 +2,9 @@ import sbt._
 
 object Dependencies {
 
+	val akkaVersion = "2.4.2"
+
 	val clientDeps = {
-		val akkaVersion = "2.4.2"
 		Seq(
 			"com.typesafe.akka" 					 %% "akka-http-spray-json-experimental" % akkaVersion withSources() withJavadoc(),
 		  "com.typesafe.akka"            %% "akka-actor"            	 					% akkaVersion withSources() withJavadoc(),
@@ -13,6 +14,7 @@ object Dependencies {
 			"com.typesafe"                 % "config"                  						% "1.3.0"     withSources() withJavadoc(),
 		  "com.google.guava"             % "guava"                   						% "19.0"      withSources() withJavadoc(),
 		  "com.typesafe.scala-logging"   %% "scala-logging"          						% "3.1.0"     withSources() withJavadoc(),
+			"io.spray" 										 %% "spray-json" 												% "1.3.2"     withSources() withJavadoc(),
 		  "com.fasterxml.jackson.core"   % "jackson-core"           						% "2.7.0"     withSources() withJavadoc(),
 		  "com.fasterxml.jackson.module" %% "jackson-module-scala"   						% "2.6.3"     withSources() withJavadoc(),
 		  "ch.qos.logback"               % "logback-classic"         						% "1.1.3"     withSources() withJavadoc(),

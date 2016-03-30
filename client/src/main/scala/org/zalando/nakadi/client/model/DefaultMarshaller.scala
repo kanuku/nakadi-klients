@@ -1,27 +1,40 @@
 package org.zalando.nakadi.client.model
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import spray.json._
 import org.zalando.nakadi.client.utils.ParseHelper
 
-trait DefaultMarshaller extends SprayJsonSupport with DefaultJsonProtocol {
-  import ParseHelper._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.unmarshalling.Unmarshaller
+import spray.json.{ DefaultJsonProtocol, JsonFormat, JsonReader, JsonWriter, pimpAny, pimpString }
 
-  implicit val eventMetadata = jsonFormat7(EventMetadata)
-  implicit val problem = jsonFormat5(Problem)
-  implicit val metrics = jsonFormat1(Metrics)
-  implicit val partition = jsonFormat3(Partition)
-  implicit val cursor = jsonFormat2(Cursor)
-  implicit val dataChangeEventQualifier = jsonFormat2(DataChangeEventQualifier)
-  implicit val partitionResolutionStrategy = jsonFormat2(PartitionResolutionStrategy)
-  implicit val businessEvent = jsonFormat1(BusinessEvent)
-  implicit val eventTypeSchema = jsonFormat2(EventTypeSchema)
-  implicit val eventValidationStrategy = jsonFormat2(EventValidationStrategy)
-  implicit val eventEnrichmentStrategy = jsonFormat2(EventEnrichmentStrategy)
-  implicit val eventType = jsonFormat10(EventType)
-  implicit val event = jsonFormat3(Event)
-  implicit val eventStreamBatch = jsonFormat2(EventStreamBatch)
+trait DefaultMarshaller extends SprayJsonSupport with DefaultJsonProtocol {
+  import org.zalando.nakadi.client.utils.ParseHelper._
+
+  implicit val eventMetadataFormatter = jsonFormat7(EventMetadata)
+  implicit val problemFormatter = jsonFormat5(Problem)
+  implicit val metricsFormatter = jsonFormat1(Metrics)
+  implicit val partitionFormatter = jsonFormat3(Partition)
+  implicit val cursorFormatter = jsonFormat2(Cursor)
+  implicit val dataChangeEventQualifierFormatter = jsonFormat2(DataChangeEventQualifier)
+  implicit val partitionResolutionStrategyFormatter = jsonFormat2(PartitionResolutionStrategy)
+  implicit val businessEventFormatter = jsonFormat1(BusinessEvent)
+  implicit val eventTypeSchemaFormatter = jsonFormat2(EventTypeSchema)
+  implicit val eventValidationStrategyFormatter = jsonFormat2(EventValidationStrategy)
+  implicit val eventEnrichmentStrategyFormatter = jsonFormat2(EventEnrichmentStrategy)
+  implicit val eventTypeFormatter = jsonFormat10(EventType)
+  implicit val eventFormatter = jsonFormat3(Event)
+  implicit val eventStreamBatchFormatter = jsonFormat2(EventStreamBatch)
+
+  implicit def dataChangeEventFormatter[A: JsonFormat] = jsonFormat3(DataChangeEvent.apply[A])
+
+  //Handy marshallers
+  implicit def toStringMarshaller[T](implicit writer: JsonWriter[T]): Marshaller[T, String] =
+    Marshaller.opaque {
+      _.toJson(writer).toString()
+    }
+
+  implicit def fromEntityUnmarshaller[T](implicit reader: JsonReader[T]): Unmarshaller[String, T] = Unmarshaller.strict {
+    input => input.parseJson.convertTo[T]
+  }
 
 }
-  
- 
