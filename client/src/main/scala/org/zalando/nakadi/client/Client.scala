@@ -210,7 +210,7 @@ private[client] class ClientImpl(connection: Connection) extends Client {
 
 object Main extends App with DefaultMarshaller {
   val host = "nakadi-sandbox.aruha-test.zalan.do"
-  val OAuth2Token = () => "3ba41b94-a30a-4dee-a90e-237f4e77edde"
+  val OAuth2Token = () => ""
   val port = 443
   val client = new ClientImpl(Connection.newConnection(host, port, OAuth2Token, true, false))
 
