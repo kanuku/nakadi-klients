@@ -43,6 +43,19 @@ lazy val client = withDefaults(
     project.in(file("client")).dependsOn(api, model)
   ).settings(libraryDependencies ++= clientDeps)
 
+
+  lazy val it = withDefaults(
+      "nakadi-integration-test",
+      project.in(file("it")).dependsOn(model, api, client)
+    ).settings(libraryDependencies ++= clientDeps)
+
+
+    lazy val e2e = withDefaults(
+        "nakadi-end-2-end-test",
+        project.in(file("e2e")).dependsOn(model, api, client, it)
+      ).settings(libraryDependencies ++= clientDeps)
+
+
 def withDefaults(projectName:String, project:sbt.Project)={
   project.settings(
       name := projectName,
@@ -51,6 +64,9 @@ def withDefaults(projectName:String, project:sbt.Project)={
       resolvers += Resolver.mavenLocal,
       resolvers += "Maven Central Server" at "http://repo1.maven.org/maven2",
       scalacOptions ++= defaultOptions)
+      .configs(Configs.all: _*)
+      .settings(Testing.settings: _*)
+
 }
 
 

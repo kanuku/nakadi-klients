@@ -17,6 +17,6 @@ package object client {
   /*Strategies*/
   val URI_VALIDATION_STRATEGIES = "/registry/validation-strategies"
   val URI_ENRICHMENT_STRATEGIES = "/registry/enrichment-strategies"
-  val URI_PARTITIONING_STRATEGIES = "/registry/partitioning-strategies"
+  val URI_PARTITIONING_STRATEGIES = "/registry/partition-strategies"
 
 }

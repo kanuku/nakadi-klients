@@ -15,6 +15,7 @@ import akka.actor.{ ActorSystem, Terminated }
 import akka.http.scaladsl.{ Http, HttpsConnectionContext }
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse, MediaRange }
 import akka.http.scaladsl.model.MediaTypes.`application/json`
+import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.Uri.apply
 import akka.http.scaladsl.model.headers
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
@@ -24,6 +25,7 @@ import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
 
 trait Connection {
   def get(endpoint: String): Future[HttpResponse]
+  def post(endpoint: String): Future[HttpResponse]
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
 }
@@ -81,7 +83,16 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
   def get(endpoint: String): Future[HttpResponse] = {
     logger.info("Calling {}", endpoint)
     val response: Future[HttpResponse] =
-      Source.single(DefaultHttpRequest(endpoint))
+      Source.single(GetHttpRequest(endpoint))
+        .via(connectionFlow).
+        runWith(Sink.head)
+    logError(response)
+    response
+  }
+  def post(endpoint: String): Future[HttpResponse] = {
+    logger.info("Calling {}", endpoint)
+    val response: Future[HttpResponse] =
+      Source.single(PostHttpRequest(endpoint))
         .via(connectionFlow).
         runWith(Sink.head)
     logError(response)
@@ -94,9 +105,13 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
     }
   }
 
-  private def DefaultHttpRequest(url: String): HttpRequest = {
+  private def GetHttpRequest(url: String): HttpRequest = {
     HttpRequest(uri = url).withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
       headers.Accept(MediaRange(`application/json`)))
+  }
+  private def PostHttpRequest(url: String): HttpRequest = {
+      HttpRequest(uri = url, method = POST).withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
+          headers.Accept(MediaRange(`application/json`)))
   }
 
   def stop(): Future[Terminated] = actorSystem.terminate()

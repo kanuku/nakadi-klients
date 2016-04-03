@@ -22,6 +22,7 @@ case class Event(
   title: String)
 
 /**
+ * 
  * Metadata for this Event. Contains commons fields for both Business and DataChange Events. Most are enriched by Nakadi upon reception, but they in general MIGHT be set by the client.
  * @param eid Identifier of this Event. Clients are allowed to generate this and this SHOULD be guaranteed to be unique from the perspective of the producer. Consumers MIGHT use this value to assert uniqueness of reception of the Event.
  * @param eventType The EventType of this Event. This is enriched by Nakadi on reception of the Event based on the endpoint where the Producer sent the Event to. If provided MUST match the endpoint. Failure to do so will cause rejection of the Event.
@@ -34,11 +35,12 @@ case class Event(
  */
 case class EventMetadata(
   eid: String,
-  eventType: String,
+  eventType: Option[EventType],
   occurredAt: String,
-  receivedAt: String,
+  receivedAt: Option[String],
   parentEids: Seq[String],
-  flowId: String,
+  flowId: Option[String],
+  partition:Option[String],
   metadata: Map[String, Any])
 
 /**
@@ -64,7 +66,7 @@ case class DataChangeEventQualifier(
  * @param eventQualifier Indicators of a `DataChangeEvent`'s referred data type and the type of operations done on them.
  * @param metadata Metadata for this Event. Contains commons fields for both Business and DataChange Events. Most are enriched by Nakadi upon reception, but they in general MIGHT be set by the client
  */
-case class DataChangeEvent[T](
+case class DataChangeEvent[T]( //TODO: Maybe DataChangeEvent must subclass DataChangeEventQualifier and EventMetadata via trait
   data: T,
   eventQualifier: DataChangeEventQualifier,
   metadata: EventMetadata)
@@ -80,8 +82,8 @@ case class Problem(
   problemType: String,
   title: String,
   status: Int,
-  detail: String,
-  instance: String)
+  detail: Option[String],
+  instance: Option[String])
 
 case class Metrics(metrics: String) //TODO: It is not defined yet!
 
@@ -128,15 +130,15 @@ case class EventStreamBatch(
  */
 case class EventType(
   name: String,
-  owner: String,
+  owningApplication: String,
   category: EventTypeCategory.Value,
-  effectiveSchema: String,
-  validationStrategies: Seq[String],
-  enrichmentStrategies: Seq[String],
+  validationStrategies: Option[Seq[String]],
+  enrichmentStrategies: Option[Seq[String]],
   partitionResolutionStrategy: PartitionResolutionStrategy, //Different naming
-  schema: EventTypeSchema,
-  dataKeyFields: Seq[String],
-  partitioningKeyFields: Seq[String])
+  schema: Option[EventTypeSchema],
+  dataKeyFields: Option[Seq[String]],
+  partitioningKeyFields: Option[Seq[String]],
+  statistics:Option[EventTypeStatistics])
 
 /**
  * The schema for an EventType, expected to be a json schema in yaml
@@ -159,10 +161,10 @@ case class EventTypeSchema(
  *
  */
 case class EventTypeStatistics(
-  expectedWriteRate: Int,
-  messageSize: Int,
-  readParallelism: Int,
-  writeParallelism: Int)
+  expectedWriteRate: Option[Int],
+  messageSize: Option[Int],
+  readParallelism: Option[Int],
+  writeParallelism: Option[Int])
 
 /**
  * Defines a rule for validation of an incoming Event. Rules might require additional parameters; see the `doc` field of the existing rules for details. See GET /registry/validation-strategies for a list of available rules.
@@ -171,7 +173,7 @@ case class EventTypeStatistics(
  */
 case class EventValidationStrategy(
   name: String,
-  doc: String)
+  doc: Option[String])
 
 /**
  * Defines a rule for the resolution of incoming Events into partitions. Rules might require additional parameters; see the `doc` field of the existing rules for details. See `GET /registry/partition-strategies` for a list of available rules.
@@ -180,7 +182,7 @@ case class EventValidationStrategy(
  */
 case class PartitionResolutionStrategy(
   name: String,
-  doc: String)
+  doc: Option[String])
 
 /**
  * Defines a rule for transformation of an incoming Event. No existing fields might be modified. In practice this is used to set automatically values in the Event upon reception (i.e. set a reception timestamp on the Event). Rules might require additional parameters; see the `doc` field of the existing rules for details. See GET /registry/enrichment-strategies for a list of available rules.
@@ -189,7 +191,7 @@ case class PartitionResolutionStrategy(
  */
 case class EventEnrichmentStrategy(
   name: String,
-  doc: String)
+  doc: Option[String])
 /**
  * A status corresponding to one individual Event's publishing attempt.
  * @param eid Eid of the corresponding item. Will be absent if missing on the incoming Event.
@@ -199,10 +201,10 @@ case class EventEnrichmentStrategy(
  *
  */
 case class BatchItemResponse(
-  eid: String,
+  eid: Option[String],
   publishingStatus: BatchItemPublishingStatus.Value,
-  step: BatchItemStep.Value,
-  detail: String)
+  step: Option[BatchItemStep.Value],
+  detail: Option[String])
 
 /////////////////////////////////
 // ENUMS ////////////////////////
