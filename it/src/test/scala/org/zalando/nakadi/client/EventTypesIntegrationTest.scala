@@ -10,8 +10,8 @@ import org.zalando.nakadi.client.model.{ EventType, EventTypeCategory, EventType
 class EventTypeTest extends WordSpec with Matchers with SprayJsonMarshaller {
 
   //Client configuration
-  val host = "nakadi-sandbox.aruha-test.zalan.do"
-  val OAuth2Token = () => "e97311d9-bb5e-48fa-9a60-0b153726c71c"
+  val host = ""
+  val OAuth2Token = () => ""
   val port = 443
   val client = new ClientImpl(Connection.newConnection(host, port, OAuth2Token, true, false), "UTF-8")
   val events = new EventTypesActions(client)
@@ -33,7 +33,7 @@ class EventTypeTest extends WordSpec with Matchers with SprayJsonMarshaller {
     checkEventTypeExists(eventType)
 
     
-    //TODO: Enable this when PUT is supported again.
+    //TODO: Enable this when PUT is supported.
     //Update the event
 //    val updatedEvent = eventType.copy(owningApplication = "laas-team-2")
 //    events.update(updatedEvent)
