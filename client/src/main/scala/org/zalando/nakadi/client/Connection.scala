@@ -25,7 +25,10 @@ import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
 
 trait Connection {
   def get(endpoint: String): Future[HttpResponse]
-  def post[T](endpoint: String, event: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse]
+  def delete(endpoint: String): Future[HttpResponse]
+  def post[T](endpoint: String, model: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse]
+  def put[T](endpoint: String, model: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse]
+
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
 }
@@ -66,7 +69,7 @@ object Connection {
 private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
   import Connection._
 
-  private implicit val actorSystem = ActorSystem("Nakadi-Connections")
+  private implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
   private implicit val http = Http(actorSystem)
   implicit val materializer = ActorMaterializer()
   private val timeout = 5.seconds
@@ -81,38 +84,47 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
   }
 
   def get(endpoint: String): Future[HttpResponse] = {
-    logger.info("Calling {}", endpoint)
+    logger.info("Get: {}", endpoint)
+    executeCall(httpRequest(endpoint, HttpMethods.GET))
+  }
+
+  def put[T](endpoint: String, model: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse] = {
+    logger.info("Get: {}", endpoint)
+    executeCall(httpRequest(endpoint, HttpMethods.GET))
+  }
+
+  def post[T](endpoint: String, model: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse] = {
+    Marshal(model).to[MessageEntity].flatMap { entity =>
+      logger.info("Posting to endpoint {}", endpoint)
+      logger.debug("Data to post {}", entity.toString())
+      executeCall(httpRequestWithPayload(endpoint, entity, HttpMethods.POST))
+    }
+  }
+  def delete(endpoint: String): Future[HttpResponse] = {
+    logger.info("Delete: {}", endpoint)
+    executeCall(httpRequest(endpoint, HttpMethods.DELETE))
+  }
+
+  private def executeCall(request: HttpRequest): Future[HttpResponse] = {
     val response: Future[HttpResponse] =
-      Source.single(GetHttpRequest(endpoint))
+      Source.single(request)
         .via(connectionFlow).
         runWith(Sink.head)
     logError(response)
     response
   }
-  def post[T](endpoint: String, event: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse] = {
-    val result = Marshal(event).to[MessageEntity].flatMap { entity =>
-      logger.info("Posting to endpoint {}", endpoint)
-      logger.debug("Data to post {}", entity.toString())
-      Source.single(PostHttpRequest(endpoint, entity))
-        .via(connectionFlow).
-        runWith(Sink.head)
-    }
-    logError(result)
-    result
-  }
-
   private def logError(future: Future[Any]) {
     future recover {
       case e: Throwable => logger.error("Failed to call endpoint with: ", e.getMessage)
     }
   }
 
-  private def GetHttpRequest(url: String): HttpRequest = {
-    HttpRequest(uri = url).withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
+  private def httpRequest(url: String, httpMethod: HttpMethod): HttpRequest = {
+    HttpRequest(uri = url, method = httpMethod).withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
       headers.Accept(MediaRange(`application/json`)))
   }
-  private def PostHttpRequest(url: String, entity: MessageEntity): HttpRequest = {
-    HttpRequest(uri = url, method = POST) //
+  private def httpRequestWithPayload(url: String, entity: MessageEntity, httpMethod: HttpMethod): HttpRequest = {
+    HttpRequest(uri = url, method = httpMethod) //
       .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
         headers.Accept(MediaRange(`application/json`)))
       .withEntity(entity)
