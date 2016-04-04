@@ -134,7 +134,7 @@ case class EventType(
   category: EventTypeCategory.Value,
   validationStrategies: Option[Seq[String]],
   enrichmentStrategies: Option[Seq[String]],
-  partitionResolutionStrategy: PartitionResolutionStrategy, //Different naming
+  partitionStrategy: PartitionResolutionStrategy, //Different naming
   schema: Option[EventTypeSchema],
   dataKeyFields: Option[Seq[String]],
   partitioningKeyFields: Option[Seq[String]],
@@ -148,7 +148,7 @@ case class EventType(
  * Failure to respect the syntax will fail any operation on an EventType.
  */
 case class EventTypeSchema(
-  schemaType: String,
+  schemaType: SchemaType.Value,//Name is type (keyword in scala)
   schema: String)
 
 /**
@@ -272,3 +272,7 @@ case object BatchItemStep extends Enumeration {
 
 }
 
+case object SchemaType extends Enumeration{
+  type SchemaType = Value
+  val JSON = Value("json_schema")
+}

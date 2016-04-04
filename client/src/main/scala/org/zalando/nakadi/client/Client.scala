@@ -12,6 +12,7 @@ import akka.protobuf.ByteString
 import org.zalando.nakadi.client.model.EventType
 import org.zalando.nakadi.client.model.PartitionResolutionStrategy
 import akka.http.scaladsl.unmarshalling._
+import akka.http.scaladsl.marshalling._
 import scala.concurrent.Await
 import org.zalando.nakadi.client.model.Partition
 import org.zalando.nakadi.client.model.EventEnrichmentStrategy
@@ -37,7 +38,7 @@ trait Client {
    * }}}
    *
    */
-  def eventTypes()(implicit marshaller: FromEntityUnmarshaller[List[EventType]]): Future[Either[ClientError, List[EventType]]]
+  def eventTypes()(implicit marshaller: FromEntityUnmarshaller[List[EventType]]): Future[Either[ClientError, Option[List[EventType]]]]
 
   /**
    * Creates a new EventType.
@@ -49,7 +50,7 @@ trait Client {
    * @param event - The EventType to create.
    *
    */
-  def newEventType(eventType: EventType)(implicit marshaller: FromEntityUnmarshaller[EventType]): Future[Option[ClientError]]
+  def newEventType(eventType: EventType)(implicit marshaller: ToEntityMarshaller[EventType]): Future[Option[ClientError]]
 
   /**
    * Returns the EventType identified by its name.
@@ -58,7 +59,7 @@ trait Client {
    * }}}
    * @param name - Name of the EventType
    */
-  def eventType(name: String)(implicit marshaller: FromEntityUnmarshaller[EventType]): Future[Either[ClientError, EventType]]
+  def eventType(name: String)(implicit marshaller: FromEntityUnmarshaller[EventType]): Future[Either[ClientError, Option[EventType]]]
   /**
    * Updates the EventType identified by its name.
    * {{{
@@ -97,7 +98,7 @@ trait Client {
    * @param name - Name of the EventType
    *
    */
-  def events[T](name: String)(implicit marshaller: FromEntityUnmarshaller[T]): Future[Either[ClientError, T]]
+  def events[T](name: String)(implicit marshaller: FromEntityUnmarshaller[T]): Future[Either[ClientError, Option[T]]]
 
   /**
    * List the partitions for the given EventType.
@@ -106,7 +107,7 @@ trait Client {
    * }}}
    * @param name -  Name of the EventType
    */
-  def partitions(name: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Partition]]
+  def partitions(name: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Option[Partition]]]
 
   /**
    * Returns the Partition for the given EventType.
@@ -117,7 +118,7 @@ trait Client {
    * @param partition - Name of the partition
    */
 
-  def partitionByName(name: String, partition: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Partition]]
+  def partitionByName(name: String, partition: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Option[Partition]]]
 
   /**
    * Returns all of the validation strategies supported by this installation of Nakadi.
@@ -126,7 +127,7 @@ trait Client {
    * curl --request GET /registry/validation-strategies
    * }}}
    */
-  def validationStrategies()(implicit marshaller: FromEntityUnmarshaller[EventValidationStrategy]): Future[Either[ClientError, EventValidationStrategy]]
+  def validationStrategies()(implicit marshaller: FromEntityUnmarshaller[EventValidationStrategy]): Future[Either[ClientError, Option[EventValidationStrategy]]]
 
   /**
    * Returns all of the enrichment strategies supported by this installation of Nakadi.
@@ -135,7 +136,7 @@ trait Client {
    * }}}
    */
 
-  def enrichmentStrategies()(implicit marshaller: FromEntityUnmarshaller[EventEnrichmentStrategy]): Future[Either[ClientError, EventEnrichmentStrategy]]
+  def enrichmentStrategies()(implicit marshaller: FromEntityUnmarshaller[EventEnrichmentStrategy]): Future[Either[ClientError, Option[EventEnrichmentStrategy]]]
 
   /**
    * Returns all of the partitioning strategies supported by this installation of Nakadi.
@@ -143,7 +144,7 @@ trait Client {
    * curl --request GET /registry/partitioning-strategies
    * }}}
    */
-  def partitionStrategies()(implicit marshaller: FromEntityUnmarshaller[List[PartitionResolutionStrategy]]): Future[Either[ClientError, List[PartitionResolutionStrategy]]]
+  def partitionStrategies()(implicit marshaller: FromEntityUnmarshaller[List[PartitionResolutionStrategy]]): Future[Either[ClientError, Option[List[PartitionResolutionStrategy]]]]
 
   /**
    * Shuts down the communication system of the client
@@ -164,15 +165,15 @@ private[client] class ClientImpl(connection: Connection, charSet: String) extend
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
   def metrics(): Future[Either[ClientError, HttpResponse]] = ???
 
-  def eventTypes()(implicit marshaller: FromEntityUnmarshaller[List[EventType]]): Future[Either[ClientError, List[EventType]]] = {
+  def eventTypes()(implicit unmarshaller: FromEntityUnmarshaller[List[EventType]]): Future[Either[ClientError, Option[List[EventType]]]] = {
     logGetError(connection.get(URI_EVENT_TYPES).flatMap(handleGetResponse(_)))
   }
 
-  def newEventType(eventType: EventType)(implicit marshaller: FromEntityUnmarshaller[EventType]): Future[Option[ClientError]] = {
-    logPostError(connection.post(URI_EVENT_TYPES).map(handlePostResponse(_)))
+  def newEventType(eventType: EventType)(implicit marshaller: ToEntityMarshaller[EventType]): Future[Option[ClientError]] = {
+    logPostError(connection.post(URI_EVENT_TYPES, eventType).map(handlePostResponse(_)))
   }
 
-  def eventType(name: String)(implicit marshaller: FromEntityUnmarshaller[EventType]): Future[Either[ClientError, EventType]] = ???
+  def eventType(name: String)(implicit marshaller: FromEntityUnmarshaller[EventType]): Future[Either[ClientError, Option[EventType]]] = ???
 
   def updateEventType(name: String, eventType: EventType)(implicit marshaller: FromEntityUnmarshaller[EventType]): Future[Option[ClientError]] = ???
 
@@ -180,17 +181,17 @@ private[client] class ClientImpl(connection: Connection, charSet: String) extend
 
   def newEvent[T](name: String, event: T)(implicit marshaller: FromEntityUnmarshaller[T]): Future[Option[ClientError]] = ???
 
-  def events[T](name: String)(implicit marshaller: FromEntityUnmarshaller[T]): Future[Either[ClientError, T]] = ???
+  def events[T](name: String)(implicit marshaller: FromEntityUnmarshaller[T]): Future[Either[ClientError, Option[T]]] = ???
 
-  def partitions(name: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Partition]] = ???
+  def partitions(name: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Option[Partition]]] = ???
 
-  def partitionByName(name: String, partition: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Partition]] = ???
+  def partitionByName(name: String, partition: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Option[Partition]]] = ???
 
-  def validationStrategies()(implicit marshaller: FromEntityUnmarshaller[EventValidationStrategy]): Future[Either[ClientError, EventValidationStrategy]] = ???
+  def validationStrategies()(implicit marshaller: FromEntityUnmarshaller[EventValidationStrategy]): Future[Either[ClientError, Option[EventValidationStrategy]]] = ???
 
-  def enrichmentStrategies()(implicit marshaller: FromEntityUnmarshaller[EventEnrichmentStrategy]): Future[Either[ClientError, EventEnrichmentStrategy]] = ???
+  def enrichmentStrategies()(implicit marshaller: FromEntityUnmarshaller[EventEnrichmentStrategy]): Future[Either[ClientError, Option[EventEnrichmentStrategy]]] = ???
 
-  def partitionStrategies()(implicit marshaller: FromEntityUnmarshaller[List[PartitionResolutionStrategy]]): Future[Either[ClientError, List[PartitionResolutionStrategy]]] =
+  def partitionStrategies()(implicit marshaller: FromEntityUnmarshaller[List[PartitionResolutionStrategy]]): Future[Either[ClientError, Option[List[PartitionResolutionStrategy]]]] =
     logGetError(connection.get(URI_PARTITIONING_STRATEGIES).flatMap(handleGetResponse(_)))
 
   def stop(): Future[Terminated] = connection.stop()
@@ -214,12 +215,12 @@ private[client] class ClientImpl(connection: Connection, charSet: String) extend
     }
   }
 
-  def handleGetResponse[T](response: HttpResponse)(implicit unmarshaller: FromEntityUnmarshaller[T], m: Manifest[T]): Future[Either[ClientError, T]] = {
+  def handleGetResponse[T](response: HttpResponse)(implicit unmarshaller: FromEntityUnmarshaller[T], m: Manifest[T]): Future[Either[ClientError, Option[T]]] = {
     logger.debug("received [response={}]", response)
     response.status match {
       case status if (status.isSuccess()) =>
         logger.info("Result is successfull ({}) ", status.intValue().toString())
-        Unmarshal(response.entity).to[T].map(Right(_))
+        Unmarshal(response.entity).to[T].map(in => Right(Option(in)))
       case status if (status.isRedirection()) =>
         val msg = "An error occurred with http-status (" + status.intValue() + "}) and reason:" + status.reason()
         logger.info(msg)
@@ -231,16 +232,22 @@ private[client] class ClientImpl(connection: Connection, charSet: String) extend
     }
   }
   def handlePostResponse[T](response: HttpResponse): Option[ClientError] = {
-    logger.debug("received [response={}]", response)
     response.status match {
       case status if (status.isSuccess()) =>
+        logger.debug("Success. http-status: %s", status.intValue().toString())
         None
       case status if (status.isRedirection()) =>
-        val msg = "An error occurred with http-status (" + status.intValue() + "}) and reason:" + status.reason()
+        val msg = "Redirection - http-status: %s, reason[%s]".format(status.intValue().toString(), status.reason())
         logger.info(msg)
+        response.entity.toStrict(10.second).map{ body =>
+            logger.debug("Redirection - http-status: %s, reason[%s], body:[%s]".format(status.intValue().toString(), status.reason(), body.data.decodeString(charSet)))
+        }
         Option(ClientError(msg, Some(status.intValue())))
       case status if (status.isFailure()) =>
-        val msg = "An error occurred with http-status (" + status.intValue() + "}) and reason:" + status.reason()
+        response.entity.toStrict(10.second).map{ body =>
+        logger.debug("Failure - http-status: %s, reason[%s], body:[%s]".format(status.intValue().toString(), status.reason(), body.data.decodeString(charSet)))
+        }
+        val msg = "Failure - http-status: %s, reason[%s], body:[%s]".format(status.intValue().toString(), status.reason(), response.entity.dataBytes)
         logger.warn(msg)
         Option(ClientError(msg, Some(status.intValue())))
     }

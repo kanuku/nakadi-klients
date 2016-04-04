@@ -10,10 +10,10 @@ import scala.concurrent.duration.DurationInt
 import org.slf4j.LoggerFactory
 
 import com.typesafe.scalalogging.Logger
-
+import akka.http.scaladsl.marshalling._
 import akka.actor.{ ActorSystem, Terminated }
 import akka.http.scaladsl.{ Http, HttpsConnectionContext }
-import akka.http.scaladsl.model.{ HttpRequest, HttpResponse, MediaRange }
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.Uri.apply
@@ -25,7 +25,7 @@ import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
 
 trait Connection {
   def get(endpoint: String): Future[HttpResponse]
-  def post(endpoint: String): Future[HttpResponse]
+  def post[T](endpoint: String, event: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse]
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
 }
@@ -60,7 +60,7 @@ object Connection {
 }
 
 /**
- * Class for handling the configuration and most basic calls.
+ * Class for handling the configuration and basic http calls.
  */
 
 private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
@@ -89,14 +89,16 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
     logError(response)
     response
   }
-  def post(endpoint: String): Future[HttpResponse] = {
-    logger.info("Calling {}", endpoint)
-    val response: Future[HttpResponse] =
-      Source.single(PostHttpRequest(endpoint))
+  def post[T](endpoint: String, event: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse] = {
+    val result = Marshal(event).to[MessageEntity].flatMap { entity =>
+      logger.info("Posting to endpoint {}", endpoint)
+      logger.debug("Data to post {}", entity.toString())
+      Source.single(PostHttpRequest(endpoint, entity))
         .via(connectionFlow).
         runWith(Sink.head)
-    logError(response)
-    response
+    }
+    logError(result)
+    result
   }
 
   private def logError(future: Future[Any]) {
@@ -109,9 +111,11 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
     HttpRequest(uri = url).withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
       headers.Accept(MediaRange(`application/json`)))
   }
-  private def PostHttpRequest(url: String): HttpRequest = {
-      HttpRequest(uri = url, method = POST).withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
-          headers.Accept(MediaRange(`application/json`)))
+  private def PostHttpRequest(url: String, entity: MessageEntity): HttpRequest = {
+    HttpRequest(uri = url, method = POST) //
+      .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
+        headers.Accept(MediaRange(`application/json`)))
+      .withEntity(entity)
   }
 
   def stop(): Future[Terminated] = actorSystem.terminate()
