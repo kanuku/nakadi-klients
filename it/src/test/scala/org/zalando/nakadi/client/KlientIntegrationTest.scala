@@ -10,8 +10,8 @@ import org.zalando.nakadi.client.model._
 
 class KlientIntegrationTest extends WordSpec with Matchers with SprayJsonMarshaller {
 
-  val host = "nakadi-sandbox.aruha-test.zalan.do"
-  val OAuth2Token = () => "42b2f4f8-4052-4fca-916e-972f573b1c52"
+  val host = ""
+  val OAuth2Token = () => ""
   val port = 443
   val client = new ClientImpl(Connection.newConnection(host, port, OAuth2Token, true, false),"UTF-8")
   
