@@ -1,5 +1,9 @@
 package org.zalando.nakadi.client.model
 
+import com.fasterxml.jackson.core.`type`.TypeReference
+import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
+import com.fasterxml.jackson.annotation.JsonProperty
+
 // Updated untill commit 7839be3  
 // Compare
 
@@ -16,13 +20,12 @@ package org.zalando.nakadi.client.model
  * @param additionalProperties Default value is true
  * @param title
  */
-case class Event(
-  eventType: EventType,
-  additionalProperties: Boolean,
-  title: String)
+trait Event {
+  def metadata(): EventMetadata
+}
 
 /**
- * 
+ *
  * Metadata for this Event. Contains commons fields for both Business and DataChange Events. Most are enriched by Nakadi upon reception, but they in general MIGHT be set by the client.
  * @param eid Identifier of this Event. Clients are allowed to generate this and this SHOULD be guaranteed to be unique from the perspective of the producer. Consumers MIGHT use this value to assert uniqueness of reception of the Event.
  * @param eventType The EventType of this Event. This is enriched by Nakadi on reception of the Event based on the endpoint where the Producer sent the Event to. If provided MUST match the endpoint. Failure to do so will cause rejection of the Event.
@@ -40,24 +43,23 @@ case class EventMetadata(
   receivedAt: Option[String],
   parentEids: Seq[String],
   flowId: Option[String],
-  partition:Option[String],
-  metadata: Map[String, Any])
+  partition: Option[String])
 
 /**
  * A Business Event. Usually represents a status transition in a Business process.
  *
- * @param metadata Metadata for this Event. Contains commons fields for both Business and DataChange Events. Most are enriched by Nakadi upon reception, but they in general MIGHT be set by the client.
  */
-case class BusinessEvent(metadata: EventMetadata)
+trait BusinessEvent extends Event
 
 /**
  * Indicators of a `DataChangeEvent`'s referred data type and the type of operations done on them.
  * @param dataType The datatype of the `DataChangeEvent`.
  * @param dataOp The type of operation executed on the entity. * C: Creation * U: Update * D: Deletion * S: Snapshot
  */
-case class DataChangeEventQualifier(
-  dataType: String,
-  dataOperation: DataOperation.Value)
+trait DataChangeEventQualifier {
+  def dataType(): String
+  def dataOperation(): DataOperation.Value
+}
 
 /**
  * A Data change Event. Represents a change on a resource.
@@ -66,10 +68,11 @@ case class DataChangeEventQualifier(
  * @param eventQualifier Indicators of a `DataChangeEvent`'s referred data type and the type of operations done on them.
  * @param metadata Metadata for this Event. Contains commons fields for both Business and DataChange Events. Most are enriched by Nakadi upon reception, but they in general MIGHT be set by the client
  */
-case class DataChangeEvent[T]( //TODO: Maybe DataChangeEvent must subclass DataChangeEventQualifier and EventMetadata via trait
+case class DataChangeEvent[T](
   data: T,
-  eventQualifier: DataChangeEventQualifier,
-  metadata: EventMetadata)
+  dataType: String,
+  @JsonScalaEnumeration(classOf[DataOperationType]) dataOperation: DataOperation.Value,
+  metadata: EventMetadata) extends DataChangeEventQualifier with Event
 
 /**
  * @ param problemType An absolute URI that identifies the problem type. When dereferenced, it SHOULD provide human-readable API documentation for the problem type (e.g., using HTML). This Problem object is the same as provided by https://github.com/zalando/problem
@@ -85,7 +88,7 @@ case class Problem(
   detail: Option[String],
   instance: Option[String])
 
-case class Metrics(metrics: String) //TODO: It is not defined yet!
+case class Metrics(metrics: Map[String, Any]) //TODO: It is not defined yet!
 
 /**
  * Partition information. Can be helpful when trying to start a stream using an unmanaged API. This information is not related to the state of the consumer clients.
@@ -108,11 +111,12 @@ case class Cursor(
 /**
  * One chunk of events in a stream. A batch consists of an array of `Event`s plus a `Cursor` pointing to the offset of the last Event in the stream. The size of the array of Event is limited by the parameters used to initialize a Stream. If acting as a keep alive message (see `GET /event-type/{name}/events`) the events array will be omitted. Sequential batches might repeat the cursor if no new events arrive.
  * @param cursor The cursor point to an event in the stream.
- * @param events The Event definition will be externalized in future versions of this document. A basic payload of an Event. The actual schema is dependent on the information configured for the EventType, as is its enforcement (see POST /event-types). Setting of metadata properties are dependent on the configured enrichment as well. For explanation on default configurations of validation and enrichment, see documentation of `EventType.type`. For concrete examples of what will be enforced by Nakadi see the objects BusinessEvent and DataChangeEvent below.
+ * @param events The Event definition will be externalized in future versions of this document. A basic payload of an Event. The actual schema is dependent on the information configured for the EventType, as is its enforcement (see POST /event-types). Setting of metadata properties are dependent on the configured enrichment as well. For explanation on default configurations of validation and enrichment, see documentation of `EventType.type`. For concrete examples of what will be enforced by Nakadi see the objects
+ * sEvent and DataChangeEvent below.
  */
-case class EventStreamBatch(
+case class EventStreamBatch[T <: Event](
   cursor: Cursor,
-  events: Seq[Event])
+  events: Seq[T])
 
 /**
  * An event type defines the schema and its runtime properties.
@@ -131,14 +135,14 @@ case class EventStreamBatch(
 case class EventType(
   name: String,
   owningApplication: String,
-  category: EventTypeCategory.Value,
+  @JsonScalaEnumeration(classOf[EventTypeCategoryType]) category: EventTypeCategory.Value,
   validationStrategies: Option[Seq[String]],
   enrichmentStrategies: Option[Seq[String]],
   partitionStrategy: PartitionResolutionStrategy, //Different naming
   schema: Option[EventTypeSchema],
   dataKeyFields: Option[Seq[String]],
-  partitioningKeyFields: Option[Seq[String]],
-  statistics:Option[EventTypeStatistics])
+  partitionKeyFields: Option[Seq[String]],
+  statistics: Option[EventTypeStatistics])
 
 /**
  * The schema for an EventType, expected to be a json schema in yaml
@@ -148,7 +152,7 @@ case class EventType(
  * Failure to respect the syntax will fail any operation on an EventType.
  */
 case class EventTypeSchema(
-  schemaType: SchemaType.Value,//Name is type (keyword in scala)
+  @JsonProperty("type")@JsonScalaEnumeration(classOf[SchemaTypeType]) schemaType: SchemaType.Value, //Name is type (keyword in scala)
   schema: String)
 
 /**
@@ -202,13 +206,15 @@ case class EventEnrichmentStrategy(
  */
 case class BatchItemResponse(
   eid: Option[String],
-  publishingStatus: BatchItemPublishingStatus.Value,
-  step: Option[BatchItemStep.Value],
+  @JsonScalaEnumeration(classOf[BatchItemPublishingStatusType]) publishingStatus: BatchItemPublishingStatus.Value,
+  @JsonScalaEnumeration(classOf[BatchItemStepType]) step: Option[BatchItemStep.Value],
   detail: Option[String])
 
 /////////////////////////////////
 // ENUMS ////////////////////////
 /////////////////////////////////
+
+trait NakadiEnum
 
 /**
  * Identifier for the type of operation to executed on the entity. <br>
@@ -218,7 +224,8 @@ case class BatchItemResponse(
  * S: Snapshot <br> <br>
  * Values = CREATE("C"), UPDATE("U"), DELETE("D"), SNAPSHOT("S")
  */
-case object DataOperation extends Enumeration {
+
+case object DataOperation extends Enumeration with NakadiEnum {
   type DataOperation = Value
   val CREATE = Value("C")
   val UPDATE = Value("U")
@@ -226,6 +233,7 @@ case object DataOperation extends Enumeration {
   val SNAPSHOT = Value("S")
 
 }
+class DataOperationType extends TypeReference[DataOperation.type]
 
 /**
  * Defines the category of an EventType. <br>
@@ -238,6 +246,7 @@ case object EventTypeCategory extends Enumeration {
   val BUSINESS = Value("business")
 
 }
+class EventTypeCategoryType extends TypeReference[EventTypeCategory.type]
 /**
  * Indicator of the submission of the Event within a Batch. <br>
  * - SUBMITTED indicates successful submission, including commit on he underlying broker.<br>
@@ -252,6 +261,8 @@ case object BatchItemPublishingStatus extends Enumeration {
   val FAILED = Value("FAILED")
   val ABORTED = Value("ABORTED")
 }
+
+class BatchItemPublishingStatusType extends TypeReference[BatchItemPublishingStatus.type]
 
 /**
  * Indicator of the step in the pulbishing process this Event reached.
@@ -271,8 +282,10 @@ case object BatchItemStep extends Enumeration {
   val PUBLISHING = Value("PUBLISHING")
 
 }
+class BatchItemStepType extends TypeReference[BatchItemStep.type]
 
-case object SchemaType extends Enumeration{
+case object SchemaType extends Enumeration {
   type SchemaType = Value
   val JSON = Value("json_schema")
 }
+class SchemaTypeType extends TypeReference[SchemaType.type]

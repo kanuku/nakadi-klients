@@ -10,24 +10,35 @@ import scala.concurrent.duration.DurationInt
 import org.slf4j.LoggerFactory
 
 import com.typesafe.scalalogging.Logger
-import akka.http.scaladsl.marshalling._
-import akka.actor.{ ActorSystem, Terminated }
-import akka.http.scaladsl.{ Http, HttpsConnectionContext }
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.MediaTypes.`application/json`
+
+import akka.actor.ActorSystem
+import akka.actor.Terminated
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.HttpsConnectionContext
+import akka.http.scaladsl.model.ContentType
+import akka.http.scaladsl.model.HttpMethod
+import akka.http.scaladsl.model.HttpMethods
 import akka.http.scaladsl.model.HttpMethods.POST
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.MediaRange
+import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.Uri.apply
 import akka.http.scaladsl.model.headers
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{ Flow, Sink, Source }
-import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
+import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.Source
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 trait Connection {
   def get(endpoint: String): Future[HttpResponse]
   def delete(endpoint: String): Future[HttpResponse]
-  def post[T](endpoint: String, model: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse]
-  def put[T](endpoint: String, model: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse]
+  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
+  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
 
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
@@ -88,18 +99,18 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
     executeCall(httpRequest(endpoint, HttpMethods.GET))
   }
 
-  def put[T](endpoint: String, model: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse] = {
+  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
     executeCall(httpRequest(endpoint, HttpMethods.GET))
   }
 
-  def post[T](endpoint: String, model: T)(implicit marshaller: ToEntityMarshaller[T]): Future[HttpResponse] = {
-    Marshal(model).to[MessageEntity].flatMap { entity =>
+  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
+    val entity = serializer.toJson(model)
       logger.info("Posting to endpoint {}", endpoint)
-      logger.debug("Data to post {}", entity.toString())
+      logger.debug("Data to post {}", entity)
       executeCall(httpRequestWithPayload(endpoint, entity, HttpMethods.POST))
-    }
   }
+  
   def delete(endpoint: String): Future[HttpResponse] = {
     logger.info("Delete: {}", endpoint)
     executeCall(httpRequest(endpoint, HttpMethods.DELETE))
@@ -113,6 +124,7 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
     logError(response)
     response
   }
+  
   private def logError(future: Future[Any]) {
     future recover {
       case e: Throwable => logger.error("Failed to call endpoint with: ", e.getMessage)
@@ -123,11 +135,12 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
     HttpRequest(uri = url, method = httpMethod).withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
       headers.Accept(MediaRange(`application/json`)))
   }
-  private def httpRequestWithPayload(url: String, entity: MessageEntity, httpMethod: HttpMethod): HttpRequest = {
+  
+  private def httpRequestWithPayload(url: String, entity: String, httpMethod: HttpMethod): HttpRequest = {
     HttpRequest(uri = url, method = httpMethod) //
       .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
         headers.Accept(MediaRange(`application/json`)))
-      .withEntity(entity)
+      .withEntity(ContentType(`application/json`),entity)
   }
 
   def stop(): Future[Terminated] = actorSystem.terminate()

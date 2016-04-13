@@ -31,7 +31,7 @@ lazy val commonSettings = Seq(
 lazy val model = withDefaults(
     "nakadi-klients-model",
     project.in(file("model"))
-  )
+  ).settings(libraryDependencies ++= modelDeps)
 
 lazy val api = withDefaults(
     "nakadi-klients-api",

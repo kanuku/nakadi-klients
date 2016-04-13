@@ -1,13 +1,10 @@
 package org.zalando.nakadi.client
 
 import scala.concurrent.Future
-
 import org.zalando.nakadi.client.model.{ EventEnrichmentStrategy, EventType, EventValidationStrategy, Partition, PartitionResolutionStrategy }
-
 import akka.actor.Terminated
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
+import org.zalando.nakadi.client.model.Metrics
 
 trait Client {
   import Client._
@@ -19,7 +16,7 @@ trait Client {
    * curl --request GET /metrics
    * }}}
    */
-  def metrics(): Future[Either[ClientError, HttpResponse]]
+  def metrics()(implicit ser: Deserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]]
 
   /**
    * Returns a list of all registered EventTypes.
@@ -29,7 +26,7 @@ trait Client {
    * }}}
    *
    */
-  def eventTypes()(implicit marshaller: FromEntityUnmarshaller[List[EventType]]): Future[Either[ClientError, Option[List[EventType]]]]
+  def eventTypes()(implicit ser: Deserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]]
 
   /**
    * Creates a new EventType.
@@ -41,7 +38,7 @@ trait Client {
    * @param event - The EventType to create.
    *
    */
-  def newEventType(eventType: EventType)(implicit marshaller: ToEntityMarshaller[EventType]): Future[Option[ClientError]]
+  def newEventType(eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]]
 
   /**
    * Returns the EventType identified by its name.
@@ -50,7 +47,7 @@ trait Client {
    * }}}
    * @param name - Name of the EventType
    */
-  def eventType(name: String)(implicit marshaller: FromEntityUnmarshaller[EventType]): Future[Either[ClientError, Option[EventType]]]
+  def eventType(name: String)(implicit ser: Deserializer[EventType]): Future[Either[ClientError, Option[EventType]]]
   /**
    * Updates the EventType identified by its name.
    * {{{
@@ -59,7 +56,7 @@ trait Client {
    * @param name - Name of the EventType
    * @param event - Event to update
    */
-  def updateEventType(name: String, eventType: EventType)(implicit marshaller: ToEntityMarshaller[EventType]): Future[Option[ClientError]]
+  def updateEventType(name: String, eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]]
   /**
    * Deletes an EventType identified by its name.
    *
@@ -72,14 +69,14 @@ trait Client {
   def deleteEventType(name: String): Future[Option[ClientError]]
 
   /**
-   * Creates a new Event for the given EventType.
+   * Creates a new batch of Events for the given EventType.
    * {{{
    * curl --request POST -d @fileWithEvent /event-types/{name}/events
    * }}}
    * @param name - Name of the EventType
    * @param event - Event to create
    */
-  def newEvent[T](name: String, event: T)(implicit marshaller: FromEntityUnmarshaller[T]): Future[Option[ClientError]]
+  def newEvents[T](name: String, events: Seq[T])(implicit ser: Serializer[Seq[T]]): Future[Option[ClientError]]
 
   /**
    * Request a stream delivery for the specified partitions of the given EventType.
@@ -89,7 +86,7 @@ trait Client {
    * @param name - Name of the EventType
    *
    */
-  def events[T](name: String)(implicit marshaller: FromEntityUnmarshaller[T]): Future[Either[ClientError, Option[T]]]
+  def events[T](name: String)(implicit ser: Deserializer[T]): Future[Either[ClientError, Option[T]]]
 
   /**
    * List the partitions for the given EventType.
@@ -98,7 +95,7 @@ trait Client {
    * }}}
    * @param name -  Name of the EventType
    */
-  def partitions(name: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Option[Partition]]]
+  def partitions(name: String)(implicit ser: Deserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
 
   /**
    * Returns the Partition for the given EventType.
@@ -106,10 +103,10 @@ trait Client {
    * curl --request GET /event-types/{name}/partitions/{partition}
    * }}}
    * @param name -  Name of the EventType
-   * @param partition - Name of the partition
+   * @param partition - Partition id for the given EventType
    */
 
-  def partitionByName(name: String, partition: String)(implicit marshaller: FromEntityUnmarshaller[Partition]): Future[Either[ClientError, Option[Partition]]]
+  def partitionById(name: String, id: String)(implicit ser: Deserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
 
   /**
    * Returns all of the validation strategies supported by this installation of Nakadi.
@@ -118,7 +115,7 @@ trait Client {
    * curl --request GET /registry/validation-strategies
    * }}}
    */
-  def validationStrategies()(implicit marshaller: FromEntityUnmarshaller[EventValidationStrategy]): Future[Either[ClientError, Option[EventValidationStrategy]]]
+  def validationStrategies()(implicit des: Deserializer[Seq[EventValidationStrategy]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy]]]]
 
   /**
    * Returns all of the enrichment strategies supported by this installation of Nakadi.
@@ -127,7 +124,7 @@ trait Client {
    * }}}
    */
 
-  def enrichmentStrategies()(implicit marshaller: FromEntityUnmarshaller[EventEnrichmentStrategy]): Future[Either[ClientError, Option[EventEnrichmentStrategy]]]
+  def enrichmentStrategies()(implicit des: Deserializer[Seq[EventEnrichmentStrategy]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy]]]]
 
   /**
    * Returns all of the partitioning strategies supported by this installation of Nakadi.
@@ -135,7 +132,7 @@ trait Client {
    * curl --request GET /registry/partitioning-strategies
    * }}}
    */
-  def partitionStrategies()(implicit marshaller: FromEntityUnmarshaller[List[PartitionResolutionStrategy]]): Future[Either[ClientError, Option[List[PartitionResolutionStrategy]]]]
+  def partitionStrategies()(implicit des: Deserializer[Seq[PartitionResolutionStrategy]]): Future[Either[ClientError, Option[Seq[PartitionResolutionStrategy]]]]
 
   /**
    * Shuts down the communication system of the client
