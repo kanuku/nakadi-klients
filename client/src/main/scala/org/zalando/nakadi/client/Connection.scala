@@ -37,8 +37,8 @@ import javax.net.ssl.X509TrustManager
 trait Connection {
   def get(endpoint: String): Future[HttpResponse]
   def delete(endpoint: String): Future[HttpResponse]
-  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
-  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
+  def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
+  def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
 
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
@@ -99,12 +99,12 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
     executeCall(httpRequest(endpoint, HttpMethods.GET))
   }
 
-  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
+  def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
     executeCall(httpRequest(endpoint, HttpMethods.GET))
   }
 
-  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
+  def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
     val entity = serializer.toJson(model)
       logger.info("Posting to endpoint {}", endpoint)
       logger.debug("Data to post {}", entity)

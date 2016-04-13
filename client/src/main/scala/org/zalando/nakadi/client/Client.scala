@@ -16,7 +16,7 @@ trait Client {
    * curl --request GET /metrics
    * }}}
    */
-  def metrics()(implicit ser: Deserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]]
+  def metrics()(implicit ser: NakadiDeserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]]
 
   /**
    * Returns a list of all registered EventTypes.
@@ -26,7 +26,7 @@ trait Client {
    * }}}
    *
    */
-  def eventTypes()(implicit ser: Deserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]]
+  def eventTypes()(implicit ser: NakadiDeserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]]
 
   /**
    * Creates a new EventType.
@@ -38,7 +38,7 @@ trait Client {
    * @param event - The EventType to create.
    *
    */
-  def newEventType(eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]]
+  def newEventType(eventType: EventType)(implicit ser: NakadiSerializer[EventType]): Future[Option[ClientError]]
 
   /**
    * Returns the EventType identified by its name.
@@ -47,7 +47,7 @@ trait Client {
    * }}}
    * @param name - Name of the EventType
    */
-  def eventType(name: String)(implicit ser: Deserializer[EventType]): Future[Either[ClientError, Option[EventType]]]
+  def eventType(name: String)(implicit ser: NakadiDeserializer[EventType]): Future[Either[ClientError, Option[EventType]]]
   /**
    * Updates the EventType identified by its name.
    * {{{
@@ -56,7 +56,7 @@ trait Client {
    * @param name - Name of the EventType
    * @param event - Event to update
    */
-  def updateEventType(name: String, eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]]
+  def updateEventType(name: String, eventType: EventType)(implicit ser: NakadiSerializer[EventType]): Future[Option[ClientError]]
   /**
    * Deletes an EventType identified by its name.
    *
@@ -76,7 +76,7 @@ trait Client {
    * @param name - Name of the EventType
    * @param event - Event to create
    */
-  def newEvents[T](name: String, events: Seq[T])(implicit ser: Serializer[Seq[T]]): Future[Option[ClientError]]
+  def newEvents[T](name: String, events: Seq[T])(implicit ser: NakadiSerializer[Seq[T]]): Future[Option[ClientError]]
 
   /**
    * Request a stream delivery for the specified partitions of the given EventType.
@@ -86,7 +86,7 @@ trait Client {
    * @param name - Name of the EventType
    *
    */
-  def events[T](name: String)(implicit ser: Deserializer[T]): Future[Either[ClientError, Option[T]]]
+  def events[T](name: String)(implicit ser: NakadiDeserializer[T]): Future[Either[ClientError, Option[T]]]
 
   /**
    * List the partitions for the given EventType.
@@ -95,7 +95,7 @@ trait Client {
    * }}}
    * @param name -  Name of the EventType
    */
-  def partitions(name: String)(implicit ser: Deserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
+  def partitions(name: String)(implicit ser: NakadiDeserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
 
   /**
    * Returns the Partition for the given EventType.
@@ -106,7 +106,7 @@ trait Client {
    * @param partition - Partition id for the given EventType
    */
 
-  def partitionById(name: String, id: String)(implicit ser: Deserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
+  def partitionById(name: String, id: String)(implicit ser: NakadiDeserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
 
   /**
    * Returns all of the validation strategies supported by this installation of Nakadi.
@@ -115,7 +115,7 @@ trait Client {
    * curl --request GET /registry/validation-strategies
    * }}}
    */
-  def validationStrategies()(implicit des: Deserializer[Seq[EventValidationStrategy]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy]]]]
+  def validationStrategies()(implicit des: NakadiDeserializer[Seq[EventValidationStrategy]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy]]]]
 
   /**
    * Returns all of the enrichment strategies supported by this installation of Nakadi.
@@ -124,7 +124,7 @@ trait Client {
    * }}}
    */
 
-  def enrichmentStrategies()(implicit des: Deserializer[Seq[EventEnrichmentStrategy]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy]]]]
+  def enrichmentStrategies()(implicit des: NakadiDeserializer[Seq[EventEnrichmentStrategy]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy]]]]
 
   /**
    * Returns all of the partitioning strategies supported by this installation of Nakadi.
@@ -132,7 +132,7 @@ trait Client {
    * curl --request GET /registry/partitioning-strategies
    * }}}
    */
-  def partitionStrategies()(implicit des: Deserializer[Seq[PartitionResolutionStrategy]]): Future[Either[ClientError, Option[Seq[PartitionResolutionStrategy]]]]
+  def partitionStrategies()(implicit des: NakadiDeserializer[Seq[PartitionResolutionStrategy]]): Future[Either[ClientError, Option[Seq[PartitionResolutionStrategy]]]]
 
   /**
    * Shuts down the communication system of the client

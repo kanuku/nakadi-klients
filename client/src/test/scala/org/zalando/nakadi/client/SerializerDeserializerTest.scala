@@ -77,7 +77,7 @@ class SerializerDeserializerTest extends WordSpec with Matchers with JacksonJson
 
   }
 
-  def checkSerializationDeserializationProcess[T](key: String, value: T)(implicit ser: Serializer[T], des: Deserializer[T]) {
+  def checkSerializationDeserializationProcess[T](key: String, value: T)(implicit ser: NakadiSerializer[T], des: NakadiDeserializer[T]) {
     val jsonEntity = ser.toJson(value) // Marshal
     println("#### Json-Entity:" + jsonEntity)
     val scalaEntity = des.fromJson(jsonEntity) //Unmarshal

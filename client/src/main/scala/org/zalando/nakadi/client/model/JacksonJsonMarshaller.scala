@@ -2,8 +2,8 @@ package org.zalando.nakadi.client.model
 
 import scala.reflect.runtime.universe
 import org.slf4j.LoggerFactory
-import org.zalando.nakadi.client.Deserializer
-import org.zalando.nakadi.client.Serializer
+import org.zalando.nakadi.client.NakadiDeserializer
+import org.zalando.nakadi.client.NakadiSerializer
 import org.zalando.nakadi.client.model.BatchItemPublishingStatus.BatchItemPublishingStatus
 import org.zalando.nakadi.client.model.BatchItemStep.BatchItemStep
 import org.zalando.nakadi.client.model.DataOperation.DataOperation
@@ -64,18 +64,18 @@ trait JacksonJsonMarshaller {
   implicit def listOfEventEnrichmentStrategyTR: TypeReference[Seq[EventEnrichmentStrategy]] = new TypeReference[Seq[EventEnrichmentStrategy]] {}
   implicit def listOfEventTypeTR: TypeReference[Seq[EventType]] = new TypeReference[Seq[EventType]] {}
 
-  implicit def seqDeserializer[T](implicit expectedType: TypeReference[Seq[T]]) = new Deserializer[Seq[T]] {
+  implicit def seqDeserializer[T](implicit expectedType: TypeReference[Seq[T]]) = new NakadiDeserializer[Seq[T]] {
     def fromJson(from: String): Seq[T] = defaultObjectMapper.readValue[Seq[T]](from, expectedType)
   }
-  implicit def seqSerializer[T]() = new Serializer[Seq[T]] {
+  implicit def seqSerializer[T]() = new NakadiSerializer[Seq[T]] {
     def toJson(from: Seq[T]): String = defaultObjectMapper.writeValueAsString(from)
   }
 
-  implicit def serializer[T](implicit expectedType: TypeReference[T]): Serializer[T] = new Serializer[T] {
+  implicit def serializer[T](implicit expectedType: TypeReference[T]): NakadiSerializer[T] = new NakadiSerializer[T] {
     def toJson(from: T): String = defaultObjectMapper.writeValueAsString(from)
   }
 
-  implicit def deserializer[T](implicit expectedType: TypeReference[T]): Deserializer[T] = new Deserializer[T] {
+  implicit def deserializer[T](implicit expectedType: TypeReference[T]): NakadiDeserializer[T] = new NakadiDeserializer[T] {
     def fromJson(from: String): T = defaultObjectMapper.readValue[T](from, expectedType)
   }
 

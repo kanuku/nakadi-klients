@@ -12,8 +12,8 @@ import spray.json.JsonReader
 import spray.json.JsonWriter
 import spray.json.pimpAny
 import spray.json.pimpString
-import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.Deserializer
+import org.zalando.nakadi.client.NakadiSerializer
+import org.zalando.nakadi.client.NakadiDeserializer
 
 //trait SprayJsonMarshaller extends SprayJsonSupport with DefaultJsonProtocol {
 //  import ParseHelper._

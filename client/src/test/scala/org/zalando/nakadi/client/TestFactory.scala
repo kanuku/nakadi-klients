@@ -28,16 +28,16 @@ trait ClientFactory {
 
 case class EventTypesActions(client: Client) extends JacksonJsonMarshaller{
 
-  def create(event: EventType)(implicit ser: Serializer[EventType]) = {
+  def create(event: EventType)(implicit ser: NakadiSerializer[EventType]) = {
     executeCall(client.newEventType(event))
   }
-  def update(event: EventType)(implicit ser: Serializer[EventType]) = {
+  def update(event: EventType)(implicit ser: NakadiSerializer[EventType]) = {
     executeCall(client.updateEventType(event.name, event))
   }
-  def get(name: String)(implicit ser: Deserializer[EventType]) = {
+  def get(name: String)(implicit ser: NakadiDeserializer[EventType]) = {
     executeCall(client.eventType(name))
   }
-  def getAll()(implicit ser: Deserializer[Seq[EventType]]) = {
+  def getAll()(implicit ser: NakadiDeserializer[Seq[EventType]]) = {
     executeCall(client.eventTypes())
   }
   def delete(name: String) = {

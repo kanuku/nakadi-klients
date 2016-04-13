@@ -4,14 +4,14 @@ package org.zalando.nakadi.client
 /**
  *
  */
-trait Deserializer[T] {
+trait NakadiDeserializer[T] {
   def fromJson(from: String): T
 }
 
 /**
  *
  */
-trait Serializer[T]  {
+trait NakadiSerializer[T]  {
   def toJson(from: T): String
 }
 

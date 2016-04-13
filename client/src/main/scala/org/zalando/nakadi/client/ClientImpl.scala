@@ -24,23 +24,23 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
   implicit val materializer = connection.materializer
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
-  def metrics()(implicit ser: Deserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]] ={ 
+  def metrics()(implicit ser: NakadiDeserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]] ={ 
     logFutureEither(connection.get(URI_METRICS).flatMap(mapToEither(_)))
   }
 
-  def eventTypes()(implicit ser: Deserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]] = {
+  def eventTypes()(implicit ser: NakadiDeserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]] = {
     logFutureEither(connection.get(URI_EVENT_TYPES).flatMap(mapToEither(_)))
   }
 
-  def newEventType(eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]] = {
+  def newEventType(eventType: EventType)(implicit ser: NakadiSerializer[EventType]): Future[Option[ClientError]] = {
     logFutureOption(connection.post(URI_EVENT_TYPES, eventType).map(mapToOption(_)))
   }
 
-  def eventType(name: String)(implicit ser: Deserializer[EventType]): Future[Either[ClientError, Option[EventType]]] = {
+  def eventType(name: String)(implicit ser: NakadiDeserializer[EventType]): Future[Either[ClientError, Option[EventType]]] = {
     logFutureEither(connection.get(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToEither(in)))
   }
 
-  def updateEventType(name: String, eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]] = {
+  def updateEventType(name: String, eventType: EventType)(implicit ser: NakadiSerializer[EventType]): Future[Option[ClientError]] = {
     val result = connection.put(URI_EVENT_TYPE_BY_NAME.format(name), eventType)
     logFutureOption(result.map(in => mapToOption(in)))
   }
@@ -49,32 +49,32 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     logFutureOption(connection.delete(URI_EVENT_TYPE_BY_NAME.format(name)).map(in => mapToOption(in)))
   }
 
-  def newEvents[T](name: String, events: Seq[T])(implicit ser: Serializer[Seq[T]]): Future[Option[ClientError]] = {
+  def newEvents[T](name: String, events: Seq[T])(implicit ser: NakadiSerializer[Seq[T]]): Future[Option[ClientError]] = {
     logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), events).map(in => mapToOption(in)))
   }
 
-  def events[T](name: String)(implicit ser: Deserializer[T]): Future[Either[ClientError, Option[T]]] = {
+  def events[T](name: String)(implicit ser: NakadiDeserializer[T]): Future[Either[ClientError, Option[T]]] = {
     logFutureEither(connection.get(URI_EVENTS_OF_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)))
   }
 
   
-  def partitions(name: String)(implicit ser: Deserializer[Partition]): Future[Either[ClientError, Option[Partition]]] = {
+  def partitions(name: String)(implicit ser: NakadiDeserializer[Partition]): Future[Either[ClientError, Option[Partition]]] = {
     logFutureEither(connection.get(URI_PARTITIONS_BY_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)))
   }
 
-  def partitionById(name: String, id: String)(implicit ser: Deserializer[Partition]): Future[Either[ClientError, Option[Partition]]] = {
+  def partitionById(name: String, id: String)(implicit ser: NakadiDeserializer[Partition]): Future[Either[ClientError, Option[Partition]]] = {
     logFutureEither(connection.get(URI_PARTITION_BY_EVENT_TYPE_AND_ID.format(name)).flatMap(in => mapToEither(in)))
   }
 
-  def validationStrategies()(implicit des: Deserializer[Seq[EventValidationStrategy]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy]]]] = {
+  def validationStrategies()(implicit des: NakadiDeserializer[Seq[EventValidationStrategy]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy]]]] = {
     logFutureEither(connection.get(URI_VALIDATION_STRATEGIES).flatMap(mapToEither(_)))
   }
 
-  def enrichmentStrategies()(implicit des: Deserializer[Seq[EventEnrichmentStrategy]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy]]]] = {
+  def enrichmentStrategies()(implicit des: NakadiDeserializer[Seq[EventEnrichmentStrategy]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy]]]] = {
     logFutureEither(connection.get(URI_ENRICHMENT_STRATEGIES).flatMap(mapToEither(_)))
   }
 
-  def partitionStrategies()(implicit des: Deserializer[Seq[PartitionResolutionStrategy]]): Future[Either[ClientError, Option[Seq[PartitionResolutionStrategy]]]] =
+  def partitionStrategies()(implicit des: NakadiDeserializer[Seq[PartitionResolutionStrategy]]): Future[Either[ClientError, Option[Seq[PartitionResolutionStrategy]]]] =
     logFutureEither(connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)))
 
   def stop(): Future[Terminated] = connection.stop()
@@ -98,7 +98,7 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     }
   }
 
-  def mapToEither[T](response: HttpResponse)(implicit deserializer: Deserializer[T]): Future[Either[ClientError, Option[T]]] = {
+  def mapToEither[T](response: HttpResponse)(implicit deserializer: NakadiDeserializer[T]): Future[Either[ClientError, Option[T]]] = {
     logger.debug("received [response={}]", response)
     response match {
       case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
