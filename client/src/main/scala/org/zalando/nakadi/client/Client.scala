@@ -1,10 +1,18 @@
 package org.zalando.nakadi.client
 
 import scala.concurrent.Future
-import org.zalando.nakadi.client.model.{ EventEnrichmentStrategy, EventType, EventValidationStrategy, Partition, PartitionResolutionStrategy }
+import org.zalando.nakadi.client.model._
 import akka.actor.Terminated
 import akka.http.scaladsl.model.HttpResponse
 import org.zalando.nakadi.client.model.Metrics
+
+case class StreamParameters(cursor: Option[String], //
+                            batchLimit: Option[Integer],
+                            streamLimit: Option[Integer],
+                            batchFlushTimeout: Option[Integer],
+                            streamTimeout: Option[Integer],
+                            streamKeepAliveLimit: Option[Integer],
+                            flowId: Option[String])
 
 trait Client {
   import Client._
@@ -86,7 +94,7 @@ trait Client {
    * @param name - Name of the EventType
    *
    */
-  def events[T](name: String)(implicit ser: NakadiDeserializer[T]): Future[Either[ClientError, Option[T]]]
+  def events[T](name: String, params: Option[StreamParameters])(implicit ser: NakadiDeserializer[T]): Future[Either[ClientError, Option[T]]]
 
   /**
    * List the partitions for the given EventType.
@@ -115,7 +123,7 @@ trait Client {
    * curl --request GET /registry/validation-strategies
    * }}}
    */
-  def validationStrategies()(implicit des: NakadiDeserializer[Seq[EventValidationStrategy]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy]]]]
+  def validationStrategies()(implicit des: NakadiDeserializer[Seq[EventValidationStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy.Value]]]]
 
   /**
    * Returns all of the enrichment strategies supported by this installation of Nakadi.
@@ -124,7 +132,7 @@ trait Client {
    * }}}
    */
 
-  def enrichmentStrategies()(implicit des: NakadiDeserializer[Seq[EventEnrichmentStrategy]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy]]]]
+  def enrichmentStrategies()(implicit des: NakadiDeserializer[Seq[EventEnrichmentStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.Value]]]]
 
   /**
    * Returns all of the partitioning strategies supported by this installation of Nakadi.
@@ -132,7 +140,7 @@ trait Client {
    * curl --request GET /registry/partitioning-strategies
    * }}}
    */
-  def partitionStrategies()(implicit des: NakadiDeserializer[Seq[PartitionResolutionStrategy]]): Future[Either[ClientError, Option[Seq[PartitionResolutionStrategy]]]]
+  def partitionStrategies()(implicit des: NakadiDeserializer[Seq[PartitionStrategy.Value]]): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]]
 
   /**
    * Shuts down the communication system of the client

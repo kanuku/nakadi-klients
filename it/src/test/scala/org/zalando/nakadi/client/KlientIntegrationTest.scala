@@ -13,7 +13,6 @@ import org.zalando.nakadi.client.ClientFactory
 import org.zalando.nakadi.client.ModelFactory
 import scala.Right
 class KlientIntegrationTest extends WordSpec with Matchers with JacksonJsonMarshaller with ModelFactory with ClientFactory {
-
   "Nakadi Client" should {
     "parse multiple PartitionResolutionStrategy" in {
       val Right(result) = executeCall(client.partitionStrategies())
@@ -54,10 +53,10 @@ class KlientIntegrationTest extends WordSpec with Matchers with JacksonJsonMarsh
       import spray.json._
       //Matches the one defined in the schema of
 
-      case class EventExample(orderNumber: String, metadata: EventMetadata) extends Event
+      case class EventExample(orderNumber: String, metadata: Option[EventMetadata]) extends Event
       implicit val eventExample: TypeReference[Seq[EventExample]] = new TypeReference[Seq[EventExample]] {}
-      
-      val event = new EventExample("22301982837", createEventMetadata())
+
+      val event = new EventExample("22301982837", Some(createEventMetadata()))
       val eventType = createUniqueEventType()
       executeCall(client.newEventType(eventType)) shouldBe None
       executeCall(client.newEvents[EventExample](eventType.name, List(event))) shouldBe None

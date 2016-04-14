@@ -1,7 +1,6 @@
-package org.zalando.nakadi.client.event
+package org.zalando.nakadi.client.example
 
 import java.math.BigInteger
-
 import akka.actor.ActorLogging
 import akka.stream.actor.ActorPublisher
 import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }

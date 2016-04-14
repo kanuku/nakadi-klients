@@ -8,7 +8,7 @@ class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller wi
   val events = new EventTypesActions(client)
   "POST/PUT/GET/DELETE single EventType " in {
 
-    //Create event
+    //Create event 
     val eventType = createUniqueEventType()
     val creationResult = events.create(eventType)
     creationResult.isDefined shouldBe false
@@ -17,13 +17,13 @@ class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller wi
     checkEventTypeExists(eventType)
 
     //TODO: Enable this when PUT is supported.
-//    Update the event
-//        val updatedEvent = eventType.copy(owningApplication = "laas-team-2")
-//        events.update(updatedEvent)
+    //    Update the event
+    //        val updatedEvent = eventType.copy(owningApplication = "laas-team-2")
+    //        events.update(updatedEvent)
 
     //Check the EventType has bee updated
-//    checkEventTypeExists(updatedEvent)
-//    checkEventTypeDoesNotExist(eventType)
+    //    checkEventTypeExists(updatedEvent)
+    //    checkEventTypeDoesNotExist(eventType)
 
     //Delete the created Event
     val deletedEvent = events.delete(eventType.name)

@@ -3,6 +3,7 @@ package org.zalando.nakadi.client.model
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 // Updated untill commit 7839be3  
 // Compare
@@ -21,7 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * @param title
  */
 trait Event {
-  def metadata(): EventMetadata
+  def metadata(): Option[EventMetadata]
 }
 
 /**
@@ -49,7 +50,8 @@ case class EventMetadata(
  * A Business Event. Usually represents a status transition in a Business process.
  *
  */
-trait BusinessEvent extends Event
+trait BusinessEvent extends Event {
+}
 
 /**
  * Indicators of a `DataChangeEvent`'s referred data type and the type of operations done on them.
@@ -72,7 +74,7 @@ case class DataChangeEvent[T](
   data: T,
   dataType: String,
   @JsonScalaEnumeration(classOf[DataOperationType]) dataOperation: DataOperation.Value,
-  metadata: EventMetadata) extends DataChangeEventQualifier with Event
+  metadata: Option[EventMetadata]) extends DataChangeEventQualifier with Event
 
 /**
  * @ param problemType An absolute URI that identifies the problem type. When dereferenced, it SHOULD provide human-readable API documentation for the problem type (e.g., using HTML). This Problem object is the same as provided by https://github.com/zalando/problem
@@ -88,7 +90,7 @@ case class Problem(
   detail: Option[String],
   instance: Option[String])
 
-case class Metrics(metrics: Map[String, Any]) //TODO: It is not defined yet!
+case class Metrics(metrics: Map[String, Any])
 
 /**
  * Partition information. Can be helpful when trying to start a stream using an unmanaged API. This information is not related to the state of the consumer clients.
@@ -121,24 +123,24 @@ case class EventStreamBatch[T <: Event](
 /**
  * An event type defines the schema and its runtime properties.
  * @param name Name of this EventType. Encodes the owner/responsible for this EventType. The name for the EventType SHOULD follow the pattern, but is not enforced 'stups_owning_application.event-type', for example 'gizig.price-change'. The components of the name are: * Organization: the organizational unit where the team is located; can be omitted. * Team name: name of the team responsible for owning application; can be omitted. * Owning application: SHOULD match the field owning_application; indicates * EventType name: name of this EventType; SHOULD end in ChangeEvent for DataChangeEvents; MUST be in the past tense for BusinessEvents. (TBD: how to deal with organizational changes? Should be reflected on the name of the EventType? Isn't it better to omit [organization:team] completely?)
- * @param owner Indicator of the Application owning this `EventType`.
+ * @param owningApplication Indicator of the Application owning this `EventType`.
  * @param category Defines the category of this EventType. The value set will influence, if not set otherwise, the default set of validation-strategies, enrichment-strategies, and the effective_schema in the following way: - `undefined`: No predefined changes apply. `effective_schema` is exactly the same as the `EventTypeSchema`. Default validation_strategy for this `EventType` is `[{name: 'schema-validation'}]`. - `data`: Events of this category will be DataChangeEvents. `effective_schema` contains `metadata`, and adds fields `data_op` and `data_type`. The passed EventTypeSchema defines the schema of `data`. Default validation_strategy for this `EventType` is `[{name: 'datachange-schema-validation'}]`. - `business`: Events of this category will be BusinessEvents. `effective_schema` contains `metadata` and any additionally defined properties passed in the `EventTypeSchema` directly on top level of the Event. If name conflicts arise, creation of this EventType will be rejected. Default validation_strategy for this `EventType` is `[{name: 'schema-validation'}]`.
- * @param effectiveSchema The effective schema of this `EventType`. The predefined schema validator will use the value of this field as base for the validation. The creation of EventTypes of different categories implies a distinct general structure for the payload of events of each type. This ultimate format the payload must adhere to is reflected in the `effective_schema`. See description of field `category` for more details of its generation. This field is informative and its contents cannot be manipulated directly.
  * @param validationStrategies Determines the validation that has to be executed upon reception of Events of this type. Events are rejected if any of the rules fail (see details of Problem response on the Event publishing methods). Rule evaluation order is the same as in this array. If not explicitly set, default value will respect the definition of the `EventType.category`.
  * @param enrichmentStrategies Determines the enrichment to be performed on an Event upon reception. Enrichment is performed once upon reception (and after validation) of an Event and is only possible on fields that are not defined on the incoming Event. See documentation for the write operation for details on behaviour in case of unsuccessful enrichment.
- * @param partitionResolutionStrategy Determines how the assignment of the event to a Partition should be handled.
+ * @param partitionStrategy Determines how the assignment of the event to a Partition should be handled.
  * @param schema The schema for this EventType. This is expected to be a json schema in yaml format (other formats might be added in the future).
  * @param dataKeyFields Indicators of the path of the properties that constitute the primary key (identifier) of the data within this Event. If set MUST be a valid required field as defined in the schema. (TBD should be required? Is applicable only to both Business and DataChange Events?)
  * @param partitioningKeyFields Indicator of the field used for guaranteeing the ordering of Events of this type (used by the PartitionResolutionStrategy). If set MUST be a valid required field as defined in the schema.
+ * @param statistics Statistics of this EventType used for optimization purposes. Internal use of these values might change over time. (TBD: measured statistics).
  *
  */
 case class EventType(
   name: String,
   owningApplication: String,
   @JsonScalaEnumeration(classOf[EventTypeCategoryType]) category: EventTypeCategory.Value,
-  validationStrategies: Option[Seq[String]],
-  enrichmentStrategies: Option[Seq[String]],
-  partitionStrategy: PartitionResolutionStrategy, //Different naming
+  @JsonScalaEnumeration(classOf[EventValidationStrategyType]) validationStrategies: Option[Seq[EventValidationStrategy.Value]],
+  @JsonScalaEnumeration(classOf[EventEnrichmentStrategyType]) enrichmentStrategies: Seq[EventEnrichmentStrategy.Value],
+  @JsonScalaEnumeration(classOf[PartitionStrategyType]) partitionStrategy: Option[PartitionStrategy.Value],
   schema: Option[EventTypeSchema],
   dataKeyFields: Option[Seq[String]],
   partitionKeyFields: Option[Seq[String]],
@@ -175,27 +177,36 @@ case class EventTypeStatistics(
  * @param name Name of the strategy.
  * @param doc Documentation for the validation.
  */
-case class EventValidationStrategy(
-  name: String,
-  doc: Option[String])
+case object EventValidationStrategy extends Enumeration {
+  type EventValidationStrategyxtends = Value
+  val NONE = Value("None")
+}
+class EventValidationStrategyType extends TypeReference[EventValidationStrategy.type]
 
 /**
  * Defines a rule for the resolution of incoming Events into partitions. Rules might require additional parameters; see the `doc` field of the existing rules for details. See `GET /registry/partition-strategies` for a list of available rules.
  * @param name Name of the strategy.
  * @param doc Documentation for the partition resolution.
  */
-case class PartitionResolutionStrategy(
-  name: String,
-  doc: Option[String])
+case object PartitionStrategy extends Enumeration {
+  type PartitionResolutionStrategy = Value
+  val HASH = Value("hash")
+  val USER_DEFINED = Value("user_defined")
+  val RANDOM = Value("random")
+}
+class PartitionStrategyType extends TypeReference[PartitionStrategy.type]
 
 /**
  * Defines a rule for transformation of an incoming Event. No existing fields might be modified. In practice this is used to set automatically values in the Event upon reception (i.e. set a reception timestamp on the Event). Rules might require additional parameters; see the `doc` field of the existing rules for details. See GET /registry/enrichment-strategies for a list of available rules.
  * @param name Name of the strategy.
  * @param doc Documentation for the enrichment.
  */
-case class EventEnrichmentStrategy(
-  name: String,
-  doc: Option[String])
+case object EventEnrichmentStrategy extends Enumeration {
+  type EventEnrichmentStrategy = Value
+  val METADATA = Value("metadata_enrichment")
+}
+class EventEnrichmentStrategyType extends TypeReference[EventEnrichmentStrategy.type]
+
 /**
  * A status corresponding to one individual Event's publishing attempt.
  * @param eid Eid of the corresponding item. Will be absent if missing on the incoming Event.
@@ -214,8 +225,6 @@ case class BatchItemResponse(
 // ENUMS ////////////////////////
 /////////////////////////////////
 
-trait NakadiEnum
-
 /**
  * Identifier for the type of operation to executed on the entity. <br>
  * C: Creation <br>
@@ -225,7 +234,7 @@ trait NakadiEnum
  * Values = CREATE("C"), UPDATE("U"), DELETE("D"), SNAPSHOT("S")
  */
 
-case object DataOperation extends Enumeration with NakadiEnum {
+case object DataOperation extends Enumeration {
   type DataOperation = Value
   val CREATE = Value("C")
   val UPDATE = Value("U")

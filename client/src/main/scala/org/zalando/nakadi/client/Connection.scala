@@ -2,15 +2,11 @@ package org.zalando.nakadi.client
 
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-
 import org.slf4j.LoggerFactory
-
 import com.typesafe.scalalogging.Logger
-
 import akka.actor.ActorSystem
 import akka.actor.Terminated
 import akka.http.scaladsl.Http
@@ -33,9 +29,12 @@ import akka.stream.scaladsl.Source
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+import akka.http.scaladsl.model.HttpHeader
+import scala.collection.immutable.Seq
 
 trait Connection {
   def get(endpoint: String): Future[HttpResponse]
+  def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
   def delete(endpoint: String): Future[HttpResponse]
   def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
   def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
@@ -96,24 +95,28 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
 
   def get(endpoint: String): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
-    executeCall(httpRequest(endpoint, HttpMethods.GET))
+    executeCall(httpRequest(endpoint, HttpMethods.GET,Nil))
+  }
+  def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
+    logger.info("Get: {}", endpoint)
+    executeCall(httpRequest(endpoint, HttpMethods.GET,headers))
   }
 
   def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
-    executeCall(httpRequest(endpoint, HttpMethods.GET))
+    executeCall(httpRequest(endpoint, HttpMethods.GET,Nil))
   }
 
   def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
     val entity = serializer.toJson(model)
-      logger.info("Posting to endpoint {}", endpoint)
-      logger.debug("Data to post {}", entity)
-      executeCall(httpRequestWithPayload(endpoint, entity, HttpMethods.POST))
+    logger.info("Posting to endpoint {}", endpoint)
+    logger.debug("Data to post {}", entity)
+    executeCall(httpRequestWithPayload(endpoint, entity, HttpMethods.POST))
   }
-  
+
   def delete(endpoint: String): Future[HttpResponse] = {
     logger.info("Delete: {}", endpoint)
-    executeCall(httpRequest(endpoint, HttpMethods.DELETE))
+    executeCall(httpRequest(endpoint, HttpMethods.DELETE,Nil))
   }
 
   private def executeCall(request: HttpRequest): Future[HttpResponse] = {
@@ -124,23 +127,23 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
     logError(response)
     response
   }
-  
+
   private def logError(future: Future[Any]) {
     future recover {
       case e: Throwable => logger.error("Failed to call endpoint with: ", e.getMessage)
     }
   }
 
-  private def httpRequest(url: String, httpMethod: HttpMethod): HttpRequest = {
-    HttpRequest(uri = url, method = httpMethod).withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
-      headers.Accept(MediaRange(`application/json`)))
+  private def httpRequest(url: String, httpMethod: HttpMethod, additionalHeaders: Seq[HttpHeader]): HttpRequest = {
+    val allHeaders:Seq[HttpHeader] = additionalHeaders :+ headers.Accept(MediaRange(`application/json`)) :+ headers.Authorization(OAuth2BearerToken(tokenProvider()))
+    HttpRequest(uri = url, method = httpMethod).withHeaders(allHeaders)
   }
-  
+
   private def httpRequestWithPayload(url: String, entity: String, httpMethod: HttpMethod): HttpRequest = {
     HttpRequest(uri = url, method = httpMethod) //
       .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
         headers.Accept(MediaRange(`application/json`)))
-      .withEntity(ContentType(`application/json`),entity)
+      .withEntity(ContentType(`application/json`), entity)
   }
 
   def stop(): Future[Terminated] = actorSystem.terminate()

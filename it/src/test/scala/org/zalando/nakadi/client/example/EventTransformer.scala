@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.event
+package org.zalando.nakadi.client.example
 
 import java.math.BigInteger
 import akka.stream.actor.ActorSubscriber
@@ -10,6 +10,7 @@ import akka.stream.actor.ActorSubscriberMessage.OnNext
 import akka.stream.actor.ActorPublisher
 import scala.collection.mutable.{ Queue => MQueue }
 import akka.stream.actor.ActorPublisherMessage.Cancel
+import scala.collection.mutable.{Queue => MQueue}
 
 class EventTransformer extends ActorSubscriber with ActorPublisher[BigInteger] { // 1
   val dos = BigInteger.valueOf(2L)

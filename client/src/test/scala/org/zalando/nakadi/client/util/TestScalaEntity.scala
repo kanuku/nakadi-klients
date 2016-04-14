@@ -2,7 +2,6 @@ package org.zalando.nakadi.client.util
 
 import org.zalando.nakadi.client.model._
 import org.zalando.nakadi.client.model.Problem
-import org.zalando.nakadi.client.model.PartitionResolutionStrategy
 import org.zalando.nakadi.client.model.Partition
 import org.zalando.nakadi.client.model.Metrics
 import org.zalando.nakadi.client.model.EventValidationStrategy
@@ -26,21 +25,21 @@ object TestScalaEntity {
   val partition = new Partition("partition", "oldestAvailableOffset", "newestAvailableOffset")
   val cursor = new Cursor("partition", "offset")
   val eventTypeSchema = new EventTypeSchema(SchemaType.JSON, "schema")
-  val eventValidationStrategy = new EventValidationStrategy("name", Option("doc"))
-  val partitionResolutionStrategy = new PartitionResolutionStrategy("name", Option("doc"))
-  val eventEnrichmentStrategy = new EventEnrichmentStrategy("name", Option("doc"))
+  val eventValidationStrategy = EventValidationStrategy.NONE
+  val partitionResolutionStrategy = PartitionStrategy.HASH
+  val eventEnrichmentStrategy = EventEnrichmentStrategy.METADATA
 
   //Complex objects
   val eventTypeStatistics = new EventTypeStatistics(Option(9281002), Option(19283), Option(21), Option(312))
-  val eventType = new EventType("name", "owner", EventTypeCategory.BUSINESS, Option(List("validationStrategies")), Option(List("enrichmentStrategies")), partitionResolutionStrategy, Option(eventTypeSchema), Option(List("dataKeyFields")), Option(List("partitioningKeyFields")), Option(eventTypeStatistics))
+  val eventType = new EventType("name", "owner", EventTypeCategory.BUSINESS, Option(List(EventValidationStrategy.NONE)), List(EventEnrichmentStrategy.METADATA), Some(partitionResolutionStrategy), Option(eventTypeSchema), Option(List("dataKeyFields")), Option(List("partitioningKeyFields")), Option(eventTypeStatistics))
   val eventMetadata = new EventMetadata("eid", Option(eventType), "occurredAt", Option("receivedAt"), List("parentEids"), Option("flowId"), Option("partition"))
-  case class MyEvent(name:String,metadata:EventMetadata) extends Event
-  val myEvent = new MyEvent("test",eventMetadata)
+  case class MyEvent(name:String, metadata:Option[EventMetadata]) extends Event
+  val myEvent = new MyEvent("test",Some(eventMetadata))
   val eventStreamBatch = new EventStreamBatch(cursor, List(myEvent))
   val batchItemResponse = new BatchItemResponse(Option("eid"), BatchItemPublishingStatus.SUBMITTED, Option(BatchItemStep.PUBLISHING), Option("detail"))
   
   // own event
   case class CommissionEntity(id:String,ql:List[String])
   val commissionEntity=new CommissionEntity("id2",List("ql1","ql2"))
-  val dataChangeEvent = new DataChangeEvent[CommissionEntity](commissionEntity,"Critical", DataOperation.DELETE, eventMetadata)
+  val dataChangeEvent = new DataChangeEvent[CommissionEntity](commissionEntity,"Critical", DataOperation.DELETE, Some(eventMetadata))
 }
