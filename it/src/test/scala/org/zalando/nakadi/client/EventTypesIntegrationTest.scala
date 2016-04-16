@@ -21,6 +21,9 @@ class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller wi
     case class MyEventExample(orderNumber:String)
     implicit def problemTR: TypeReference[MyEventExample] = new TypeReference[MyEventExample] {}
     
+    eventAction.create("test-client-integration-event-1936085527-148383828851369665",List(MyEventExample("1872361")))
+    eventAction.create("test-client-integration-event-1936085527-148383828851369665",List(MyEventExample("1872362")))
+    eventAction.create("test-client-integration-event-1936085527-148383828851369665",List(MyEventExample("1872363")))
     eventAction.create("test-client-integration-event-1936085527-148383828851369665",List(MyEventExample("1872364")))
     
     
