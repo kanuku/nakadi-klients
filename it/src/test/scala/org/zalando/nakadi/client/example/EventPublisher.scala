@@ -5,6 +5,7 @@ import akka.actor.ActorLogging
 import akka.stream.actor.ActorPublisher
 import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
 
+
 class EventPublisher extends ActorPublisher[BigInteger] with ActorLogging {
 
   var prev = BigInteger.ZERO

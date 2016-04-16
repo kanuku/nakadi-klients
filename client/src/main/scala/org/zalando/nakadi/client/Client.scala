@@ -6,13 +6,13 @@ import akka.actor.Terminated
 import akka.http.scaladsl.model.HttpResponse
 import org.zalando.nakadi.client.model.Metrics
 
-case class StreamParameters(cursor: Option[String], //
-                            batchLimit: Option[Integer],
-                            streamLimit: Option[Integer],
-                            batchFlushTimeout: Option[Integer],
-                            streamTimeout: Option[Integer],
-                            streamKeepAliveLimit: Option[Integer],
-                            flowId: Option[String])
+case class StreamParameters(cursor: Option[String]=None, //
+                            batchLimit: Option[Integer]=None,
+                            streamLimit: Option[Integer]=None,
+                            batchFlushTimeout: Option[Integer]=None,
+                            streamTimeout: Option[Integer]=None,
+                            streamKeepAliveLimit: Option[Integer]=None,
+                            flowId: Option[String]=None)
 
 trait Client {
   import Client._

@@ -107,8 +107,8 @@ case class Partition(
  * @param offset Offset of the event being pointed to.
  */
 case class Cursor(
-  partition: String,
-  offset: String)
+  partition: Integer,
+  offset: Integer)
 
 /**
  * One chunk of events in a stream. A batch consists of an array of `Event`s plus a `Cursor` pointing to the offset of the last Event in the stream. The size of the array of Event is limited by the parameters used to initialize a Stream. If acting as a keep alive message (see `GET /event-type/{name}/events`) the events array will be omitted. Sequential batches might repeat the cursor if no new events arrive.

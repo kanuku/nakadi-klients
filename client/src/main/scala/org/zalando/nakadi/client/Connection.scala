@@ -32,13 +32,23 @@ import javax.net.ssl.X509TrustManager
 import akka.http.scaladsl.model.HttpHeader
 import scala.collection.immutable.Seq
 
-trait Connection {
+trait Connection extends HttpFactory{
+  
+  
+  //Connection details
+  def host:String
+  def port:Int
+  def tokenProvider():TokenProvider
+  def connection():Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]]
+  
   def get(endpoint: String): Future[HttpResponse]
   def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
   def delete(endpoint: String): Future[HttpResponse]
   def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
   def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
 
+  
+  
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
 }
@@ -47,7 +57,7 @@ trait Connection {
  * Companion object for factory methods.
  */
 object Connection {
-
+  
   /**
    *
    */
@@ -76,53 +86,54 @@ object Connection {
  * Class for handling the configuration and basic http calls.
  */
 
-private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
+private[client] class ConnectionImpl(val host: String, val port: Int, val tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
   import Connection._
 
   private implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
   private implicit val http = Http(actorSystem)
   implicit val materializer = ActorMaterializer()
   private val timeout = 5.seconds
+  
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
-  private val connectionFlow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = newSslContext(securedConnection, verifySSlCertificate) match {
+  val connection: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = newSslContext(securedConnection, verifySSlCertificate) match {
     case Some(result) => http.outgoingConnectionHttps(host, port, result)
     case None =>
-      logger.warn("Disabled HTTPS, switching to HTTP only.")
+      logger.warn("Disabled HTTPS, switching to HTTP only!")
       http.outgoingConnection(host, port)
   }
 
   def get(endpoint: String): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
-    executeCall(httpRequest(endpoint, HttpMethods.GET,Nil))
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET,Nil,tokenProvider))
   }
   def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
-    executeCall(httpRequest(endpoint, HttpMethods.GET,headers))
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET,headers,tokenProvider))
   }
 
   def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
-    executeCall(httpRequest(endpoint, HttpMethods.GET,Nil))
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET,Nil,tokenProvider))
   }
 
   def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
     val entity = serializer.toJson(model)
     logger.info("Posting to endpoint {}", endpoint)
     logger.debug("Data to post {}", entity)
-    executeCall(httpRequestWithPayload(endpoint, entity, HttpMethods.POST))
+    executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST,tokenProvider))
   }
 
   def delete(endpoint: String): Future[HttpResponse] = {
     logger.info("Delete: {}", endpoint)
-    executeCall(httpRequest(endpoint, HttpMethods.DELETE,Nil))
+    executeCall(withHttpRequest(endpoint, HttpMethods.DELETE,Nil,tokenProvider))
   }
 
   private def executeCall(request: HttpRequest): Future[HttpResponse] = {
     val response: Future[HttpResponse] =
       Source.single(request)
-        .via(connectionFlow).
+        .via(connection).
         runWith(Sink.head)
     logError(response)
     response
@@ -132,18 +143,6 @@ private[client] class ConnectionImpl(host: String, port: Int, tokenProvider: () 
     future recover {
       case e: Throwable => logger.error("Failed to call endpoint with: ", e.getMessage)
     }
-  }
-
-  private def httpRequest(url: String, httpMethod: HttpMethod, additionalHeaders: Seq[HttpHeader]): HttpRequest = {
-    val allHeaders:Seq[HttpHeader] = additionalHeaders :+ headers.Accept(MediaRange(`application/json`)) :+ headers.Authorization(OAuth2BearerToken(tokenProvider()))
-    HttpRequest(uri = url, method = httpMethod).withHeaders(allHeaders)
-  }
-
-  private def httpRequestWithPayload(url: String, entity: String, httpMethod: HttpMethod): HttpRequest = {
-    HttpRequest(uri = url, method = httpMethod) //
-      .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
-        headers.Accept(MediaRange(`application/json`)))
-      .withEntity(ContentType(`application/json`), entity)
   }
 
   def stop(): Future[Terminated] = actorSystem.terminate()

@@ -67,7 +67,7 @@ trait JacksonJsonMarshaller {
       }
   }
 
-  implicit def serializer[T](implicit expectedType: TypeReference[T]): NakadiSerializer[T] = new NakadiSerializer[T] {
+  implicit def serializer[T]: NakadiSerializer[T] = new NakadiSerializer[T] {
     def toJson(from: T): String = defaultObjectMapper.writeValueAsString(from)
   }
 

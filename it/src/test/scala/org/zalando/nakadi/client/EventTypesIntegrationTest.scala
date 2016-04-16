@@ -2,20 +2,28 @@ package org.zalando.nakadi.client
 
 import org.scalatest.{ Matchers, WordSpec }
 import org.zalando.nakadi.client.model._
+import com.fasterxml.jackson.core.`type`.TypeReference
 
 class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller with ModelFactory with ClientFactory {
 
-  val events = new EventTypesActions(client)
+  val eventAction = new EventActions(client)
+  val eventTypeAction = new EventTypesActions(client)
   "POST/PUT/GET/DELETE single EventType " in {
 
     //Create event 
     val eventType = createUniqueEventType()
-    val creationResult = events.create(eventType)
+    val creationResult = eventTypeAction.create(eventType)
     creationResult.isDefined shouldBe false
-
+    
     //Check the created EventType
     checkEventTypeExists(eventType)
 
+    case class MyEventExample(orderNumber:String)
+    implicit def problemTR: TypeReference[MyEventExample] = new TypeReference[MyEventExample] {}
+    
+    eventAction.create("test-client-integration-event-1936085527-148383828851369665",List(MyEventExample("1872364")))
+    
+    
     //TODO: Enable this when PUT is supported.
     //    Update the event
     //        val updatedEvent = eventType.copy(owningApplication = "laas-team-2")
@@ -26,7 +34,7 @@ class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller wi
     //    checkEventTypeDoesNotExist(eventType)
 
     //Delete the created Event
-    val deletedEvent = events.delete(eventType.name)
+    val deletedEvent = eventTypeAction.delete(eventType.name)
     deletedEvent.isEmpty shouldBe true
 
     //Is it really deleted?
@@ -39,10 +47,10 @@ class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller wi
     val eventType1 = createUniqueEventType()
     val eventType2 = createUniqueEventType()
 
-    events.create(eventType1)
+    eventTypeAction.create(eventType1)
     checkEventTypeExists(eventType1)
 
-    events.create(eventType2)
+    eventTypeAction.create(eventType2)
     checkEventTypeExists(eventType2)
 
     //Get all EventTypes again
@@ -52,15 +60,15 @@ class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller wi
     //    allEvents should contain(eventType2)
 
     //Delete the 2 EventTypes
-    events.delete(eventType1.name)
-    events.delete(eventType2.name)
+    eventTypeAction.delete(eventType1.name)
+    eventTypeAction.delete(eventType2.name)
 
     //Check if the're really deleted
     checkEventTypeDoesNotExist(eventType1)
     checkEventTypeDoesNotExist(eventType2)
 
     //Get all should not contain the deleted events
-    val Right(Some(updatedEvents)) = events.getAll()
+    val Right(Some(updatedEvents)) = eventTypeAction.getAll()
 
     updatedEvents shouldNot contain(eventType1)
     updatedEvents shouldNot contain(eventType2)
@@ -72,12 +80,12 @@ class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller wi
     //Create 2 EventTypes
     val eventType = createUniqueEventType()
 
-    events.create(eventType)
+    eventTypeAction.create(eventType)
     checkEventTypeExists(eventType)
 
     //Update the event
     val updatedEvent = eventType.copy(owningApplication = "laas-team-2")
-    events.update(updatedEvent)
+    eventTypeAction.update(updatedEvent)
 
     //Check the EventType has bee updated
     //    checkEventTypeExists(updatedEvent)
@@ -86,7 +94,7 @@ class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller wi
   }
 
   def checkEventTypeDoesNotExist(eventType: EventType) = {
-    val requestedEvent = events.get(eventType.name)
+    val requestedEvent = eventTypeAction.get(eventType.name)
     println(requestedEvent)
     requestedEvent.isRight shouldBe true
     val Right(result) = requestedEvent
@@ -94,7 +102,7 @@ class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller wi
   }
 
   def checkEventTypeExists(eventType: EventType) = {
-    val Right(Some(createdEvent)) = events.get(eventType.name)
+    val Right(Some(createdEvent)) = eventTypeAction.get(eventType.name)
     createdEvent shouldBe eventType
   }
 

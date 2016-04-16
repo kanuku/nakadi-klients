@@ -17,7 +17,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.model.headers.RawHeader
 
-private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client {
+private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client with HttpFactory{
   import Client._
   implicit val materializer = connection.materializer
 
@@ -52,7 +52,7 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
   }
 
   def events[T](name: String, params: Option[StreamParameters])(implicit ser: NakadiDeserializer[T]): Future[Either[ClientError, Option[T]]] = {
-    val headers = createHeaders(params)
+    val headers = withHeaders(params)
     logFutureEither(connection.get(URI_EVENTS_OF_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)))
   }
 
@@ -141,25 +141,6 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
           logger.warn(msg)
           Option(ClientError(msg, Some(status.intValue())))
         }
-    }
-  }
-
-  private[client] def createHeaders(params: Option[StreamParameters]): List[HttpHeader] = {
-    params match {
-      case Some(StreamParameters(cursor, _, _, _, _, _, flowId)) =>
-        val parameters = List(("X-nakadi-cursors", cursor), ("X-Flow-Id", flowId))
-        for { (key, optional) <- parameters; value <- optional } yield RawHeader(key, value)
-      case None => Nil
-    }
-  }
-  private[client] def createQueryParams(params: Option[StreamParameters]): List[(String, Any)] = {
-    params match {
-      case Some(StreamParameters(_, batchLimit, streamLimit, batchFlushTimeout, streamTimeout, streamKeepAliveLimit, _)) =>
-        val parameters = List(("batch_limit", batchLimit), ("stream_limit", streamLimit), //
-          ("batch_flush_timeout", batchFlushTimeout), ("stream_timeout", streamTimeout), //
-          ("stream_keep_alive_limit", streamKeepAliveLimit))
-        for { (key, optional) <- parameters; value <- optional } yield (key -> value)
-      case None => Nil
     }
   }
 
