@@ -40,7 +40,7 @@ trait HttpFactory {
   def withHeaders(params: Option[StreamParameters]): List[HttpHeader] = {
     params match {
       case Some(StreamParameters(cursor, _, _, _, _, _, flowId)) =>
-        val parameters = List(("X-nakadi-cursors", cursor), ("X-Flow-Id", flowId))
+        val parameters = List(("X-Nakadi-Cursors", cursor), ("X-Flow-Id", flowId))
         for { (key, optional) <- parameters; value <- optional } yield RawHeader(key, value)
       case None => Nil
     }

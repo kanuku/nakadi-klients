@@ -12,6 +12,7 @@ object Dependencies {
 			"com.typesafe.akka" 					 %% "akka-http-spray-json-experimental" % akkaVersion withSources() withJavadoc(),
 		  "com.typesafe.akka"            %% "akka-actor"            	 					% akkaVersion withSources() withJavadoc(),
 			"com.typesafe.akka"            %% "akka-http-experimental" 						% akkaVersion withSources() withJavadoc(),
+			"com.typesafe.akka"            %% "akka-stream" 											% akkaVersion withSources() withJavadoc(),
 	    "com.typesafe.akka"         	 %% "akka-cluster-metrics"   						% akkaVersion withSources() withJavadoc(),
 		  "com.typesafe.akka"            %% "akka-testkit"           						% akkaVersion % "test" withSources() withJavadoc(),
 			"joda-time" 									 %  "joda-time" 												% "2.9.3" withSources() withJavadoc(),
