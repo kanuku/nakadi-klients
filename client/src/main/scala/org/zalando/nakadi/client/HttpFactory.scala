@@ -2,6 +2,7 @@ package org.zalando.nakadi.client
 
 import akka.http.scaladsl.model.HttpHeader
 import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.model.headers.Accept
 
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -40,7 +41,8 @@ trait HttpFactory {
   def withHeaders(params: Option[StreamParameters]): List[HttpHeader] = {
     params match {
       case Some(StreamParameters(cursor, _, _, _, _, _, flowId)) =>
-        val parameters = List(("X-Nakadi-Cursors", cursor), ("X-Flow-Id", flowId))
+        val c = if (cursor.isDefined) Option("[{partition: " + cursor.get.partition + ", offset: " + cursor.get.offset + "}]") else None
+        val parameters = List(("X-Nakadi-Cursors", c), ("X-Flow-Id", flowId))
         for { (key, optional) <- parameters; value <- optional } yield RawHeader(key, value)
       case None => Nil
     }
@@ -57,7 +59,7 @@ trait HttpFactory {
   }
 
   def withHttpRequest(url: String, httpMethod: HttpMethod, additionalHeaders: Seq[HttpHeader], tokenProvider: TokenProvider): HttpRequest = {
-    val allHeaders: Seq[HttpHeader] = additionalHeaders :+ headers.Accept(MediaRange(`application/json`)) :+ headers.Authorization(OAuth2BearerToken(tokenProvider()))
+    val allHeaders: Seq[HttpHeader] = additionalHeaders :+  headers.Authorization(OAuth2BearerToken(tokenProvider()))
     HttpRequest(uri = url, method = httpMethod).withHeaders(allHeaders)
   }
 

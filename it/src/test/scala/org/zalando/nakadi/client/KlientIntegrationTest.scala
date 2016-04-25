@@ -5,7 +5,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
-import org.zalando.nakadi.client.Client._
+import org.zalando.nakadi.client._
 import org.zalando.nakadi.client.model._
 import spray.json._
 import com.fasterxml.jackson.core.`type`.TypeReference

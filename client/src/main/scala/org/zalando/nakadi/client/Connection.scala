@@ -2,62 +2,49 @@ package org.zalando.nakadi.client
 
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import scala.collection.immutable.Seq
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import org.slf4j.LoggerFactory
+import org.zalando.nakadi.client.actor.EventConsumer
+import org.zalando.nakadi.client.model.Cursor
 import com.typesafe.scalalogging.Logger
-import akka.actor.ActorSystem
-import akka.actor.Terminated
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.HttpsConnectionContext
-import akka.http.scaladsl.model.ContentType
-import akka.http.scaladsl.model.HttpMethod
-import akka.http.scaladsl.model.HttpMethods
-import akka.http.scaladsl.model.HttpMethods.POST
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.MediaRange
-import akka.http.scaladsl.model.MediaTypes.`application/json`
-import akka.http.scaladsl.model.Uri.apply
-import akka.http.scaladsl.model.headers
-import akka.http.scaladsl.model.headers.OAuth2BearerToken
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
-import akka.http.scaladsl.model.HttpHeader
-import scala.collection.immutable.Seq
+import akka.actor.{ Props, ActorSystem, ActorLogging, _ }
+import akka.http.scaladsl.{ Http, HttpsConnectionContext }
+import akka.http.scaladsl.model.{ HttpHeader, _ }
+import akka.stream.{ ActorMaterializer, OverflowStrategy }
+import akka.stream.actor.{ ActorSubscriber, RequestStrategy }
+import akka.stream.scaladsl.{ Flow, Sink, Source }
+import akka.util.ByteString
+import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
+import org.zalando.nakadi.client.actor.EventConsumer.ShutdownMsg
 
-trait Connection extends HttpFactory{
-  
-  
+trait Connection extends HttpFactory {
+
   //Connection details
-  def host:String
-  def port:Int
-  def tokenProvider():TokenProvider
-  def connection():Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]]
-  
+  def host: String
+  def port: Int
+  def tokenProvider(): TokenProvider
+  def connection(): Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]]
+
   def get(endpoint: String): Future[HttpResponse]
   def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
+  def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
   def delete(endpoint: String): Future[HttpResponse]
   def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
   def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
+  def subscribe[T](url: String, eventType: String, request: HttpRequest, listener: Listener[T])(implicit des: NakadiDeserializer[T])
 
-  
-  
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
 }
 
 /**
- * Companion object for factory methods.
+ * Companion object with factory methods.
  */
 object Connection {
-  
+
   /**
    *
    */
@@ -92,8 +79,7 @@ private[client] class ConnectionImpl(val host: String, val port: Int, val tokenP
   private implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
   private implicit val http = Http(actorSystem)
   implicit val materializer = ActorMaterializer()
-  private val timeout = 5.seconds
-  
+  private val actors: Map[String, Actor] = Map()
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
@@ -106,28 +92,32 @@ private[client] class ConnectionImpl(val host: String, val port: Int, val tokenP
 
   def get(endpoint: String): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET,Nil,tokenProvider))
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider))
   }
   def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET,headers,tokenProvider))
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider))
+  }
+  def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
+    logger.info("Streaming on Get: {}", endpoint)
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider)) //TODO: Change to stream single event
   }
 
   def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET,Nil,tokenProvider))
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider))
   }
 
   def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
     val entity = serializer.toJson(model)
     logger.info("Posting to endpoint {}", endpoint)
     logger.debug("Data to post {}", entity)
-    executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST,tokenProvider))
+    executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST, tokenProvider))
   }
 
   def delete(endpoint: String): Future[HttpResponse] = {
     logger.info("Delete: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.DELETE,Nil,tokenProvider))
+    executeCall(withHttpRequest(endpoint, HttpMethods.DELETE, Nil, tokenProvider))
   }
 
   private def executeCall(request: HttpRequest): Future[HttpResponse] = {
@@ -146,5 +136,24 @@ private[client] class ConnectionImpl(val host: String, val port: Int, val tokenP
   }
 
   def stop(): Future[Terminated] = actorSystem.terminate()
+
+  def subscribe[T](url: String, eventType: String, request: HttpRequest, listener: Listener[T])(implicit des: NakadiDeserializer[T]) = {
+    import EventConsumer._
+    case class MyEventExample(orderNumber: String)
+    val subscriberRef = actorSystem.actorOf(Props(classOf[EventConsumer[T]], url, eventType, listener, des))
+    val subscriber = ActorSubscriber[ByteString](subscriberRef)
+    val sink2 = Sink.fromSubscriber(subscriber)
+    val flow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = connection
+
+    val req = Source.single(request) //
+      .via(flow) //
+      .buffer(100, OverflowStrategy.backpressure) //
+      .map(x => x.entity.dataBytes)
+      .runForeach(_.runWith(sink2)).onComplete { _ =>
+        subscriberRef ! ShutdownMsg
+        println("Shutting down")
+      }
+  }
+
 }
 

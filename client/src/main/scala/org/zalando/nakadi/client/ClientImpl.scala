@@ -1,24 +1,23 @@
 package org.zalando.nakadi.client
 
-import scala.Left
-import scala.Right
+import scala.{ Left, Right }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
+
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.model._
-import com.typesafe.scalalogging.Logger
-import Client.ClientError
-import akka.actor.Terminated
-import akka.http.scaladsl.model.HttpHeader
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.model.headers.RawHeader
 
-private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client with HttpFactory{
-  import Client._
+import com.typesafe.scalalogging.Logger
+
+import akka.actor.Terminated
+import akka.http.scaladsl.model.{ HttpHeader, HttpMethod, HttpMethods, HttpResponse, MediaRange }
+import akka.http.scaladsl.model.MediaTypes.`application/json`
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers.{ Accept, RawHeader }
+import akka.http.scaladsl.unmarshalling.Unmarshal
+
+private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client with HttpFactory {
   implicit val materializer = connection.materializer
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
@@ -52,11 +51,11 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
   }
 
   def events[T](name: String, params: Option[StreamParameters])(implicit ser: NakadiDeserializer[T]): Future[Either[ClientError, Option[T]]] = {
-    val headers = withHeaders(params)
-    logFutureEither(connection.get(URI_EVENTS_OF_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)))
+    val headers = withHeaders(params) :+ Accept(MediaRange(`application/json`))
+    logFutureEither(connection.get(URI_EVENTS_OF_EVENT_TYPE.format(name), headers).flatMap(in => mapToEither(in)))
   }
 
-  def partitions(name: String)(implicit ser: NakadiDeserializer[Partition]): Future[Either[ClientError, Option[Partition]]] = {
+  def partitions(name: String)(implicit ser: NakadiDeserializer[Seq[Partition]]): Future[Either[ClientError, Option[Seq[Partition]]]] = {
     logFutureEither(connection.get(URI_PARTITIONS_BY_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)))
   }
 
@@ -68,7 +67,7 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     logFutureEither(connection.get(URI_VALIDATION_STRATEGIES).flatMap(mapToEither(_)))
   }
 
-    def enrichmentStrategies()(implicit des: NakadiDeserializer[Seq[EventEnrichmentStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.Value]]]] = {
+  def enrichmentStrategies()(implicit des: NakadiDeserializer[Seq[EventEnrichmentStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.Value]]]] = {
     logFutureEither(connection.get(URI_ENRICHMENT_STRATEGIES).flatMap(mapToEither(_)))
   }
 
@@ -76,6 +75,33 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     logFutureEither(connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)))
 
   def stop(): Future[Terminated] = connection.stop()
+
+  def subscribe[T](eventType: String, params: StreamParameters, listener: Listener[T])(implicit ser: NakadiDeserializer[T]): Future[Option[ClientError]] = {
+    //TODO: Validate here before starting listening 
+    (eventType, params, listener) match {
+
+      case (_, _, listener) if listener == null =>
+        Future.successful(Option(ClientError("Listener may not be empty(null)!", None)))
+
+      case (eventType, _, _) if Option(eventType).isEmpty || eventType == "" =>
+        Future.successful(Option(ClientError("Eventype may not be empty(null)!", None)))
+
+      case (eventType, StreamParameters(cursor, _, _, _, _, _, _), listener) if Option(eventType).isDefined =>
+        val url = if (cursor.isDefined)
+          URI_PARTITION_BY_EVENT_TYPE_AND_ID.format(eventType, cursor.get.partition)
+        else
+          URI_EVENTS_OF_EVENT_TYPE.format(eventType)
+
+        val request = withHttpRequest(url, HttpMethods.GET,
+          RawHeader("Accept", "application/x-json-stream") :: withHeaders(Option(params)), //Headers
+          connection.tokenProvider())
+
+        logger.info("Subscribing listener {} on eventType {} with cursor {} ", listener.id, eventType, cursor)
+        connection.subscribe(url, eventType, request, listener)
+        Future.successful(None)
+    }
+  }
+  def unsubscribe[T](eventType: String, listener: Listener[T]): Future[Option[ClientError]] = ???
 
   //####################
   //#  HELPER METHODS  #

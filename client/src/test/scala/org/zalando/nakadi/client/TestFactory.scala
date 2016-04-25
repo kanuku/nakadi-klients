@@ -17,7 +17,7 @@ import org.zalando.nakadi.client.model.PartitionStrategy
 import org.zalando.nakadi.client.model.SchemaType
 
 trait ClientFactory {
-  val host = "nakadi-sandbox.aruha."
+  val host = "nakadi-sandbox.my-test.fernan.do"
   val OAuth2Token = () => ""
   val port = 443
   val connection = Connection.newConnection(host, port, OAuth2Token, true, false)

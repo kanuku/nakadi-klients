@@ -45,7 +45,7 @@ object HttpClient extends App with ClientFactory with HttpFactory with JacksonJs
   private implicit val http = Http(actorSystem)
   implicit val materializer = ActorMaterializer()
   val eventName = "/event-types/test-client-integration-event-1936085527-148383828851369665/events"
-  val cursor = Cursor(0,30115)
+  val cursor = Cursor(0,Some(30115))
   val params = Some(StreamParameters())
   val headers = RawHeader("Accept", "application/x-json-stream") :: withHeaders(params)
   val request = withHttpRequest(eventName, HttpMethods.GET, headers, OAuth2Token)

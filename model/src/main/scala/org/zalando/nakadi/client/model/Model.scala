@@ -99,16 +99,16 @@ case class Metrics(metrics: Map[String, Any])
  * @param  newestAvailableOffset An offset of the newest available Event in that partition. This value will be changing upon reception of new events for this partition by Nakadi. This value can be used to construct a cursor when opening streams (see `GET /event-type/{name}/events` for details). Might assume the special name BEGIN, meaning a pointer to the offset of the oldest available event in the partition.
  */
 case class Partition(
-  partition: String,
-  oldestAvailableOffset: String,
-  newestAvailableOffset: String)
+  partition: Integer,
+  oldestAvailableOffset: Integer,
+  newestAvailableOffset: Integer)
 /**
  * @param partition Id of the partition pointed to by this cursor.
  * @param offset Offset of the event being pointed to.
  */
 case class Cursor(
   partition: Integer,
-  offset: Integer)
+  offset: Option[Integer])
 
 /**
  * One chunk of events in a stream. A batch consists of an array of `Event`s plus a `Cursor` pointing to the offset of the last Event in the stream. The size of the array of Event is limited by the parameters used to initialize a Stream. If acting as a keep alive message (see `GET /event-type/{name}/events`) the events array will be omitted. Sequential batches might repeat the cursor if no new events arrive.

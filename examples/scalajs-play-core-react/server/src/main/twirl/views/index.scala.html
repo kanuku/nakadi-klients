@@ -1,0 +1,20 @@
+@(title: String)
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>@title</title>
+        <meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'>
+        <link rel="stylesheet" media="screen" href="/assets/stylesheets/main.min.css">
+        <link rel="stylesheet" href="/assets/material/material.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        <link rel="shortcut icon" type="image/png" href="/assets/images/favicon.png">
+    </head>
+    <body>
+        <div id="container">
+        </div>
+        @playscalajs.html.scripts("client")
+        <script src="/assets/material/material.js"></script>
+    </body>
+</html>

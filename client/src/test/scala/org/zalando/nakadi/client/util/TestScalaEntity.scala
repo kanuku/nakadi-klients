@@ -22,8 +22,8 @@ object TestScalaEntity {
 //  Simple bjects composed out of scalar typers only (without dependency to other Object-models)
   val problem = new Problem("problemType", "title", 312, Option("detail"), Option("instance"))
   val metrics = new Metrics(Map("metrics"->"test"))
-  val partition = new Partition("partition", "oldestAvailableOffset", "newestAvailableOffset")
-  val cursor = new Cursor(0, 0)
+  val partition = new Partition(0, 132, 4423)
+  val cursor = new Cursor(0, Some(0))
   val eventTypeSchema = new EventTypeSchema(SchemaType.JSON, "schema")
   val eventValidationStrategy = EventValidationStrategy.NONE
   val partitionResolutionStrategy = PartitionStrategy.HASH
@@ -38,7 +38,7 @@ object TestScalaEntity {
   val eventStreamBatch = new EventStreamBatch(cursor, List(myEvent))
   val batchItemResponse = new BatchItemResponse(Option("eid"), BatchItemPublishingStatus.SUBMITTED, Option(BatchItemStep.PUBLISHING), Option("detail"))
   
-  // own event
+  // custom event
   case class CommissionEntity(id:String,ql:List[String])
   val commissionEntity=new CommissionEntity("id2",List("ql1","ql2"))
   val dataChangeEvent = new DataChangeEvent[CommissionEntity](commissionEntity,"Critical", DataOperation.DELETE, Some(eventMetadata))

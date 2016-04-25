@@ -4,18 +4,27 @@ import scala.concurrent.Future
 import org.zalando.nakadi.client.model._
 import akka.actor.Terminated
 import akka.http.scaladsl.model.HttpResponse
-import org.zalando.nakadi.client.model.Metrics
 
-case class StreamParameters(cursor: Option[String]=None, //
-                            batchLimit: Option[Integer]=None,
-                            streamLimit: Option[Integer]=None,
-                            batchFlushTimeout: Option[Integer]=None,
-                            streamTimeout: Option[Integer]=None,
-                            streamKeepAliveLimit: Option[Integer]=None,
-                            flowId: Option[String]=None)
+case class ClientError(msg: String, status: Option[Int])
+
+case class StreamParameters(cursor: Option[Cursor] = None, //
+                            batchLimit: Option[Integer] = None,
+                            streamLimit: Option[Integer] = None,
+                            batchFlushTimeout: Option[Integer] = None,
+                            streamTimeout: Option[Integer] = None,
+                            streamKeepAliveLimit: Option[Integer] = None,
+                            flowId: Option[String] = None) {
+}
+
+trait Listener[T] {
+  def id: String
+  def onSubscribed(): Unit
+  def onUnsubscribed(): Unit
+  def onReceive(sourceUrl: String, cursor: Cursor, event: T): Unit
+  def onError(sourceUrl: String, cursor: Cursor, error: ClientError): Unit
+}
 
 trait Client {
-  import Client._
 
   /**
    * Retrieve monitoring metrics
@@ -103,7 +112,7 @@ trait Client {
    * }}}
    * @param name -  Name of the EventType
    */
-  def partitions(name: String)(implicit ser: NakadiDeserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
+  def partitions(name: String)(implicit ser: NakadiDeserializer[Seq[Partition]]): Future[Either[ClientError, Option[Seq[Partition]]]]
 
   /**
    * Returns the Partition for the given EventType.
@@ -148,9 +157,23 @@ trait Client {
 
   def stop(): Future[Terminated]
 
+  /**
+   * Registers the subscription of a listener to start streaming events from a partition in non-blocking fashion.
+   *
+   * @eventType - Name of the EventType to listen for.
+   * @parameters - Parameters for the streaming of events.
+   * @listener - Listener to pass the event to when it is received.
+   */
+  def subscribe[T](eventType: String, parameters: StreamParameters, listener: Listener[T])(implicit ser: NakadiDeserializer[T]): Future[Option[ClientError]]
+  /**
+   * Removes the subscription of a listener, to stop streaming events from a partition.
+   *
+   * @eventType - Name of the EventType.
+   * @listener - Listener to unsubscribe from the streaming events.
+   */
+  def unsubscribe[T](eventType: String, listener: Listener[T]): Future[Option[ClientError]]
+
 }
 
-object Client {
-  case class ClientError(msg: String, status: Option[Int])
-}
+
 

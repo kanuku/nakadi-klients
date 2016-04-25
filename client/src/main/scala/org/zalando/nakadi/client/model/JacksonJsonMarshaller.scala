@@ -57,6 +57,7 @@ trait JacksonJsonMarshaller {
   implicit def listOfEventValidationStrategyTR: TypeReference[Seq[EventValidationStrategy.Value]] = new TypeReference[Seq[EventValidationStrategy.Value]] {}
   implicit def listOfEventEnrichmentStrategyTR: TypeReference[Seq[EventEnrichmentStrategy.Value]] = new TypeReference[Seq[EventEnrichmentStrategy.Value]] {}
   implicit def listOfEventTypeTR: TypeReference[Seq[EventType]] = new TypeReference[Seq[EventType]] {}
+  implicit def listOfPartitionTR: TypeReference[Seq[Partition]] = new TypeReference[Seq[Partition]] {}
 
   
   
