@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.util
+package org.zalando.nakadi.client.utils
 
 import org.zalando.nakadi.client.model._
 import org.zalando.nakadi.client.model.Problem

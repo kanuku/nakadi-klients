@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.util
+package org.zalando.nakadi.client.utils
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer

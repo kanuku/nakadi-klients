@@ -20,6 +20,7 @@ import org.zalando.nakadi.client.Listener
 import org.zalando.nakadi.client.ClientError
 import akka.dispatch.sysmsg.Failed
 import scala.concurrent.Await
+import scala.concurrent.duration.Duration
  
 
 private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client with HttpFactory {
@@ -80,7 +81,7 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     logFutureEither(connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)))
 
   def stop(): Future[Option[ClientError]] = {
-    val result = Await.ready(connection.stop(), 120.seconds)
+    val result = Await.ready(connection.stop(), Duration.Inf)
     Future.successful(None)
   }
 

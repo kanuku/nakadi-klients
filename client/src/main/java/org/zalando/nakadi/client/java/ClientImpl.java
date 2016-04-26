@@ -5,15 +5,25 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
-import org.zalando.nakadi.client.scala.ClientBuilder;
 import org.zalando.nakadi.client.Serializer;
-import org.zalando.nakadi.client.model.*;
+import org.zalando.nakadi.client.model.Event;
+import org.zalando.nakadi.client.model.EventEnrichmentStrategy;
+import org.zalando.nakadi.client.model.EventType;
+import org.zalando.nakadi.client.model.EventValidationStrategy;
+import org.zalando.nakadi.client.model.Metrics;
+import org.zalando.nakadi.client.model.Partition;
+import org.zalando.nakadi.client.model.PartitionStrategy;
+import org.zalando.nakadi.client.scala.ClientBuilder;
+import org.zalando.nakadi.client.utils.FutureConversions;
+import org.zalando.nakadi.client.utils.Serialization;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
 public class ClientImpl implements Client {
 	private final org.zalando.nakadi.client.scala.Client client;
-
+	
+	
+	
 	public ClientImpl(org.zalando.nakadi.client.scala.Client client) {
 		this.client = client;
 	}
@@ -40,15 +50,12 @@ public class ClientImpl implements Client {
 
 	@Override
 	public Future<Optional<Metrics>> getMetrics() {
-
-		// Object a= client.metrics();
-		return null;
+		return FutureConversions.fromOptionOfEither2Optional(client.getMetrics(Serialization.metricsDeserializer()));
 	}
 
 	@Override
 	public Future<Optional<List<EventType>>> getEventTypes() {
-		// TODO Auto-generated method stub
-		return null;
+		return FutureConversions.fromSeqOfOptionalEither2OptionalList(client.getEventTypes(Serialization.seqOfEventTypeDeserializer()));
 	}
 
 	@Override

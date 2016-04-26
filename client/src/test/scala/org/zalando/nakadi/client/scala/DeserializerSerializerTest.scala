@@ -5,8 +5,8 @@ import scala.concurrent.duration.DurationInt
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
 import org.zalando.nakadi.client.model.EventType
-import org.zalando.nakadi.client.util.AkkaConfig
-import org.zalando.nakadi.client.util.TestJsonEntity
+import org.zalando.nakadi.client.utils.AkkaConfig
+import org.zalando.nakadi.client.utils.TestJsonEntity
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
 import spray.json.JsonFormat
