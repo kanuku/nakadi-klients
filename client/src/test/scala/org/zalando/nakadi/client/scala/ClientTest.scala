@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client
+package org.zalando.nakadi.client.scala
 
 import scala.concurrent.Future
 import scala.concurrent.Await
@@ -24,7 +24,8 @@ import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.ContentTypes
 import org.zalando.nakadi.client.model.JacksonJsonMarshaller
 
-class ClientTest extends WordSpec with Matchers with JacksonJsonMarshaller with MockitoSugar with BeforeAndAfter {
+class ClientTest extends WordSpec with Matchers  with MockitoSugar with BeforeAndAfter {
+  import JacksonJsonMarshaller._
   private var connection: Connection = mock[Connection]
   private val client: Client = new ClientImpl(connection)
   before {

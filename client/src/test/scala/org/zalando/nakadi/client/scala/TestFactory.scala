@@ -1,10 +1,9 @@
-package org.zalando.nakadi.client
+package org.zalando.nakadi.client.scala
 
 import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
-
 import org.joda.time.DateTime
 import org.zalando.nakadi.client.model.Event
 import org.zalando.nakadi.client.model.EventMetadata
@@ -15,9 +14,13 @@ import org.zalando.nakadi.client.model.EventTypeSchema
 import org.zalando.nakadi.client.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.model.PartitionStrategy
 import org.zalando.nakadi.client.model.SchemaType
+import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.Serializer
+import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.Deserializer
 
 trait ClientFactory {
-  val host = "nakadi-sandbox.my-test.fernan.do"
+  val host = "nakadi-sandbox.aruha-test.zalan.do"
   val OAuth2Token = () => ""
   val port = 443
   val connection = Connection.newConnection(host, port, OAuth2Token, true, false)
@@ -26,26 +29,26 @@ trait ClientFactory {
 
 }
 
-case class EventActions(client: Client) extends JacksonJsonMarshaller {
-
-  def create[T](name: String, event: Seq[T])(implicit ser: NakadiSerializer[Seq[T]]) = {
-    client.newEvents[T](name, event)
+case class EventActions(client: Client)   {
+import JacksonJsonMarshaller._
+  def create[T](name: String, event: Seq[T])(implicit ser: Serializer[Seq[T]]) = {
+    client.publishEvents[T](name, event)
   }
 }
 
-case class EventTypesActions(client: Client) extends JacksonJsonMarshaller {
-
-  def create(event: EventType)(implicit ser: NakadiSerializer[EventType]) = {
-    executeCall(client.newEventType(event))
+case class EventTypesActions(client: Client)  {
+import JacksonJsonMarshaller._
+  def create(event: EventType)(implicit ser: Serializer[EventType]) = {
+    executeCall(client.createEventType(event))
   }
-  def update(event: EventType)(implicit ser: NakadiSerializer[EventType]) = {
+  def update(event: EventType)(implicit ser: Serializer[EventType]) = {
     executeCall(client.updateEventType(event.name, event))
   }
-  def get(name: String)(implicit ser: NakadiDeserializer[Option[EventType]]) = {
-    executeCall(client.eventType(name))
+  def get(name: String)(implicit ser: Deserializer[Option[EventType]]) = {
+    executeCall(client.getEventType(name))
   }
-  def getAll()(implicit ser: NakadiDeserializer[Option[Seq[EventType]]]) = {
-    executeCall(client.eventTypes())
+  def getAll()(implicit ser: Deserializer[Option[Seq[EventType]]]) = {
+    executeCall(client.getEventTypes())
   }
   def delete(name: String) = {
     executeCall(client.deleteEventType(name))

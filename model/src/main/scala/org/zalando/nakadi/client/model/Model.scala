@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize
  * @param title
  */
 trait Event {
-  def metadata(): Option[EventMetadata]
+  
 }
 
 /**
@@ -51,6 +51,7 @@ case class EventMetadata(
  *
  */
 trait BusinessEvent extends Event {
+  def metadata(): Option[EventMetadata]
 }
 
 /**
@@ -86,7 +87,7 @@ case class DataChangeEvent[T](
 case class Problem(
   problemType: String,
   title: String,
-  status: Int,
+  status: Integer,
   detail: Option[String],
   instance: Option[String])
 

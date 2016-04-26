@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client
+package org.zalando.nakadi.client.scala
 
 import scala.reflect._
 import scala.reflect.runtime.universe._

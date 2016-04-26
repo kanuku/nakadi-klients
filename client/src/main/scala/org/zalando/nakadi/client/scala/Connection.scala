@@ -1,4 +1,5 @@
-package org.zalando.nakadi.client
+package org.zalando.nakadi.client.scala
+
 
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -19,6 +20,10 @@ import akka.stream.scaladsl.{ Flow, Sink, Source }
 import akka.util.ByteString
 import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
 import org.zalando.nakadi.client.actor.EventConsumer.ShutdownMsg
+import org.zalando.nakadi.client.Deserializer
+import org.zalando.nakadi.client.Serializer
+import org.zalando.nakadi.client.Listener
+
 
 trait Connection extends HttpFactory {
 
@@ -32,9 +37,9 @@ trait Connection extends HttpFactory {
   def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
   def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
   def delete(endpoint: String): Future[HttpResponse]
-  def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
-  def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse]
-  def subscribe[T](url: String, eventType: String, request: HttpRequest, listener: Listener[T])(implicit des: NakadiDeserializer[T])
+  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
+  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
+  def subscribe[T](url: String, eventType: String, request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T])
 
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
@@ -70,10 +75,10 @@ object Connection {
 }
 
 /**
- * Class for handling the configuration and basic http calls.
+ * Class for handling the basic http calls.
  */
 
-private[client] class ConnectionImpl(val host: String, val port: Int, val tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
+sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
   import Connection._
 
   private implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
@@ -103,13 +108,13 @@ private[client] class ConnectionImpl(val host: String, val port: Int, val tokenP
     executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider)) //TODO: Change to stream single event
   }
 
-  def put[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
+  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
     executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider))
   }
 
-  def post[T](endpoint: String, model: T)(implicit serializer: NakadiSerializer[T]): Future[HttpResponse] = {
-    val entity = serializer.toJson(model)
+  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
+    val entity = serializer.to(model)
     logger.info("Posting to endpoint {}", endpoint)
     logger.debug("Data to post {}", entity)
     executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST, tokenProvider))
@@ -137,7 +142,7 @@ private[client] class ConnectionImpl(val host: String, val port: Int, val tokenP
 
   def stop(): Future[Terminated] = actorSystem.terminate()
 
-  def subscribe[T](url: String, eventType: String, request: HttpRequest, listener: Listener[T])(implicit des: NakadiDeserializer[T]) = {
+  def subscribe[T](url: String, eventType: String, request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T]) = {
     import EventConsumer._
     case class MyEventExample(orderNumber: String)
     val subscriberRef = actorSystem.actorOf(Props(classOf[EventConsumer[T]], url, eventType, listener, des))

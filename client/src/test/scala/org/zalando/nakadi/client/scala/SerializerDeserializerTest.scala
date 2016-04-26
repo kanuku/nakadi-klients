@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client
+package org.zalando.nakadi.client.scala
 
 import scala.concurrent.duration.DurationInt
 import org.scalatest.Matchers
@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import org.zalando.nakadi.client.util.TestScalaEntity
 import org.zalando.nakadi.client.model._
+import org.zalando.nakadi.client.Deserializer
+import org.zalando.nakadi.client.Serializer
 
 /**
  * Tests the Marshalling and Umarshalling of the same object in a single run. It tests in this sequence: 1.Marshall and 2.Unmarshall. <br>
@@ -18,8 +20,8 @@ import org.zalando.nakadi.client.model._
  * Marshallers/Unmarshallers are used and produce different
  * unexpected results.
  */
-class SerializerDeserializerTest extends WordSpec with Matchers with JacksonJsonMarshaller with AkkaConfig {
-
+class SerializerDeserializerTest extends WordSpec with Matchers with AkkaConfig {
+import JacksonJsonMarshaller._
   import TestScalaEntity._
 
   "When an entity(scala object) is marshalled and unmarshalled it" should {
@@ -77,10 +79,10 @@ class SerializerDeserializerTest extends WordSpec with Matchers with JacksonJson
 
   }
 
-  def checkSerializationDeserializationProcess[T](key: String, value: T)(implicit ser: NakadiSerializer[T], des: NakadiDeserializer[T]) {
-    val jsonEntity = ser.toJson(value) // Marshal
+  def checkSerializationDeserializationProcess[T](key: String, value: T)(implicit ser: Serializer[T], des: Deserializer[T]) {
+    val jsonEntity = ser.to(value) // Marshal
     println("#### Json-Entity:" + jsonEntity)
-    val scalaEntity = des.fromJson(jsonEntity) //Unmarshal
+    val scalaEntity = des.from(jsonEntity) //Unmarshal
     println("#### Scala-Entity:" + scalaEntity)
     assert(scalaEntity == value, s"Failed to marshall $key correctly!!!")
   }

@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client
+package org.zalando.nakadi.client.scala
 
 import akka.http.scaladsl.model.HttpHeader
 import akka.http.scaladsl.model.headers.RawHeader
@@ -35,7 +35,9 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import akka.http.scaladsl.model.HttpHeader
 import scala.collection.immutable.Seq
+import org.zalando.nakadi.client.StreamParameters
 
+//
 trait HttpFactory {
   type TokenProvider = () => String
   def withHeaders(params: Option[StreamParameters]): List[HttpHeader] = {
@@ -71,4 +73,4 @@ trait HttpFactory {
   }
 
 }
-
+//

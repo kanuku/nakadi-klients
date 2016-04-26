@@ -1,7 +1,6 @@
-package org.zalando.nakadi
+package org.zalando.nakadi.client
 
-package object client {
-  
+package object scala {
   
   val URI_METRICS = "/metrics"
   
@@ -18,5 +17,4 @@ package object client {
   val URI_VALIDATION_STRATEGIES = "/registry/validation-strategies"
   val URI_ENRICHMENT_STRATEGIES = "/registry/enrichment-strategies"
   val URI_PARTITIONING_STRATEGIES = "/registry/partition-strategies"
-
 }

@@ -4,8 +4,8 @@ import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe._
 import org.slf4j.LoggerFactory
-import org.zalando.nakadi.client.NakadiDeserializer
-import org.zalando.nakadi.client.NakadiSerializer
+import org.zalando.nakadi.client.Deserializer
+import org.zalando.nakadi.client.Serializer
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.core.JsonParser
@@ -23,13 +23,7 @@ import com.typesafe.scalalogging.Logger
 import com.fasterxml.jackson.databind.`type`.ArrayType
 import com.fasterxml.jackson.databind.jsontype.TypeDeserializer
 
-//case class CustomDeserialier(array: ArrayType, des: JsonDeserializer[AnyRef], elem: TypeDeserializer) extends ObjectArrayDeserializer(array, des, elem) {
-//  override def getNullValue():ArrayList={
-//    null
-//  }
-//}
-
-trait JacksonJsonMarshaller {
+object JacksonJsonMarshaller {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
   val factory = new JsonFactory();
 
@@ -59,29 +53,27 @@ trait JacksonJsonMarshaller {
   implicit def listOfEventTypeTR: TypeReference[Seq[EventType]] = new TypeReference[Seq[EventType]] {}
   implicit def listOfPartitionTR: TypeReference[Seq[Partition]] = new TypeReference[Seq[Partition]] {}
 
-  
-  
-  implicit def optionalDeserializer[T](implicit expectedType: TypeReference[T]): NakadiDeserializer[Option[T]] = new NakadiDeserializer[Option[T]] {
-    def fromJson(from: String): Option[T] = { 
-      
-      defaultObjectMapper.readValue[Option[T]](from, expectedType) 
-      }
+  implicit def optionalDeserializer[T](implicit expectedType: TypeReference[T]): Deserializer[Option[T]] = new Deserializer[Option[T]] {
+    def from(from: String): Option[T] = {
+
+      defaultObjectMapper.readValue[Option[T]](from, expectedType)
+    }
   }
 
-  implicit def serializer[T]: NakadiSerializer[T] = new NakadiSerializer[T] {
-    def toJson(from: T): String = defaultObjectMapper.writeValueAsString(from)
+  implicit def serializer[T]: Serializer[T] = new Serializer[T] {
+    def to(from: T): String = defaultObjectMapper.writeValueAsString(from)
   }
 
-  implicit def deserializer[T](implicit expectedType: TypeReference[T]): NakadiDeserializer[T] = new NakadiDeserializer[T] {
-    def fromJson(from: String): T = defaultObjectMapper.readValue[T](from, expectedType)
+  implicit def deserializer[T](implicit expectedType: TypeReference[T]): Deserializer[T] = new Deserializer[T] {
+    def from(from: String): T = defaultObjectMapper.readValue[T](from, expectedType)
   }
 
-  lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper().registerModule(new DefaultScalaModule)
+  lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper() //
+    .registerModule(new DefaultScalaModule)
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     .setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
-    .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
-    //    .enable(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT)
+    .setSerializationInclusion(JsonInclude.Include.NON_NULL)
     .addHandler(new DeserializationProblemHandler() {
       override def handleUnknownProperty(ctxt: DeserializationContext,
                                          jp: JsonParser, deserializer: JsonDeserializer[_],

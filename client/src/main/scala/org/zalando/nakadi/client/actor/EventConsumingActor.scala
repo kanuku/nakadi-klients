@@ -7,7 +7,7 @@ import akka.stream.actor.ActorSubscriberMessage.OnNext
 import akka.stream.actor.RequestStrategy
 import akka.util.ByteString
 import org.zalando.nakadi.client.Listener
-import org.zalando.nakadi.client.NakadiDeserializer
+import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.model.Cursor
 import scala.util.Try
 import scala.util.Success
@@ -22,7 +22,7 @@ object EventConsumer {
   case class ShutdownMsg()
 }
 
-class EventConsumer[T](url: String, eventType: String, listener: Listener[T], ser: NakadiDeserializer[T]) extends Actor with ActorLogging with ActorSubscriber {
+class EventConsumer[T](url: String, eventType: String, listener: Listener[T], ser: Deserializer[T]) extends Actor with ActorLogging with ActorSubscriber {
   import EventConsumer._
   var count = 0
 

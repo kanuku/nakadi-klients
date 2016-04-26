@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client
+package org.zalando.nakadi.client.scala
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
@@ -12,8 +12,9 @@ import akka.stream.Materializer
 import spray.json.JsonFormat
 import org.zalando.nakadi.client.model.JacksonJsonMarshaller
 
-class DeserializerSerializerTest extends WordSpec with Matchers with JacksonJsonMarshaller with AkkaConfig {
+class DeserializerSerializerTest extends WordSpec with Matchers  with AkkaConfig {
   import TestJsonEntity._
+  import JacksonJsonMarshaller._
   val file  = getClass().getClassLoader().getResource("Events.txt").getFile
   val input = scala.io.Source.fromFile(file).mkString
   

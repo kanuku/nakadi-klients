@@ -1,28 +1,21 @@
-package org.zalando.nakadi.client
+package org.zalando.nakadi.client.scala
 
 import scala.concurrent.Future
-import org.zalando.nakadi.client.model._
-import akka.actor.Terminated
-import akka.http.scaladsl.model.HttpResponse
 
-case class ClientError(msg: String, status: Option[Int])
+import org.zalando.nakadi.client.ClientError
+import org.zalando.nakadi.client.Listener
+import org.zalando.nakadi.client.Deserializer
+import org.zalando.nakadi.client.Serializer
+import org.zalando.nakadi.client.StreamParameters
+import org.zalando.nakadi.client.model.EventEnrichmentStrategy
+import org.zalando.nakadi.client.model.EventType
+import org.zalando.nakadi.client.model.EventValidationStrategy
+import org.zalando.nakadi.client.model.Metrics
+import org.zalando.nakadi.client.model.Partition
+import org.zalando.nakadi.client.model.PartitionStrategy
 
-case class StreamParameters(cursor: Option[Cursor] = None, //
-                            batchLimit: Option[Integer] = None,
-                            streamLimit: Option[Integer] = None,
-                            batchFlushTimeout: Option[Integer] = None,
-                            streamTimeout: Option[Integer] = None,
-                            streamKeepAliveLimit: Option[Integer] = None,
-                            flowId: Option[String] = None) {
-}
 
-trait Listener[T] {
-  def id: String
-  def onSubscribed(): Unit
-  def onUnsubscribed(): Unit
-  def onReceive(sourceUrl: String, cursor: Cursor, event: T): Unit
-  def onError(sourceUrl: String, cursor: Cursor, error: ClientError): Unit
-}
+
 
 trait Client {
 
@@ -33,7 +26,7 @@ trait Client {
    * curl --request GET /metrics
    * }}}
    */
-  def metrics()(implicit ser: NakadiDeserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]]
+  def getMetrics()(implicit ser: Deserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]]
 
   /**
    * Returns a list of all registered EventTypes.
@@ -43,7 +36,7 @@ trait Client {
    * }}}
    *
    */
-  def eventTypes()(implicit ser: NakadiDeserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]]
+  def getEventTypes()(implicit ser: Deserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]]
 
   /**
    * Creates a new EventType.
@@ -55,7 +48,7 @@ trait Client {
    * @param event - The EventType to create.
    *
    */
-  def newEventType(eventType: EventType)(implicit ser: NakadiSerializer[EventType]): Future[Option[ClientError]]
+  def createEventType(eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]]
 
   /**
    * Returns the EventType identified by its name.
@@ -64,7 +57,7 @@ trait Client {
    * }}}
    * @param name - Name of the EventType
    */
-  def eventType(name: String)(implicit ser: NakadiDeserializer[EventType]): Future[Either[ClientError, Option[EventType]]]
+  def getEventType(name: String)(implicit ser: Deserializer[EventType]): Future[Either[ClientError, Option[EventType]]]
   /**
    * Updates the EventType identified by its name.
    * {{{
@@ -73,7 +66,7 @@ trait Client {
    * @param name - Name of the EventType
    * @param event - Event to update
    */
-  def updateEventType(name: String, eventType: EventType)(implicit ser: NakadiSerializer[EventType]): Future[Option[ClientError]]
+  def updateEventType(name: String, eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]]
   /**
    * Deletes an EventType identified by its name.
    *
@@ -93,7 +86,7 @@ trait Client {
    * @param name - Name of the EventType
    * @param event - Event to create
    */
-  def newEvents[T](name: String, events: Seq[T])(implicit ser: NakadiSerializer[Seq[T]]): Future[Option[ClientError]]
+  def publishEvents[T](name: String, events: Seq[T])(implicit ser: Serializer[Seq[T]]): Future[Option[ClientError]]
 
   /**
    * Request a stream delivery for the specified partitions of the given EventType.
@@ -103,7 +96,7 @@ trait Client {
    * @param name - Name of the EventType
    *
    */
-  def events[T](name: String, params: Option[StreamParameters])(implicit ser: NakadiDeserializer[T]): Future[Either[ClientError, Option[T]]]
+  def publishEvents[T](name: String, params: Option[StreamParameters])(implicit ser: Deserializer[T]): Future[Either[ClientError, Option[T]]]
 
   /**
    * List the partitions for the given EventType.
@@ -112,7 +105,7 @@ trait Client {
    * }}}
    * @param name -  Name of the EventType
    */
-  def partitions(name: String)(implicit ser: NakadiDeserializer[Seq[Partition]]): Future[Either[ClientError, Option[Seq[Partition]]]]
+  def getPartitions(name: String)(implicit ser: Deserializer[Seq[Partition]]): Future[Either[ClientError, Option[Seq[Partition]]]]
 
   /**
    * Returns the Partition for the given EventType.
@@ -123,7 +116,7 @@ trait Client {
    * @param partition - Partition id for the given EventType
    */
 
-  def partitionById(name: String, id: String)(implicit ser: NakadiDeserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
+  def getPartitionById(name: String, id: String)(implicit ser: Deserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
 
   /**
    * Returns all of the validation strategies supported by this installation of Nakadi.
@@ -132,7 +125,7 @@ trait Client {
    * curl --request GET /registry/validation-strategies
    * }}}
    */
-  def validationStrategies()(implicit des: NakadiDeserializer[Seq[EventValidationStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy.Value]]]]
+  def getValidationStrategies()(implicit des: Deserializer[Seq[EventValidationStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy.Value]]]]
 
   /**
    * Returns all of the enrichment strategies supported by this installation of Nakadi.
@@ -141,7 +134,7 @@ trait Client {
    * }}}
    */
 
-  def enrichmentStrategies()(implicit des: NakadiDeserializer[Seq[EventEnrichmentStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.Value]]]]
+  def getEnrichmentStrategies()(implicit des: Deserializer[Seq[EventEnrichmentStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.Value]]]]
 
   /**
    * Returns all of the partitioning strategies supported by this installation of Nakadi.
@@ -149,13 +142,13 @@ trait Client {
    * curl --request GET /registry/partitioning-strategies
    * }}}
    */
-  def partitionStrategies()(implicit des: NakadiDeserializer[Seq[PartitionStrategy.Value]]): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]]
+  def getPartitionStrategies()(implicit des: Deserializer[Seq[PartitionStrategy.Value]]): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]]
 
   /**
    * Shuts down the communication system of the client
    */
 
-  def stop(): Future[Terminated]
+  def stop(): Future[Option[ClientError]]
 
   /**
    * Registers the subscription of a listener to start streaming events from a partition in non-blocking fashion.
@@ -164,7 +157,7 @@ trait Client {
    * @parameters - Parameters for the streaming of events.
    * @listener - Listener to pass the event to when it is received.
    */
-  def subscribe[T](eventType: String, parameters: StreamParameters, listener: Listener[T])(implicit ser: NakadiDeserializer[T]): Future[Option[ClientError]]
+  def subscribe[T](eventType: String, parameters: StreamParameters, listener: Listener[T])(implicit ser: Deserializer[T]): Future[Option[ClientError]]
   /**
    * Removes the subscription of a listener, to stop streaming events from a partition.
    *

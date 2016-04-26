@@ -1,19 +1,6 @@
 package org.zalando.nakadi.client.model
 
-import org.zalando.nakadi.client.utils.ParseHelper
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.unmarshalling.Unmarshaller
-import spray.json._
-import spray.json.DefaultJsonProtocol
-import spray.json.JsValue
-import spray.json.JsonFormat
-import spray.json.JsonReader
-import spray.json.JsonWriter
-import spray.json.pimpAny
-import spray.json.pimpString
-import org.zalando.nakadi.client.NakadiSerializer
-import org.zalando.nakadi.client.NakadiDeserializer
+
 
 //trait SprayJsonMarshaller extends SprayJsonSupport with DefaultJsonProtocol {
 //  import ParseHelper._
