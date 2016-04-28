@@ -7,7 +7,7 @@ import scala.concurrent.duration.DurationInt
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
 import org.zalando.nakadi.client._
-import org.zalando.nakadi.client.model._
+import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.scala.ModelFactory
 

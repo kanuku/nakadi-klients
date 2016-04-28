@@ -2,43 +2,26 @@ package org.zalando.nakadi.client.example2
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import org.zalando.nakadi.client.scala.ClientFactory
-import org.zalando.nakadi.client.scala.Connection
-import org.zalando.nakadi.client.scala.HttpFactory
+
 import org.zalando.nakadi.client.Deserializer
-import org.zalando.nakadi.client.StreamParameters
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.done.EventConsumingActor
+import org.zalando.nakadi.client.scala.{ ClientFactory, Connection, HttpFactory }
+import org.zalando.nakadi.client.scala.model.{ Cursor, JacksonJsonMarshaller }
+import org.zalando.nakadi.client.scala.StreamParameters
+
 import com.fasterxml.jackson.core.`type`.TypeReference
+
 import akka.NotUsed
-import akka.actor.Actor
-import akka.actor.ActorLogging
-import akka.actor.ActorSystem
-import akka.actor.Props
-import akka.actor.actorRef2Scala
+import akka.actor.{ ActorLogging, ActorSystem, Props, actorRef2Scala }
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpHeader
-import akka.http.scaladsl.model.HttpMethods
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.{ HttpHeader, HttpMethods, HttpRequest, HttpResponse }
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.stream.ActorMaterializer
-import akka.stream.ClosedShape
-import akka.stream.FlowShape
-import akka.stream.Outlet
-import akka.stream.OverflowStrategy
-import akka.stream.actor.ActorPublisher
+import akka.stream.{ ActorMaterializer, ClosedShape, FlowShape, Outlet, OverflowStrategy }
 import akka.stream.actor.ActorSubscriber
-import akka.stream.actor.ActorSubscriberMessage.OnNext
 import akka.stream.actor.RequestStrategy
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.GraphDSL
-import akka.stream.scaladsl.RunnableGraph
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{ Flow, GraphDSL, RunnableGraph, Sink, Source }
 import akka.util.ByteString
-import org.zalando.nakadi.client.done.EventConsumingActor
-import org.zalando.nakadi.client.model.Cursor
 
 object HttpClient extends App   with HttpFactory  {
   import ClientFactory._

@@ -1,17 +1,18 @@
 package org.zalando.nakadi.client
 import org.scalatest.{ Matchers, WordSpec }
-import org.zalando.nakadi.client.model._
+import org.zalando.nakadi.client.scala.model._
 import com.fasterxml.jackson.core.`type`.TypeReference
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.ModelFactory
 import org.zalando.nakadi.client.scala.EventTypesActions
 import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.scala.EventActions
+import org.zalando.nakadi.client.scala.StreamParameters
 
 class ClientSubscriptionTest extends WordSpec with Matchers with ModelFactory {
   import ClientFactory._
   import JacksonJsonMarshaller._
-  case class MyEventExample(orderNumber: String)
+  case class MyEventExample(orderNumber: String) extends Event
   implicit def myEventExampleTR: TypeReference[MyEventExample] = new TypeReference[MyEventExample] {}
   val eventAction = new EventActions(client)
   val eventTypeAction = new EventTypesActions(client)

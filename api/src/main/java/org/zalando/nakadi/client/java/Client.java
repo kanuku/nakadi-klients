@@ -5,9 +5,15 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 
 import org.zalando.nakadi.client.Deserializer;
-import org.zalando.nakadi.client.Listener;
 import org.zalando.nakadi.client.Serializer;
-import org.zalando.nakadi.client.StreamParameters;
+import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
+import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
+import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
+import org.zalando.nakadi.client.java.model.Event;
+import org.zalando.nakadi.client.java.model.EventType;
+import org.zalando.nakadi.client.java.model.Metrics;
+import org.zalando.nakadi.client.java.model.Partition;
+import org.zalando.nakadi.client.scala.StreamParameters;
 
 public interface Client {
 

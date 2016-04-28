@@ -8,7 +8,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.actor.EventConsumer
-import org.zalando.nakadi.client.model.Cursor
 import com.typesafe.scalalogging.Logger
 import akka.actor.{ Props, ActorSystem, ActorLogging, _ }
 import akka.http.scaladsl.{ Http, HttpsConnectionContext }
@@ -21,7 +20,7 @@ import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
 import org.zalando.nakadi.client.actor.EventConsumer.ShutdownMsg
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.Listener
+import org.zalando.nakadi.client.scala.model.Event
 
 trait Connection extends HttpFactory {
 
@@ -37,7 +36,8 @@ trait Connection extends HttpFactory {
   def delete(endpoint: String): Future[HttpResponse]
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
-  def subscribe[T](url: String, request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T])
+  def subscribe[T <: Event](url: String, request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T])
+  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T])
 
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
@@ -83,7 +83,6 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   private implicit val http = Http(actorSystem)
   implicit val materializer = ActorMaterializer()
   private val actors: Map[String, Actor] = Map()
-  
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
@@ -96,20 +95,20 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   def get(endpoint: String): Future[HttpResponse] = {
     logger.info("Get - URL {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider,None))
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider, None))
   }
   def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
-    logger.info("Get - URL {} - Headers {}", endpoint,headers)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider,None))
+    logger.info("Get - URL {} - Headers {}", endpoint, headers)
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None))
   }
   def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
     logger.info("Streaming on Get: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider,None)) //TODO: Change to stream single event
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None)) //TODO: Change to stream single event
   }
 
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
     logger.info("Get: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider,None))
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider, None))
   }
 
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
@@ -121,7 +120,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   def delete(endpoint: String): Future[HttpResponse] = {
     logger.info("Delete: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.DELETE, Nil, tokenProvider,None))
+    executeCall(withHttpRequest(endpoint, HttpMethods.DELETE, Nil, tokenProvider, None))
   }
 
   private def executeCall(request: HttpRequest): Future[HttpResponse] = {
@@ -141,7 +140,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   def stop(): Future[Terminated] = actorSystem.terminate()
 
-  def subscribe[T](url: String, request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T]) = {
+  def subscribe[T <: Event](url: String, request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T]) = {
     logger.info("Subscribing listener {} with request {}", listener.id, request.uri)
     import EventConsumer._
     case class MyEventExample(orderNumber: String)
@@ -160,6 +159,8 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
         logger.info("Shutting down")
       }
   }
+
+  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T]) = ???
 
 }
 

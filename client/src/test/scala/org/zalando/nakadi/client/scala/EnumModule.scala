@@ -2,7 +2,7 @@ package org.zalando.nakadi.client.scala
 
 import scala.reflect._
 import scala.reflect.runtime.universe._
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.Version
@@ -15,11 +15,11 @@ import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.module.SimpleModule
-import org.zalando.nakadi.client.model.DataOperation
-import org.zalando.nakadi.client.model.BatchItemStep
-import org.zalando.nakadi.client.model.BatchItemPublishingStatus
-import org.zalando.nakadi.client.model.EventTypeCategory
-import org.zalando.nakadi.client.model.SchemaType
+import org.zalando.nakadi.client.scala.model.DataOperation
+import org.zalando.nakadi.client.scala.model.BatchItemStep
+import org.zalando.nakadi.client.scala.model.BatchItemPublishingStatus
+import org.zalando.nakadi.client.scala.model.EventTypeCategory
+import org.zalando.nakadi.client.scala.model.SchemaType
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 
 case object EnumModule extends SimpleModule() {

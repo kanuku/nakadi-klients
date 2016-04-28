@@ -1,6 +1,4 @@
-package org.zalando.nakadi.client.java;
-
-import org.zalando.nakadi.client.model.SchemaType;
+package org.zalando.nakadi.client.java.enumerator;
 
 import scala.Option;
 

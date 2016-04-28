@@ -1,12 +1,10 @@
 package org.zalando.nakadi.client.scala
 
 import scala.concurrent.Future
-
-import org.zalando.nakadi.client.ClientError
-import org.zalando.nakadi.client.Listener
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.StreamParameters
+import org.zalando.nakadi.client.scala.model._
+import org.zalando.nakadi.client._
 
 
 
@@ -82,16 +80,6 @@ trait Client {
    */
   def publishEvents[T <: Event](eventTypeName: String, events: Seq[T])(implicit ser: Serializer[Seq[T]]): Future[Option[ClientError]]
 
-    /**
-   * Publishes multiple Events for the given EventType.
-   * {{{
-   * curl --request POST -d @fileWithEvent /event-types/{name}/events
-   * }}}
-   * @param eventTypeName - Name of the EventType
-   * @param event - Event to publish
-   */
-  def publishEvents[T <: Event](eventTypeName: String, events: java.util.List[T])(implicit ser: Serializer[T]): Future[Option[ClientError]]
-
   /**
    * Publishes a single Events for the given EventType.
    * {{{
@@ -151,14 +139,14 @@ trait Client {
    * @parameters - Parameters for the streaming of events.
    * @listener - Listener to pass the event to when it is received.
    */
-  def subscribe[T](eventTypeName: String, parameters: StreamParameters, listener: Listener[T])(implicit des: Deserializer[T]): Future[Option[ClientError]]
+  def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T])(implicit des: Deserializer[T]): Future[Option[ClientError]]
   /**
    * Removes the subscription of a listener, to stop streaming events from a partition.
    *
    * @eventType - Name of the EventType.
    * @listener - Listener to unsubscribe from the streaming events.
    */
-  def unsubscribe[T](eventTypeName: String, listener: Listener[T]): Future[Option[ClientError]]
+  def unsubscribe[T <: Event](eventTypeName: String, listener: Listener[T]): Future[Option[ClientError]]
 
 }
 

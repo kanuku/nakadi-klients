@@ -2,8 +2,8 @@ package org.zalando.nakadi.client.subscription
 
 import org.zalando.nakadi.client.scala.ClientFactory
 import com.fasterxml.jackson.core.`type`.TypeReference
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
-import org.zalando.nakadi.client.model.Event
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.Event
 
 object Client extends App {
  val client = new LeClient

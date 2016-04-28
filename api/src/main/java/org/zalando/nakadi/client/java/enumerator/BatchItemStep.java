@@ -1,6 +1,5 @@
-package org.zalando.nakadi.client.java;
+package org.zalando.nakadi.client.java.enumerator;
 
-import org.zalando.nakadi.client.model.BatchItemStep;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 

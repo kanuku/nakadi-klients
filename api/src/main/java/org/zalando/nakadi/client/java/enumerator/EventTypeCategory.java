@@ -1,10 +1,8 @@
-package org.zalando.nakadi.client.java;
-
-import org.zalando.nakadi.client.model.EventTypeCategory;
-
-import com.fasterxml.jackson.annotation.JsonValue;
+package org.zalando.nakadi.client.java.enumerator;
 
 import scala.Option;
+
+import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
  * Defines the category of an EventType. <br>

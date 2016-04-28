@@ -4,13 +4,13 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
-import org.zalando.nakadi.client.model.EventType
+import org.zalando.nakadi.client.scala.model.EventType
 import org.zalando.nakadi.client.utils.AkkaConfig
 import org.zalando.nakadi.client.utils.TestJsonEntity
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
 import spray.json.JsonFormat
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 
 class DeserializerSerializerTest extends WordSpec with Matchers  with AkkaConfig {
   import TestJsonEntity._

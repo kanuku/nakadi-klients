@@ -3,14 +3,13 @@ package org.zalando.nakadi.client.scala
 import scala.concurrent.duration.DurationInt
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
-import org.zalando.nakadi.client.model._
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model._
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.utils.AkkaConfig
 import org.zalando.nakadi.client.utils.TestScalaEntity
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
-import org.zalando.nakadi.client.model._
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 

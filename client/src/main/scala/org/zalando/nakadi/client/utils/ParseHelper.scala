@@ -2,7 +2,6 @@ package org.zalando.nakadi.client.utils
 
 import spray.json._
 import DefaultJsonProtocol._
-import org.zalando.nakadi.client.model.DataOperation
 
 object ParseHelper {
   /*

@@ -5,7 +5,7 @@ import akka.actor.Actor
 import akka.stream.actor.ActorPublisher
 import EventReceivingActor._
 import scala.collection.mutable.Queue
-import org.zalando.nakadi.client.model.Cursor
+import org.zalando.nakadi.client.scala.model.Cursor
 
 
 

@@ -6,17 +6,12 @@ import akka.stream.actor.ActorSubscriber
 import akka.stream.actor.ActorSubscriberMessage.OnNext
 import akka.stream.actor.RequestStrategy
 import akka.util.ByteString
-import org.zalando.nakadi.client.Listener
 import org.zalando.nakadi.client.Deserializer
-import org.zalando.nakadi.client.model.Cursor
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
 import org.zalando.nakadi.client.ClientError
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
-import org.zalando.nakadi.client.model.EventStreamBatch
-import org.zalando.nakadi.client.model.Event
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import com.fasterxml.jackson.core.`type`.TypeReference
+import org.zalando.nakadi.client.scala.model._
+import org.zalando.nakadi.client.scala.Listener
 
 object EventConsumer {
 
@@ -27,7 +22,7 @@ object EventConsumer {
 
 case class MyEventExample(orderNumber: String) extends Event
 
-class EventConsumer[T](url: String, listener: Listener[T], des: Deserializer[T]) extends Actor with ActorLogging with ActorSubscriber {
+class EventConsumer[T <: Event](url: String, listener: Listener[T], des: Deserializer[T]) extends Actor with ActorLogging with ActorSubscriber {
   import EventConsumer._
   var count = 0
 
@@ -59,7 +54,7 @@ class EventConsumer[T](url: String, listener: Listener[T], des: Deserializer[T])
 
 trait MessageSplitter {
 
-  def deserializeMsg[T<:Event](msg: String)(implicit des: Deserializer[EventStreamBatch[T]]): EventStreamBatch[T] = des.from(msg)
+  def deserializeMsg[T <: Event](msg: String)(implicit des: Deserializer[EventStreamBatch[T]]): EventStreamBatch[T] = des.from(msg)
 }
 
  

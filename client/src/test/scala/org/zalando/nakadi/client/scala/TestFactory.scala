@@ -5,26 +5,12 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
 import org.joda.time.DateTime
-import org.zalando.nakadi.client.model.Event
-import org.zalando.nakadi.client.model.EventMetadata
-import org.zalando.nakadi.client.model.EventMetadata
-import org.zalando.nakadi.client.model.EventType
-import org.zalando.nakadi.client.model.EventTypeCategory
-import org.zalando.nakadi.client.model.EventTypeSchema
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
-import org.zalando.nakadi.client.model.PartitionStrategy
-import org.zalando.nakadi.client.model.SchemaType
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model._
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.Deserializer
-import org.zalando.nakadi.client.model.SchemaType
-import org.zalando.nakadi.client.model.PartitionStrategy
 import org.zalando.nakadi.client.Deserializer
-import org.zalando.nakadi.client.model.EventTypeSchema
-import org.zalando.nakadi.client.model.EventMetadata
-import org.zalando.nakadi.client.model.EventTypeCategory
-import org.zalando.nakadi.client.model.EventType
 import org.zalando.nakadi.client.Serializer
 
 object ClientFactory {
@@ -48,7 +34,7 @@ object ClientFactory {
 
 case class EventActions(client: Client) {
   import JacksonJsonMarshaller._
-  def create[T](name: String, event: Seq[T])(implicit ser: Serializer[Seq[T]]) = {
+  def create[T <: Event](name: String, event: Seq[T])(implicit ser: Serializer[Seq[T]]) = {
     client.publishEvents[T](name, event)
   }
 }

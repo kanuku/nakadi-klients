@@ -1,10 +1,8 @@
-package org.zalando.nakadi.client.java;
-
-import org.zalando.nakadi.client.model.PartitionStrategy;
-
-import com.fasterxml.jackson.annotation.JsonValue;
+package org.zalando.nakadi.client.java.enumerator;
 
 import scala.Option;
+
+import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
  * Defines a rule for the resolution of incoming Events into partitions. Rules

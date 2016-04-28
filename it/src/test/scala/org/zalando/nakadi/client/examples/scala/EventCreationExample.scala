@@ -2,15 +2,9 @@ package org.zalando.nakadi.client.examples.scala
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
-import org.zalando.nakadi.client.model.EventType
-import org.zalando.nakadi.client.model.EventTypeCategory
-import org.zalando.nakadi.client.model.EventTypeSchema
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
-import org.zalando.nakadi.client.model.PartitionStrategy
-import org.zalando.nakadi.client.model.SchemaType
+import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala.ClientFactory
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat
-import org.zalando.nakadi.client.model.Event
 
 object EventCreationExample extends App {
 

@@ -21,9 +21,9 @@ import org.zalando.nakadi.client.scala.HttpFactory
 import akka.http.scaladsl.unmarshalling._
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.http.scaladsl.Http
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.ClientFactory
-import org.zalando.nakadi.client.StreamParameters
+import org.zalando.nakadi.client.scala.StreamParameters
 import akka.stream.ActorMaterializer
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.HttpMethods

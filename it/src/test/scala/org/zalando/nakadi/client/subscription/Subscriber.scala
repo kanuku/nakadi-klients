@@ -1,25 +1,25 @@
 package org.zalando.nakadi.client.subscription
 
-import org.zalando.nakadi.client.model.JacksonJsonMarshaller
-import org.zalando.nakadi.client.scala.ClientFactory
-import org.zalando.nakadi.client.StreamParameters
-import org.zalando.nakadi.client.Listener
-import org.zalando.nakadi.client.ClientError
-import com.fasterxml.jackson.core.`type`.TypeReference
-import org.zalando.nakadi.client.model.Cursor
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
+import org.zalando.nakadi.client.ClientError
+import org.zalando.nakadi.client.scala.StreamParameters
+import org.zalando.nakadi.client.scala.model.{ Cursor, Event }
+import com.fasterxml.jackson.core.`type`.TypeReference
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.ClientFactory
+import org.zalando.nakadi.client.scala.Listener
 
-case class MyEventExample(orderNumber: String)
+case class MyEventExample(orderNumber: String) extends Event
 object Subscriber extends App {
   val a = new A()
-    a.startListening()
-//  a.printPartitions()
-//  a.printEventTypes()
-//  a.sendEvents(30)
+  a.startListening()
+  //  a.printPartitions()
+  //  a.printEventTypes()
+  //  a.sendEvents(30)
 }
 
-class A    {
+class A {
   import ClientFactory._
   import JacksonJsonMarshaller._
   val eventType = "test-client-integration-event-1936085527-148383828851369665"
@@ -38,12 +38,10 @@ class A    {
     val url = "/event-types/test-client-integration-event-1936085527-148383828851369665/events"
     val cr = Cursor(0, 170000)
     val params = new StreamParameters(
-        cursor = Some(cr)
-        ,batchLimit = Some(10) 
-//        ,streamLimit=Some(10)
-//        ,streamTimeout=Some(10)
-//        ,streamKeepAliveLimit =Some(10)
-        )
+      cursor = Some(cr), batchLimit = Some(10) //        ,streamLimit=Some(10)
+      //        ,streamTimeout=Some(10)
+      //        ,streamKeepAliveLimit =Some(10)
+      )
     client.subscribe(eventType, params, listener)
   }
 
@@ -62,7 +60,7 @@ class A    {
     println(s"$msg - " + obj)
     println("###########################")
   }
-  def sendEvents(in:Int) = {
+  def sendEvents(in: Int) = {
     val events = for {
       a <- 1 to in
     } yield MyEventExample("order-" + a)

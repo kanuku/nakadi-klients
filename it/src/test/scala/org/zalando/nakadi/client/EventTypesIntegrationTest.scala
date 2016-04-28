@@ -1,7 +1,7 @@
 package org.zalando.nakadi.client
 
 import org.scalatest.{ Matchers, WordSpec }
-import org.zalando.nakadi.client.model._
+import org.zalando.nakadi.client.scala.model._
 import com.fasterxml.jackson.core.`type`.TypeReference
 import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.scala.EventTypesActions
@@ -23,7 +23,7 @@ import JacksonJsonMarshaller._
     //Check the created EventType
     checkEventTypeExists(eventType)
 
-    case class MyEventExample(orderNumber: String)
+    case class MyEventExample(orderNumber: String)extends Event
     implicit def problemTR: TypeReference[MyEventExample] = new TypeReference[MyEventExample] {}
     val events = for {
       a <- 0 to 4005

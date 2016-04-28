@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.scala
+package org.zalando.nakadi.client.scala.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import scala.collection.JavaConversions._
@@ -28,6 +28,13 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 trait Event {
   
 }
+/**
+ * @param partition Id of the partition pointed to by this cursor.
+ * @param offset Offset of the event being pointed to.
+ */
+case class Cursor(
+  partition: Integer,
+  offset: Integer)
 
 /**
  *
@@ -107,13 +114,6 @@ case class Partition(
   partition: Integer,
   oldestAvailableOffset: Integer,
   newestAvailableOffset: Integer)
-/**
- * @param partition Id of the partition pointed to by this cursor.
- * @param offset Offset of the event being pointed to.
- */
-case class Cursor(
-  partition: Integer,
-  offset: Option[Integer])
 
 /**
  * One chunk of events in a stream. A batch consists of an array of `Event`s plus a `Cursor` pointing to the offset of the last Event in the stream. The size of the array of Event is limited by the parameters used to initialize a Stream. If acting as a keep alive message (see `GET /event-type/{name}/events`) the events array will be omitted. Sequential batches might repeat the cursor if no new events arrive.
@@ -123,7 +123,7 @@ case class Cursor(
  */
 case class EventStreamBatch[T <: Event](
   cursor: Cursor,
-  events: Seq[T])
+  events: Option[Seq[T]])
 
 /**
  * An event type defines the schema and its runtime properties.
