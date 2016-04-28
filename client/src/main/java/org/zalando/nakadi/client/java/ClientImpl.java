@@ -14,13 +14,11 @@ import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.model.Metrics;
 import org.zalando.nakadi.client.java.model.Partition;
 import org.zalando.nakadi.client.scala.Connection;
-import org.zalando.nakadi.client.utils.FutureConversions;
 import org.zalando.nakadi.client.utils.Serialization;
 import org.zalando.nakadi.client.utils.Uri;
 
 public class ClientImpl implements Client {
 	private final Connection connection;
-	private final String charSet;
 	
 	 //Deserializers
 	 private final Deserializer<Metrics> metricsDeserializer =Serialization.metricsDeserializer();
@@ -35,9 +33,8 @@ public class ClientImpl implements Client {
 	 private final Serializer<EventType> eventTypeSerializer =Serialization.defaultSerializer();
 	 private final Deserializer<EventType> eventTypeDeserializer = Serialization.eventTypeDeserializer();
 
-	public ClientImpl(Connection connection, String charSet) {
+	public ClientImpl(Connection connection) {
 		this.connection = connection;
-		this.charSet = charSet;
 	}
 
 	@Override
