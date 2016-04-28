@@ -21,6 +21,13 @@ import org.zalando.nakadi.client.actor.EventConsumer.ShutdownMsg
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.scala.model.Event
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import scala.util.Try
+import scala.util.Failure
+import scala.util.Success
+import akka.http.scaladsl.model.{ HttpHeader, HttpMethod, HttpMethods, HttpResponse, MediaRange }
+import java.util.Optional
+import org.zalando.nakadi.client.utils.FutureConversions
 
 trait Connection extends HttpFactory {
 
@@ -32,6 +39,8 @@ trait Connection extends HttpFactory {
 
   def get(endpoint: String): Future[HttpResponse]
   def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
+  def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
+  def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
   def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
   def delete(endpoint: String): Future[HttpResponse]
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
@@ -101,6 +110,26 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     logger.info("Get - URL {} - Headers {}", endpoint, headers)
     executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None))
   }
+  def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
+    FutureConversions.fromFuture2Future(get(endpoint).flatMap(deserialize4Java(_, des)))
+  }
+  def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
+    FutureConversions.fromFuture2Future(executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None)).flatMap(deserialize4Java(_, des)))
+  }
+  
+  private def deserialize4Java[T](response:HttpResponse, des: Deserializer[T]):Future[Optional[T]] = response match {
+      case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
+
+        Try(Unmarshal(entity).to[String].map(body => des.from(body))) match {
+          case Success(result) => result.map(Optional.of(_))
+          case Failure(error) => throw new RuntimeException(error.getMessage)
+        }
+      //          val errorMsg = "Failed to Deserialize with error:" + error.getMessage
+      //        listener.onError(url, null, ClientError("Failed to Deserialize with an error!", None))
+
+      case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
+        throw new RuntimeException(status.reason())
+    }
   def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
     logger.info("Streaming on Get: {}", endpoint)
     executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None)) //TODO: Change to stream single event

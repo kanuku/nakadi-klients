@@ -63,7 +63,10 @@ class ClientBuilder  private(host: String = "", //
 
   def build(): Client = new ClientImpl(Connection.newConnection(host, port, tokenProvider, securedConnection, verifySSlCertificate), "UTF-8")
 
-  def buildJavaClient(): org.zalando.nakadi.client.java.Client = new org.zalando.nakadi.client.java.ClientImpl(build)
+  def buildJavaClient():org.zalando.nakadi.client.java.Client  = {
+    val connection =Connection.newConnection(host, port, tokenProvider, securedConnection, verifySSlCertificate)
+    new org.zalando.nakadi.client.java.ClientImpl(connection, "UTF-8")
+  }
 
   private def checkNotNull[T](subject: T): T =
     if (Option(subject).isEmpty) throw new NullPointerException else subject

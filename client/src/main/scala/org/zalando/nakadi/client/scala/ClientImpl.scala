@@ -19,11 +19,13 @@ import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.ClientError
+import org.zalando.nakadi.client.utils.Uri
 
 
 
 private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client with HttpFactory {
   implicit val materializer = connection.materializer
+  import Uri._
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
   def getMetrics()(implicit des: Deserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]] = {

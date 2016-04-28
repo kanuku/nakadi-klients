@@ -1,19 +1,21 @@
 package org.zalando.nakadi.client.examples.java;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.zalando.nakadi.client.java.Client;
+import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
+import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
+import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
+import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
+import org.zalando.nakadi.client.java.enumerator.SchemaType;
 import org.zalando.nakadi.client.java.model.Event;
-import org.zalando.nakadi.client.java.model.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.model.EventTypeCategory;
 import org.zalando.nakadi.client.java.model.EventTypeSchema;
-import org.zalando.nakadi.client.java.model.EventValidationStrategy;
-import org.zalando.nakadi.client.java.model.PartitionStrategy;
-import org.zalando.nakadi.client.java.model.SchemaType;
+import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 import org.zalando.nakadi.client.scala.ClientFactory;
 import org.zalando.nakadi.client.utils.ClientBuilder;
+
+import com.google.common.collect.Lists;
 
 public class EventCreationExample {
 
@@ -49,24 +51,29 @@ public class EventCreationExample {
 		return new EventTypeSchema(SchemaType.JSON, schema);
 	}
 
-	public EventType createEventType(String name,EventTypeSchema eventTypeSchema) {
-		String owner = "team-laas";
+	public EventType createEventType(String name,
+			EventTypeSchema eventTypeSchema) {
+		String owningApplication = "team-laas";
 		EventTypeCategory category = EventTypeCategory.UNDEFINED;
-		EventValidationStrategy validationStrategies = EventValidationStrategy.NONE;
-		EventEnrichmentStrategy enrichmentStrategies = null;
+		List<EventValidationStrategy> validationStrategies = Lists
+				.newArrayList(EventValidationStrategy.NONE);
+		List<EventEnrichmentStrategy> enrichmentStrategies = Lists
+				.newArrayList();
 		PartitionStrategy partitionStrategy = PartitionStrategy.RANDOM;
-		 List<String> paritionKeyFields  = new ArrayList("date", "topic");
-		 
-		return new EventType(name,// eventTypeName
-				owner,// owner
-				category,// category
-				validationStrategies,// validationStrategies
-				enrichmentStrategies,// enrichmentStrategies
-				partitionStrategy,// partitionStrategy
-				eventTypeSchema,// eventTypeSchema
-				null,// dataKeyFields
-				null,// partitionKeyFields
-				null);// statistics
+
+		List<String> dataKeyFields = null;
+		List<String> partitionKeyFields = Lists.newArrayList("date", "topic");
+		EventTypeStatistics statistics = null;
+		return new EventType(name, //
+				owningApplication, //
+				category, //
+				validationStrategies, //
+				enrichmentStrategies, //
+				partitionStrategy, //
+				eventTypeSchema, //
+				dataKeyFields, //
+				partitionKeyFields, //
+				statistics);
 
 	}
 

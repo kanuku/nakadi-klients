@@ -7,6 +7,9 @@ import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
 import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * An event type defines the schema and its runtime properties.
  * 
@@ -19,7 +22,7 @@ public class EventType {
     private final List<EventValidationStrategy> validationStrategies;
     private final List<EventEnrichmentStrategy> enrichmentStrategies;
     private final PartitionStrategy partitionStrategy;
-    private final String schema;
+    private final EventTypeSchema schema;
     private final List<String> dataKeyFields;
     private final List<String> partitionKeyFields;
     private final EventTypeStatistics statistics;
@@ -101,10 +104,29 @@ public class EventType {
      *            measured statistics).
      *
      */
-    public EventType(String name, String owningApplication, EventTypeCategory category,
-            List<EventValidationStrategy> validationStrategies, List<EventEnrichmentStrategy> enrichmentStrategies,
-            PartitionStrategy partitionStrategy, String schema, List<String> dataKeyFields,
-            List<String> partitionKeyFields, EventTypeStatistics statistics) {
+    @JsonCreator
+    public EventType(
+    		@JsonProperty("name")
+    		String name, 
+    		@JsonProperty("owning_application")
+    		String owningApplication, 
+    		@JsonProperty("category")
+    		EventTypeCategory category,
+    		
+    		@JsonProperty("validation_strategies")
+            List<EventValidationStrategy> validationStrategies, 
+            @JsonProperty("enrichment_strategies")
+            List<EventEnrichmentStrategy> enrichmentStrategies,
+            @JsonProperty("partition_strategy")
+            PartitionStrategy partitionStrategy, 
+            @JsonProperty("schema")
+            EventTypeSchema schema, 
+            @JsonProperty("data_key_fields")
+            List<String> dataKeyFields,
+            @JsonProperty("partition_key_fields")
+            List<String> partitionKeyFields, 
+            @JsonProperty("statistics")
+            EventTypeStatistics statistics) {
         this.name = name;
         this.owningApplication = owningApplication;
         this.category = category;
@@ -141,7 +163,7 @@ public class EventType {
         return partitionStrategy;
     }
 
-    public String getSchema() {
+    public EventTypeSchema getSchema() {
         return schema;
     }
 
@@ -156,5 +178,17 @@ public class EventType {
     public EventTypeStatistics getStatistics() {
         return statistics;
     }
+
+	@Override
+	public String toString() {
+		return "EventType [name=" + name + ", owningApplication="
+				+ owningApplication + ", category=" + category
+				+ ", validationStrategies=" + validationStrategies
+				+ ", enrichmentStrategies=" + enrichmentStrategies
+				+ ", partitionStrategy=" + partitionStrategy + ", schema="
+				+ schema + ", dataKeyFields=" + dataKeyFields
+				+ ", partitionKeyFields=" + partitionKeyFields
+				+ ", statistics=" + statistics + "]";
+	}
 
 }

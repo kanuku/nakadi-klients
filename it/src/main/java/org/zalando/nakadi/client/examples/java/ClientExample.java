@@ -7,15 +7,15 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 import org.zalando.nakadi.client.java.Client;
-import org.zalando.nakadi.client.java.model.PartitionStrategy;
-import org.zalando.nakadi.client.utils.ClientBuilder;
+import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.scala.ClientFactory;
+import org.zalando.nakadi.client.utils.ClientBuilder;
 
 public class ClientExample {
 	private static final String token = ClientFactory.getToken();
 
-	private static Optional<List<PartitionStrategy>> unwrap(
-			Future<Optional<List<PartitionStrategy>>> result)
+	private static <T> Optional<List<T>> unwrap(
+			Future<Optional<List<T>>> result)
 			throws InterruptedException, ExecutionException {
 		return result.get();
 	}
@@ -29,14 +29,14 @@ public class ClientExample {
 				.withTokenProvider4Java(() -> token)//
 				.buildJavaClient();
 
-		Future<Optional<List<PartitionStrategy>>> result = client
-				.getPartitioningStrategies();
+		Future<Optional<List<EventType>>> result = client
+				.getEventTypes();
 
-		Optional<List<PartitionStrategy>> opt = ClientExample.unwrap(result);
+		Optional<List<EventType>> opt = ClientExample.unwrap(result);
 
-		opt.ifPresent(new Consumer<List<PartitionStrategy>>() {
+		opt.ifPresent(new Consumer<List<EventType>>() {
 			@Override
-			public void accept(List<PartitionStrategy> t) {
+			public void accept(List<EventType> t) {
 				System.out.println(">>>>" + t);
 			}
 		});

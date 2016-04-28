@@ -1,10 +1,9 @@
 package org.zalando.nakadi.client.scala.model
 
-import scala.reflect.runtime.universe._
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.scala._
+
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.core.JsonParser
@@ -18,11 +17,9 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.typesafe.scalalogging.Logger
-import org.zalando.nakadi.client.scala.model._
 
 object JacksonJsonMarshaller {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
-  val factory = new JsonFactory();
 
   // All TypeReferences
   implicit def problemTR: TypeReference[Problem] = new TypeReference[Problem] {}
