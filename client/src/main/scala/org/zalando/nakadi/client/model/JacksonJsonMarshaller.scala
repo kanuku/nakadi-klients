@@ -3,9 +3,11 @@ package org.zalando.nakadi.client.model
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe._
+
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
+
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.core.JsonParser
@@ -17,11 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
-import com.fasterxml.jackson.databind.deser.std.ObjectArrayDeserializer
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.typesafe.scalalogging.Logger
-import com.fasterxml.jackson.databind.`type`.ArrayType
-import com.fasterxml.jackson.databind.jsontype.TypeDeserializer
 
 object JacksonJsonMarshaller {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
@@ -33,13 +32,14 @@ object JacksonJsonMarshaller {
   implicit def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
   implicit def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
   implicit def eventTypeSchemaTR: TypeReference[EventTypeSchema] = new TypeReference[EventTypeSchema] {}
-  implicit def eventValidationStrategyTR: TypeReference[EventValidationStrategy.Value] = new TypeReference[EventValidationStrategy.Value] {}
-  implicit def partitionResolutionStrategyTR: TypeReference[PartitionStrategy.Value] = new TypeReference[PartitionStrategy.Value] {}
-  implicit def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy.Value] = new TypeReference[EventEnrichmentStrategy.Value] {}
+  implicit def eventValidationStrategyTR: TypeReference[EventValidationStrategy] = new TypeReference[EventValidationStrategy] {}
+  implicit def partitionResolutionStrategyTR: TypeReference[PartitionStrategy] = new TypeReference[PartitionStrategy] {}
+  implicit def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy] = new TypeReference[EventEnrichmentStrategy] {}
   implicit def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] = new TypeReference[DataChangeEventQualifier] {}
   implicit def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] = new TypeReference[EventTypeStatistics] {}
   implicit def eventTypeTR: TypeReference[EventType] = new TypeReference[EventType] {}
   implicit def eventTR: TypeReference[Event] = new TypeReference[Event] {}
+  implicit def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] = new TypeReference[EventStreamBatch[_]] {}
 
   implicit def eventMetadataTR: TypeReference[EventMetadata] = new TypeReference[EventMetadata] {}
   implicit def businessEventTR: TypeReference[BusinessEvent] = new TypeReference[BusinessEvent] {}
@@ -47,9 +47,9 @@ object JacksonJsonMarshaller {
   implicit def dataChangeEventTR: TypeReference[DataChangeEvent[Any]] = new TypeReference[DataChangeEvent[Any]] {}
 
   //Lists
-  implicit def listOfPartitionResolutionStrategyTR: TypeReference[Seq[PartitionStrategy.Value]] = new TypeReference[Seq[PartitionStrategy.Value]] {}
-  implicit def listOfEventValidationStrategyTR: TypeReference[Seq[EventValidationStrategy.Value]] = new TypeReference[Seq[EventValidationStrategy.Value]] {}
-  implicit def listOfEventEnrichmentStrategyTR: TypeReference[Seq[EventEnrichmentStrategy.Value]] = new TypeReference[Seq[EventEnrichmentStrategy.Value]] {}
+  implicit def listOfPartitionStrategyTR: TypeReference[Seq[PartitionStrategy]] = new TypeReference[Seq[PartitionStrategy]] {}
+  implicit def listOfEventValidationStrategyTR: TypeReference[Seq[EventValidationStrategy]] = new TypeReference[Seq[EventValidationStrategy]] {}
+  implicit def listOfEventEnrichmentStrategyTR: TypeReference[Seq[EventEnrichmentStrategy]] = new TypeReference[Seq[EventEnrichmentStrategy]] {}
   implicit def listOfEventTypeTR: TypeReference[Seq[EventType]] = new TypeReference[Seq[EventType]] {}
   implicit def listOfPartitionTR: TypeReference[Seq[Partition]] = new TypeReference[Seq[Partition]] {}
 

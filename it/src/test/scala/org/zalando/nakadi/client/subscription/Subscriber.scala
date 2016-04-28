@@ -1,12 +1,7 @@
-package org.zalando.nakadi.client.example2
+package org.zalando.nakadi.client.subscription
 
-import com.fasterxml
-import org.zalando
-import org.zalando
-import org.zalando
-import scala.concurrent.Future
 import org.zalando.nakadi.client.model.JacksonJsonMarshaller
-import org.zalando.nakadi.client.ClientFactory
+import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.StreamParameters
 import org.zalando.nakadi.client.Listener
 import org.zalando.nakadi.client.ClientError
@@ -18,12 +13,15 @@ import scala.concurrent.duration.DurationInt
 case class MyEventExample(orderNumber: String)
 object Subscriber extends App {
   val a = new A()
-  //  a.startListening()
-  //  a.sendEvents()
-  a.printPartitions()
+    a.startListening()
+//  a.printPartitions()
+//  a.printEventTypes()
+//  a.sendEvents(30)
 }
 
-class A extends ClientFactory with JacksonJsonMarshaller {
+class A    {
+  import ClientFactory._
+  import JacksonJsonMarshaller._
   val eventType = "test-client-integration-event-1936085527-148383828851369665"
   implicit def myEventExampleTR: TypeReference[MyEventExample] = new TypeReference[MyEventExample] {}
   def startListening() = {
@@ -35,25 +33,41 @@ class A extends ClientFactory with JacksonJsonMarshaller {
       }
       def onSubscribed(): Unit = ???
       def onUnsubscribed(): Unit = ???
-      def onReceive(sourceUrl: String, cursor: Cursor, event: MyEventExample): Unit = ???
+      def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MyEventExample]): Unit = ???
     }
     val url = "/event-types/test-client-integration-event-1936085527-148383828851369665/events"
-    val c = Cursor(0, Some(1))
-    val params = new StreamParameters(cursor = Some(c))
+    val cr = Cursor(0, 170000)
+    val params = new StreamParameters(
+        cursor = Some(cr)
+        ,batchLimit = Some(10) 
+//        ,streamLimit=Some(10)
+//        ,streamTimeout=Some(10)
+//        ,streamKeepAliveLimit =Some(10)
+        )
     client.subscribe(eventType, params, listener)
   }
 
   def printPartitions() = {
-    val result = Await.result(client.partitions(eventType), 5.seconds)
-    println("###########################")
-    println("partitions" + result)
-    println("###########################")
-
+    val result = Await.result(client.getPartitions(eventType), 5.seconds)
+    print("partitions", result)
   }
-  def sendEvents() = {
+
+  def printEventTypes() = {
+    val result = Await.result(client.getEventTypes(), 5.seconds)
+    print("eventTypes", result)
+  }
+
+  def print(msg: String, obj: Any) = {
+    println("###########################")
+    println(s"$msg - " + obj)
+    println("###########################")
+  }
+  def sendEvents(in:Int) = {
     val events = for {
-      a <- 0 to 1
+      a <- 1 to in
     } yield MyEventExample("order-" + a)
-    client.newEvents(eventType, events)
+    client.publishEvents(eventType, events)
   }
 }
+
+ 

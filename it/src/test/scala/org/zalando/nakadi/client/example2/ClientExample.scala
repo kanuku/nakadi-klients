@@ -7,7 +7,7 @@ import scala.concurrent.Future
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.http.scaladsl.Http
-import org.zalando.nakadi.client.Connection
+import org.zalando.nakadi.client.scala.Connection
 import java.net.InetSocketAddress
 import scala.concurrent.Future
 import akka.stream.scaladsl.Tcp

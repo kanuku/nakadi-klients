@@ -18,26 +18,43 @@ import org.zalando.nakadi.client.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.Deserializer
+import org.zalando.nakadi.client.model.SchemaType
+import org.zalando.nakadi.client.model.PartitionStrategy
+import org.zalando.nakadi.client.Deserializer
+import org.zalando.nakadi.client.model.EventTypeSchema
+import org.zalando.nakadi.client.model.EventMetadata
+import org.zalando.nakadi.client.model.EventTypeCategory
+import org.zalando.nakadi.client.model.EventType
+import org.zalando.nakadi.client.Serializer
 
-trait ClientFactory {
-  val host = "nakadi-sandbox.aruha-test.zalan.do"
-  val OAuth2Token = () => ""
-  val port = 443
-  val connection = Connection.newConnection(host, port, OAuth2Token, true, false)
-  val client = new ClientImpl(connection, "UTF-8")
-  
+object ClientFactory {
+  def host():String = "nakadi-sandbox.my-test.fernan.do"
+  def OAuth2Token(): () => String = () => ""
+  def getToken():String = OAuth2Token().apply()
+  def port():Integer = 443
+  def connection():Connection = Connection.newConnection(host, port, OAuth2Token(), true, false)
+  def client():Client = new ClientImpl(connection, "UTF-8")
 
 }
+//trait ClientFactory {
+//  def host():String
+//  def OAuth2Token : () => String
+//  def getToken:String
+//  def port(): Int
+//  def connection(): Connection
+//  def client(): Client
+//
+//}
 
-case class EventActions(client: Client)   {
-import JacksonJsonMarshaller._
+case class EventActions(client: Client) {
+  import JacksonJsonMarshaller._
   def create[T](name: String, event: Seq[T])(implicit ser: Serializer[Seq[T]]) = {
     client.publishEvents[T](name, event)
   }
 }
 
-case class EventTypesActions(client: Client)  {
-import JacksonJsonMarshaller._
+case class EventTypesActions(client: Client) {
+  import JacksonJsonMarshaller._
   def create(event: EventType)(implicit ser: Serializer[EventType]) = {
     executeCall(client.createEventType(event))
   }

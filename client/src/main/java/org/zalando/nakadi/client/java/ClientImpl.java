@@ -3,149 +3,134 @@ package org.zalando.nakadi.client.java;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
-import java.util.function.Supplier;
 
+import scala.collection.JavaConverters;
+
+import org.zalando.nakadi.client.Deserializer;
+import org.zalando.nakadi.client.Listener;
 import org.zalando.nakadi.client.Serializer;
-import org.zalando.nakadi.client.model.Event;
-import org.zalando.nakadi.client.model.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.model.EventType;
-import org.zalando.nakadi.client.model.EventValidationStrategy;
-import org.zalando.nakadi.client.model.Metrics;
-import org.zalando.nakadi.client.model.Partition;
-import org.zalando.nakadi.client.model.PartitionStrategy;
-import org.zalando.nakadi.client.scala.ClientBuilder;
+import org.zalando.nakadi.client.StreamParameters;
+import org.zalando.nakadi.client.java.model.Event;
+import org.zalando.nakadi.client.java.model.EventEnrichmentStrategy;
+import org.zalando.nakadi.client.java.model.EventType;
+import org.zalando.nakadi.client.java.model.EventValidationStrategy;
+import org.zalando.nakadi.client.java.model.Metrics;
+import org.zalando.nakadi.client.java.model.Partition;
+import org.zalando.nakadi.client.java.model.PartitionStrategy;
 import org.zalando.nakadi.client.utils.FutureConversions;
 import org.zalando.nakadi.client.utils.Serialization;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import scala.collection.Seq;
+
 
 public class ClientImpl implements Client {
 	private final org.zalando.nakadi.client.scala.Client client;
 	
+	//Deserializers
+	private final Deserializer<Metrics> metricsDeserializer =Serialization.metricsDeserializer();
+	private final Deserializer<Partition> partitionDeserializer = Serialization.partitionDeserializer();
+	//Seq Deserializers
+	private final Deserializer<Seq<EventType>> seqOfEventTypeDeserializer =Serialization.seqOfEventTypeDeserializer();
+	private final Deserializer<Seq<Partition>> seqOfPartitionDeserializer =Serialization.seqOfPartitionDeserializer();
+	private final Deserializer<Seq<EventValidationStrategy>> seqOfEventValidationStrategy =Serialization.seqOfEventValidationStrategy();
+	private final Deserializer<Seq<EventEnrichmentStrategy>> seqOfEventEnrichmentStrategy =Serialization.seqOfEventEnrichmentStrategy();
+	private final Deserializer<Seq<PartitionStrategy>> seqOfPartitionStrategy =Serialization.seqOfPartitionStrategy();
+	//Serializers
+	private final Serializer<EventType> eventTypeSerializer =Serialization.defaultSerializer();
+	private final Deserializer<EventType> eventTypeDeserializer = Serialization.eventTypeDeserializer();
 	
 	
 	public ClientImpl(org.zalando.nakadi.client.scala.Client client) {
 		this.client = client;
 	}
 
-	public ClientImpl(String host, //
-			Optional<Integer> port, //
-			Optional<Supplier<String>> provider, //
-			Optional<Boolean> securedConnection, //
-			Optional<Boolean> verifySSlCertificate) {
-
-		ClientBuilder builder = new ClientBuilder().withHost(host);
-		if (port.isPresent())
-			builder = builder.withPort(port.get());
-		if (provider.isPresent())
-			builder = builder.withTokenProvider4Java(provider.get());
-		if (securedConnection.isPresent())
-			builder = builder.withSecuredConnection(securedConnection.get());
-		if (verifySSlCertificate.isPresent())
-			builder = builder.withVerifiedSslCertificate(verifySSlCertificate
-					.get());
-
-		client = builder.build();
-	}
+	 
 
 	@Override
 	public Future<Optional<Metrics>> getMetrics() {
-		return FutureConversions.fromOptionOfEither2Optional(client.getMetrics(Serialization.metricsDeserializer()));
+		return FutureConversions.fromOptionOfEither2Optional(client.getMetrics(metricsDeserializer));
 	}
 
 	@Override
 	public Future<Optional<List<EventType>>> getEventTypes() {
-		return FutureConversions.fromSeqOfOptionalEither2OptionalList(client.getEventTypes(Serialization.seqOfEventTypeDeserializer()));
+		return FutureConversions.fromSeqOfOptionalEither2OptionalList(client.getEventTypes(seqOfEventTypeDeserializer));
 	}
 
 	@Override
 	public Future<Void> createEventType(EventType eventType) {
-		// TODO Auto-generated method stub
-		return null;
+		
+		return FutureConversions.fromOptional2Future(client.createEventType(eventType,eventTypeSerializer));
 	}
 
 	@Override
 	public Future<Optional<EventType>> getEventType(String eventTypeName) {
-		// TODO Auto-generated method stub
-		return null;
+		return FutureConversions.fromOptionOfEither2Optional(client.getEventType(eventTypeName,eventTypeDeserializer));
 	}
 
 	@Override
-	public Future<Void> updateEventType(String eventTypeName,
-			EventType eventType) {
-		// TODO Auto-generated method stub
-		return null;
+	public Future<Void> updateEventType(String eventTypeName,EventType eventType) {
+		return  FutureConversions.fromOptional2Future(client.updateEventType(eventTypeName,eventType,eventTypeSerializer));
 	}
 
 	@Override
 	public Future<Void> deleteEventType(String eventTypeName) {
-		// TODO Auto-generated method stub
-		return null;
+		return  FutureConversions.fromOptional2Future(client.deleteEventType(eventTypeName));
 	}
 
 	@Override
-	public <T extends Event> Future<Void> publishEvent(String eventTypeName,
-			T event, Serializer<T> serializer) {
-		// TODO Auto-generated method stub
-		return null;
+	public <T extends Event> Future<Void> publishEvent(String eventTypeName, T event, Serializer<T> serializer) {
+		return FutureConversions.fromOptional2Future(client.publishEvent(eventTypeName,event,serializer));
 	}
 
 	@Override
-	public <T extends Event> Future<Void> publishEvent(String eventTypeName,
-			T event, TypeReference<T> ref) {
-		// TODO Auto-generated method stub
-		return null;
+	public <T extends Event> Future<Void> publishEvent(String eventTypeName, T event) {
+		Serializer<T> serializer =Serialization.defaultSerializer();
+		return FutureConversions.fromOptional2Future(client.publishEvent(eventTypeName,event,serializer));
 	}
 
 	@Override
-	public <T extends Event> Future<Void> publishEvents(String eventTypeName,
-			List<T> events, Serializer<List<T>> serializer) {
-		// TODO Auto-generated method stub
-		return null;
+	public <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events, Serializer<T> serializer) {
+		return FutureConversions.fromOptional2Future(client.publishEvents(eventTypeName,events,serializer));
 	}
 
 	@Override
-	public <T extends Event> Future<Void> publishEvents(String eventTypeName,
-			List<T> events, TypeReference<List<T>> ref) {
-		// TODO Auto-generated method stub
-		return null;
+	public <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events) {
+		Serializer<T> serializer =Serialization.defaultSerializer();
+		return FutureConversions.fromOptional2Future(client.publishEvents(eventTypeName,events,serializer));
 	}
 
 	@Override
 	public Future<Optional<List<Partition>>> getPartitions(String eventTypeName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Future<Optional<Partition>> getPartitionById(String eventTypeName,
-			String id) {
-		// TODO Auto-generated method stub
-		return null;
+		return FutureConversions.fromSeqOfOptionalEither2OptionalList(client.getPartitions(eventTypeName,seqOfPartitionDeserializer));
 	}
 
 	@Override
 	public Future<Optional<List<EventValidationStrategy>>> getValidationStrategies() {
-		// TODO Auto-generated method stub
-		return null;
+		return FutureConversions.fromSeqOfOptionalEither2OptionalList(client.getValidationStrategies(seqOfEventValidationStrategy));
 	}
 
 	@Override
 	public Future<Optional<List<EventEnrichmentStrategy>>> getEnrichmentStrategies() {
-		// TODO Auto-generated method stub
-		return null;
+		return FutureConversions.fromSeqOfOptionalEither2OptionalList(client.getEnrichmentStrategies(seqOfEventEnrichmentStrategy));
 	}
 
 	@Override
-	public Future<Optional<List<PartitionStrategy>>> getPartitionStrategies() {
-		// TODO Auto-generated method stub
-		return null;
+	public Future<Optional<List<PartitionStrategy>>> getPartitioningStrategies() {
+		return FutureConversions.fromSeqOfOptionalEither2OptionalList(client.getPartitioningStrategies(seqOfPartitionStrategy));
 	}
 
 	@Override
 	public Future<Void> stop() {
-		// TODO Auto-generated method stub
-		return null;
+		return FutureConversions.fromOptional2Future(client.stop());
+	}
+	@Override
+	public <T extends Event> Future<Void> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<T> deserializer) {
+		return FutureConversions.fromOptional2Future(client.subscribe(eventTypeName,parameters,listener,deserializer));
+	}
+
+	@Override
+	public <T extends Event> Future<Void> unsubscribe(String eventTypeName, Listener<T> listener) {
+		return FutureConversions.fromOptional2Future(client.unsubscribe(eventTypeName,listener));
 	}
 
 }

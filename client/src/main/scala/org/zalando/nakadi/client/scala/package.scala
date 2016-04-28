@@ -11,7 +11,6 @@ package object scala {
 
   /*Partitions*/
   val URI_PARTITIONS_BY_EVENT_TYPE = "/event-types/%s/partitions"
-  val URI_PARTITION_BY_EVENT_TYPE_AND_ID = "/event-types/%s/partitions/%s"
 
   /*Strategies*/
   val URI_VALIDATION_STRATEGIES = "/registry/validation-strategies"

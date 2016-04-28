@@ -2,7 +2,7 @@ package org.zalando.nakadi.client.logic
 
 import scala.concurrent.Future
 
-import org.zalando.nakadi.client.Connection
+import org.zalando.nakadi.client.scala.Connection
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http

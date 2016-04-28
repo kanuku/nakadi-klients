@@ -1,0 +1,30 @@
+package org.zalando.nakadi.client.java;
+
+import org.zalando.nakadi.client.model.SchemaType;
+
+import scala.Option;
+
+import com.fasterxml.jackson.annotation.JsonValue;
+
+public enum SchemaType {
+	JSON("json_schema");
+
+	private final String schema;
+
+	private SchemaType(String schema) {
+		this.schema = schema;
+	}
+	@JsonValue
+	public String getSchema() {
+		return schema;
+	}
+
+	public static Option<SchemaType> withName(String code) {
+		for (SchemaType e : SchemaType.values()) {
+			if (e.schema.equals(code))
+				return Option.apply(e);
+		}
+		return Option.empty();
+	}
+
+}

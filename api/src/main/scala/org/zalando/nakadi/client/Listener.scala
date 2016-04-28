@@ -1,6 +1,6 @@
 package org.zalando.nakadi.client
 
-import org.zalando.nakadi.client.model.Cursor
+import org.zalando.nakadi.client.scala.Cursor
 
 case class ClientError(msg: String, status: Option[Int])
 
@@ -18,6 +18,6 @@ trait Listener[T] {
   def id: String
   def onSubscribed(): Unit
   def onUnsubscribed(): Unit
-  def onReceive(sourceUrl: String, cursor: Cursor, event: T): Unit
+  def onReceive(sourceUrl: String, cursor: Cursor, event: Seq[T]): Unit
   def onError(sourceUrl: String, cursor: Cursor, error: ClientError): Unit
 }

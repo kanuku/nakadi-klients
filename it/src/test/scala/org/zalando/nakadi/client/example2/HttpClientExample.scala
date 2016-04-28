@@ -2,10 +2,10 @@ package org.zalando.nakadi.client.example2
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import org.zalando.nakadi.client.ClientFactory
-import org.zalando.nakadi.client.Connection
-import org.zalando.nakadi.client.HttpFactory
-import org.zalando.nakadi.client.NakadiDeserializer
+import org.zalando.nakadi.client.scala.ClientFactory
+import org.zalando.nakadi.client.scala.Connection
+import org.zalando.nakadi.client.scala.HttpFactory
+import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.StreamParameters
 import org.zalando.nakadi.client.model.JacksonJsonMarshaller
 import com.fasterxml.jackson.core.`type`.TypeReference
@@ -40,15 +40,17 @@ import akka.util.ByteString
 import org.zalando.nakadi.client.done.EventConsumingActor
 import org.zalando.nakadi.client.model.Cursor
 
-object HttpClient extends App with ClientFactory with HttpFactory with JacksonJsonMarshaller {
+object HttpClient extends App   with HttpFactory  {
+  import ClientFactory._
+  import JacksonJsonMarshaller._
   private implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
   private implicit val http = Http(actorSystem)
   implicit val materializer = ActorMaterializer()
   val eventName = "/event-types/test-client-integration-event-1936085527-148383828851369665/events"
-  val cursor = Cursor(0,Some(30115))
+  val cursor = Cursor(0,30115)
   val params = Some(StreamParameters())
   val headers = RawHeader("Accept", "application/x-json-stream") :: withHeaders(params)
-  val request = withHttpRequest(eventName, HttpMethods.GET, headers, OAuth2Token)
+  val request = withHttpRequest(eventName, HttpMethods.GET, headers, OAuth2Token(),None)
   case class MyEventExample(orderNumber: String)
   implicit val myEvent = new TypeReference[MyEventExample] {}
   val receiver = new ReceiverGraph[MyEventExample](eventName, connection, request, headers)
@@ -56,7 +58,7 @@ object HttpClient extends App with ClientFactory with HttpFactory with JacksonJs
 }
 
 class ReceiverGraph[T](eventName: String, connection: Connection, request: HttpRequest, headers: List[HttpHeader]) //
-(implicit system: ActorSystem, m: ActorMaterializer, des: NakadiDeserializer[T]) {
+(implicit system: ActorSystem, m: ActorMaterializer, des: Deserializer[T]) {
 
   import GraphDSL.Implicits._
   def listen() = {
@@ -103,9 +105,9 @@ object Transformers {
   def failure(s: String) = Future.failed(new IllegalArgumentException(s"Error $s"))
   def toByteString(implicit m: ActorMaterializer): Flow[HttpResponse, String, NotUsed] = Flow[HttpResponse].mapAsync(1)(Unmarshal(_).to[String])
   val validRequestFilter: Flow[HttpResponse, HttpResponse, NotUsed] = Flow[HttpResponse].filter(_.status.isSuccess())
-  def transformToObject[T](implicit des: NakadiDeserializer[T]): Flow[String, T, NotUsed] = Flow[String].map { x =>
+  def transformToObject[T](implicit des: Deserializer[T]): Flow[String, T, NotUsed] = Flow[String].map { x =>
     println(" x " + x)
-    des.fromJson(x)
+    des.from(x)
   }
 
 }

@@ -1,5 +1,8 @@
-package org.zalando.nakadi.client.scala
+package org.zalando.nakadi.client.utils
 
+import org.zalando.nakadi.client.scala.Client
+import org.zalando.nakadi.client.scala.ClientImpl
+import org.zalando.nakadi.client.scala.Connection
 import java.util.function.Supplier
 
 
@@ -10,17 +13,17 @@ object ClientBuilder {
     port: Int = DEFAULT_PORT,
     tokenProvider: () => String = null,
     securedConnection: Boolean = true,
-    verifySSlCertificate: Boolean = true) = {
-
-  }
+    verifySSlCertificate: Boolean = true) = new ClientBuilder(host, port, tokenProvider, securedConnection, verifySSlCertificate)
 
   private val DEFAULT_PORT = 443
 }
 
-class ClientBuilder private (host: String = "",
-                             port: Int, tokenProvider: () => String = () => "",
-                             securedConnection: Boolean = true, verifySSlCertificate: Boolean = true) {
- def this() = this(null, ClientBuilder.DEFAULT_PORT, null, true, true)
+class ClientBuilder  private(host: String = "", //
+                             port: Int, //
+                             tokenProvider: () => String = () => "", //
+                             securedConnection: Boolean = true, //
+                             verifySSlCertificate: Boolean = true) {
+  def this() = this(null, ClientBuilder.DEFAULT_PORT, null, true, true)
   def withHost(host: String): ClientBuilder = new ClientBuilder(
     checkNotNull(host),
     port,
@@ -58,9 +61,9 @@ class ClientBuilder private (host: String = "",
     securedConnection,
     checkNotNull(verifySSlCertificate))
 
-  def build: Client = new ClientImpl(Connection.newConnection(host, port, tokenProvider, securedConnection, verifySSlCertificate), "UTF-8")
-  
- def buildJavaClient:org.zalando.nakadi.client.java.Client = new org.zalando.nakadi.client.java.ClientImpl(build)
+  def build(): Client = new ClientImpl(Connection.newConnection(host, port, tokenProvider, securedConnection, verifySSlCertificate), "UTF-8")
+
+  def buildJavaClient(): org.zalando.nakadi.client.java.Client = new org.zalando.nakadi.client.java.ClientImpl(build)
 
   private def checkNotNull[T](subject: T): T =
     if (Option(subject).isEmpty) throw new NullPointerException else subject

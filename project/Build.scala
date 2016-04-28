@@ -23,36 +23,31 @@ val defaultOptions= Seq(
   "-Ywarn-numeric-widen" // Warn when numerics are widened.
 )
 lazy val commonSettings = Seq(
-  organization := "com.example",
+  organization := "org.zalando",
   version := "0.1.0",
   scalaVersion := "2.11.7"
 )
 
-lazy val model = withDefaults(
-    "nakadi-klients-model",
-    project.in(file("model"))
-  ).settings(libraryDependencies ++= modelDeps)
-
 lazy val api = withDefaults(
     "nakadi-klients-api",
-    project.in(file("api")).dependsOn(model)
-  )
+    project.in(file("api"))
+  ).settings(libraryDependencies ++= apiDeps)
 
 lazy val client = withDefaults(
     "nakadi-klients",
-    project.in(file("client")).dependsOn(api, model)
+    project.in(file("client")).dependsOn(api)
   ).settings(libraryDependencies ++= clientDeps)
 
 
   lazy val it = withDefaults(
       "nakadi-integration-test",
-      project.in(file("it")).dependsOn(model, api, client)
+      project.in(file("it")).dependsOn(api, client)
     ).settings(libraryDependencies ++= clientDeps)
 
 
     lazy val e2e = withDefaults(
         "nakadi-end-2-end-test",
-        project.in(file("e2e")).dependsOn(model, api, client, it)
+        project.in(file("e2e")).dependsOn(api, client, it)
       ).settings(libraryDependencies ++= clientDeps)
 
 

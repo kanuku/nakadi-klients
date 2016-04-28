@@ -23,7 +23,7 @@ object TestScalaEntity {
   val problem = new Problem("problemType", "title", 312, Option("detail"), Option("instance"))
   val metrics = new Metrics(Map("metrics"->"test"))
   val partition = new Partition(0, 132, 4423)
-  val cursor = new Cursor(0, Some(0))
+  val cursor = new Cursor(0, 120)
   val eventTypeSchema = new EventTypeSchema(SchemaType.JSON, "schema")
   val eventValidationStrategy = EventValidationStrategy.NONE
   val partitionResolutionStrategy = PartitionStrategy.HASH
@@ -35,7 +35,7 @@ object TestScalaEntity {
   val eventMetadata = new EventMetadata("eid", Option(eventType), "occurredAt", Option("receivedAt"), List("parentEids"), Option("flowId"), Option("partition"))
   case class MyEvent(name:String, metadata:Option[EventMetadata]) extends Event
   val myEvent = new MyEvent("test",Some(eventMetadata))
-  val eventStreamBatch = new EventStreamBatch(cursor, List(myEvent))
+  val eventStreamBatch = new EventStreamBatch(cursor, Option(List(myEvent)))
   val batchItemResponse = new BatchItemResponse(Option("eid"), BatchItemPublishingStatus.SUBMITTED, Option(BatchItemStep.PUBLISHING), Option("detail"))
   
   // custom event

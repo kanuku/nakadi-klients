@@ -28,6 +28,7 @@ import JacksonJsonMarshaller._
     val testName = "always result in the same entity"
     s"$testName(eventMetadata)" in {
       checkSerializationDeserializationProcess("eventMetadata", eventMetadata)
+ 
     }
     "EventType" in {
       println(" ####### " + EventTypeCategory.withName("business"))

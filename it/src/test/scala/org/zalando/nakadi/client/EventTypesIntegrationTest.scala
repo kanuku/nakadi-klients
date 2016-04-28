@@ -3,9 +3,14 @@ package org.zalando.nakadi.client
 import org.scalatest.{ Matchers, WordSpec }
 import org.zalando.nakadi.client.model._
 import com.fasterxml.jackson.core.`type`.TypeReference
+import org.zalando.nakadi.client.scala.ClientFactory
+import org.zalando.nakadi.client.scala.EventTypesActions
+import org.zalando.nakadi.client.scala.EventActions
+import org.zalando.nakadi.client.scala.ModelFactory
 
-class EventTypeTest extends WordSpec with Matchers with JacksonJsonMarshaller with ModelFactory with ClientFactory {
-
+class EventTypeTest extends WordSpec with Matchers with ModelFactory{
+  import ClientFactory._
+import JacksonJsonMarshaller._
   val eventAction = new EventActions(client)
   val eventTypeAction = new EventTypesActions(client)
   "POST/PUT/GET/DELETE single EventType " in {

@@ -4,16 +4,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
+import org.zalando.nakadi.client.Deserializer;
+import org.zalando.nakadi.client.Listener;
 import org.zalando.nakadi.client.Serializer;
-import org.zalando.nakadi.client.model.Event;
-import org.zalando.nakadi.client.model.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.model.EventType;
-import org.zalando.nakadi.client.model.EventValidationStrategy;
-import org.zalando.nakadi.client.model.Metrics;
-import org.zalando.nakadi.client.model.Partition;
-import org.zalando.nakadi.client.model.PartitionStrategy;
-
-import com.fasterxml.jackson.core.type.TypeReference;
+import org.zalando.nakadi.client.StreamParameters;
 
 public interface Client {
 
@@ -82,7 +76,7 @@ public interface Client {
      * @param ref The Jackson TypeReference of the Event to be used by the default Jackson Marshaller.
      * @return Void in case of success     
      */
-    <T extends Event> Future<Void> publishEvent(String eventTypeName, T event, TypeReference<T> ref);
+    <T extends Event> Future<Void> publishEvent(String eventTypeName, T event);
 
     /**
      * Publishes a List of events to the given eventType using a custom serializer. <br>
@@ -93,17 +87,16 @@ public interface Client {
      * @param serializer The custom serializer to serialize the events.
      * @return Void in case of success
      */
-    <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events, Serializer<List<T>> serializer);
+    <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events, Serializer<T> serializer);
     /**
      * Publishes a List of events to the given eventType. <br>
      * Partition selection is done using the defined partition resolution, <br>
      * which is defined per topic and managed by the event store.  
      * @param eventTypeName The unique name (id) of the EventType target 
      * @param event The event to be published
-     * @param ref The Jackson TypeReference of the Event to be used by the default Jackson Marshaller.
      * @return Void in case of success     
      */
-    <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events, TypeReference<List<T>> ref);
+    <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events);
 
     /**
      * Retrieves the existing partitions for the given EventType.
@@ -111,14 +104,6 @@ public interface Client {
      * @return list of existing partitions
      */
     Future<Optional<List<Partition>>> getPartitions(String eventTypeName);
-
-    /**
-     * Retrieves the unique partition, identified by the given parameters.  
-     * @param eventTypeName The unique name (id) of the EventType
-     * @param id The id of the partition
-     * @return the partition if exists
-     */
-    Future<Optional<Partition>> getPartitionById(String eventTypeName, String id);
 
     /**
      * Retrieves a List of all Validation strategies supported by the Event store.
@@ -135,11 +120,27 @@ public interface Client {
      * Retrieves a List of all Partition strategies supported by the Event store.
      * @return list of enrichment strategies
      */
-    Future<Optional<List<PartitionStrategy>>> getPartitionStrategies();
+    Future<Optional<List<PartitionStrategy>>> getPartitioningStrategies();
 
     /**
      * Shuts down the communication system of the client
      * @return Void in case of success
      */
     Future<Void> stop();
+    
+    /**
+     * Registers the subscription of a listener to start streaming events from a partition in non-blocking fashion.
+     * @param eventTypeName The unique name (id) of the EventType target 
+     * @param parameters Parameters for customizing the details of the streaming.
+     * @param listener Listener to pass the event to when it is received.
+     * @return Void in case of success
+     */
+    public <T extends Event> Future<Void> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<T> deserializer);
+    /**
+     * Removes the subscription of a listener, to stop streaming events from a partition.
+     * @param eventTypeName The unique name (id) of the EventType target 
+     * @param listener Listener to pass the event to when it is received.
+     * @return Void in case of success
+     */
+    <T extends Event> Future<Void> unsubscribe(String eventTypeName, Listener<T> listener);
 }

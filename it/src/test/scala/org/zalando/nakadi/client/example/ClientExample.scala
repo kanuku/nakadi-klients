@@ -3,9 +3,10 @@ package org.zalando.nakadi.client.example
 import java.math.BigInteger
 import akka.actor._
 import akka.stream.actor._
-import org.zalando.nakadi.client.ClientImpl
-import org.zalando.nakadi.client.Connection
-import org.zalando.nakadi.client.ClientFactory
+import org.zalando.nakadi.client.scala.ClientImpl
+import org.zalando.nakadi.client.scala.Connection
+import org.zalando.nakadi.client.scala.ClientFactory
+import org.zalando.nakadi.client.scala.ClientFactory
 
 object Main extends App {
 
@@ -15,7 +16,8 @@ object Main extends App {
 
 }
 
-object ClientExample extends ClientFactory {
+object ClientExample  {
+  import ClientFactory._
   def nakadiClient() = client
 
   def startSimplePubSubExample(system: ActorSystem) {

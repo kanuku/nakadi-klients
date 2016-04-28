@@ -14,15 +14,15 @@ import akka.http.scaladsl.model.HttpResponse
 import scala.util.Try
 import java.net.URI
 import akka.stream.scaladsl.Flow
-import org.zalando.nakadi.client.Connection
+import org.zalando.nakadi.client.scala.Connection
 import akka.http.scaladsl.model.HttpRequest
 import scala.concurrent.Future
-import org.zalando.nakadi.client.HttpFactory
+import org.zalando.nakadi.client.scala.HttpFactory
 import akka.http.scaladsl.unmarshalling._
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.http.scaladsl.Http
 import org.zalando.nakadi.client.model.JacksonJsonMarshaller
-import org.zalando.nakadi.client.ClientFactory
+import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.StreamParameters
 import akka.stream.ActorMaterializer
 import akka.http.scaladsl.model.headers.RawHeader
@@ -44,8 +44,9 @@ class ProducerActor(httpRequest: HttpRequest) extends Actor with ActorPublisher[
 
 case class Url(url: String, depth: Long)
 
-object Test extends App with ClientFactory with HttpFactory with JacksonJsonMarshaller {
-
+object Test extends App   with HttpFactory {
+    import ClientFactory._
+  import JacksonJsonMarshaller._
   private implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
   private implicit val http = Http(actorSystem)
   implicit val materializer = ActorMaterializer()
@@ -54,7 +55,7 @@ object Test extends App with ClientFactory with HttpFactory with JacksonJsonMars
   val eventName = "/event-types/test-client-integration-event-1936085527-148383828851369665/events"
   val params = Some(StreamParameters())
   val headers = RawHeader("Accept", "application/x-json-stream") :: withHeaders(params)
-  val request = withHttpRequest(eventName, HttpMethods.GET, headers, OAuth2Token)
+  val request = withHttpRequest(eventName, HttpMethods.GET, headers, OAuth2Token(),None)
 
   //Model
   case class MyEventExample(orderNumber: String)

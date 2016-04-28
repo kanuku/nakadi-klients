@@ -5,7 +5,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import org.slf4j.LoggerFactory
-import org.zalando.nakadi.client.model._
 import com.typesafe.scalalogging.Logger
 import akka.actor.Terminated
 import akka.http.scaladsl.model.{ HttpHeader, HttpMethod, HttpMethods, HttpResponse, MediaRange }
@@ -15,23 +14,25 @@ import akka.http.scaladsl.model.headers.{ Accept, RawHeader }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import org.zalando.nakadi.client.StreamParameters
 import org.zalando.nakadi.client.Serializer
+import org.zalando.nakadi.client.scala._
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Listener
 import org.zalando.nakadi.client.ClientError
 import akka.dispatch.sysmsg.Failed
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import org.zalando.nakadi.client.model.JacksonJsonMarshaller
  
 
 private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client with HttpFactory {
   implicit val materializer = connection.materializer
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
-  def getMetrics()(implicit ser: Deserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]] = {
+  def getMetrics()(implicit des: Deserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]] = {
     logFutureEither(connection.get(URI_METRICS).flatMap(mapToEither(_)))
   }
 
-  def getEventTypes()(implicit ser: Deserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]] = {
+  def getEventTypes()(implicit des: Deserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]] = {
     logFutureEither(connection.get(URI_EVENT_TYPES).flatMap(mapToEither(_)))
   }
 
@@ -39,7 +40,7 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     logFutureOption(connection.post(URI_EVENT_TYPES, eventType).flatMap(mapToOption(_)))
   }
 
-  def getEventType(name: String)(implicit ser: Deserializer[EventType]): Future[Either[ClientError, Option[EventType]]] = {
+  def getEventType(name: String)(implicit des: Deserializer[EventType]): Future[Either[ClientError, Option[EventType]]] = {
     logFutureEither(connection.get(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToEither(in)))
   }
 
@@ -52,32 +53,32 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     logFutureOption(connection.delete(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToOption(in)))
   }
 
-  def publishEvents[T](name: String, events: Seq[T])(implicit ser: Serializer[Seq[T]]): Future[Option[ClientError]] = {
-    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), events).flatMap(in => mapToOption(in)))
+  def publishEvents[T <: Event](eventTypeName: String, events: Seq[T])(implicit ser: Serializer[Seq[T]]): Future[Option[ClientError]] = {
+    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
+  }
+  def publishEvents[T <: Event](eventTypeName: String, events: java.util.List[T])(implicit ser: Serializer[T]): Future[Option[ClientError]] = {
+    import scala.collection.JavaConversions._
+    import JacksonJsonMarshaller._
+	  publishEvents(eventTypeName, events)
   }
 
-  def publishEvents[T](name: String, params: Option[StreamParameters])(implicit ser: Deserializer[T]): Future[Either[ClientError, Option[T]]] = {
-    val headers = withHeaders(params) :+ Accept(MediaRange(`application/json`))
-    logFutureEither(connection.get(URI_EVENTS_OF_EVENT_TYPE.format(name), headers).flatMap(in => mapToEither(in)))
+  def publishEvent[T <: Event](name: String, event: T)(implicit ser: Serializer[T]): Future[Option[ClientError]] = {
+    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
   }
 
-  def getPartitions(name: String)(implicit ser: Deserializer[Seq[Partition]]): Future[Either[ClientError, Option[Seq[Partition]]]] = {
+  def getPartitions(name: String)(implicit des: Deserializer[Seq[Partition]]): Future[Either[ClientError, Option[Seq[Partition]]]] = {
     logFutureEither(connection.get(URI_PARTITIONS_BY_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)))
   }
 
-  def getPartitionById(name: String, id: String)(implicit ser: Deserializer[Partition]): Future[Either[ClientError, Option[Partition]]] = {
-    logFutureEither(connection.get(URI_PARTITION_BY_EVENT_TYPE_AND_ID.format(name)).flatMap(in => mapToEither(in)))
-  }
-
-  def getValidationStrategies()(implicit des: Deserializer[Seq[EventValidationStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy.Value]]]] = {
+  def getValidationStrategies()(implicit des: Deserializer[Seq[EventValidationStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventValidationStrategy]]]] = {
     logFutureEither(connection.get(URI_VALIDATION_STRATEGIES).flatMap(mapToEither(_)))
   }
 
-  def getEnrichmentStrategies()(implicit des: Deserializer[Seq[EventEnrichmentStrategy.Value]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.Value]]]] = {
+  def getEnrichmentStrategies()(implicit des: Deserializer[Seq[EventEnrichmentStrategy]]): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy]]]] = {
     logFutureEither(connection.get(URI_ENRICHMENT_STRATEGIES).flatMap(mapToEither(_)))
   }
 
-  def getPartitionStrategies()(implicit des: Deserializer[Seq[PartitionStrategy.Value]]): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]] =
+  def getPartitioningStrategies()(implicit des: Deserializer[Seq[PartitionStrategy]]): Future[Either[ClientError, Option[Seq[PartitionStrategy]]]] =
     logFutureEither(connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)))
 
   def stop(): Future[Option[ClientError]] = {
@@ -85,31 +86,31 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     Future.successful(None)
   }
 
-  def subscribe[T](eventType: String, params: StreamParameters, listener: Listener[T])(implicit ser: Deserializer[T]): Future[Option[ClientError]] = {
-    //TODO: Validate here before starting listening 
+  def subscribe[T](eventType: String, params: StreamParameters, listener: Listener[T])(implicit des: Deserializer[T]): Future[Option[ClientError]] = {
     (eventType, params, listener) match {
 
       case (_, _, listener) if listener == null =>
+        logger.info("listener is null")
         Future.successful(Option(ClientError("Listener may not be empty(null)!", None)))
 
       case (eventType, _, _) if Option(eventType).isEmpty || eventType == "" =>
+        logger.info("eventType is null")
         Future.successful(Option(ClientError("Eventype may not be empty(null)!", None)))
 
       case (eventType, StreamParameters(cursor, _, _, _, _, _, _), listener) if Option(eventType).isDefined =>
-        val url = if (cursor.isDefined)
-          URI_PARTITION_BY_EVENT_TYPE_AND_ID.format(eventType, cursor.get.partition)
-        else
-          URI_EVENTS_OF_EVENT_TYPE.format(eventType)
+        val url =  URI_EVENTS_OF_EVENT_TYPE.format(eventType)
+        
 
         val request = withHttpRequest(url, HttpMethods.GET,
           RawHeader("Accept", "application/x-json-stream") :: withHeaders(Option(params)), //Headers
-          connection.tokenProvider())
+          connection.tokenProvider(),Option(params))
 
-        logger.info("Subscribing listener {} on eventType {} with cursor {} ", listener.id, eventType, cursor)
-        connection.subscribe(url, eventType, request, listener)
+        logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} ", listener.id, cursor,params, eventType)
+        connection.subscribe(url, request, listener)
         Future.successful(None)
     }
   }
+  
   def unsubscribe[T](eventType: String, listener: Listener[T]): Future[Option[ClientError]] = ???
 
   //####################

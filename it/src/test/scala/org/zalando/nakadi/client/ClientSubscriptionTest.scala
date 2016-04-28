@@ -2,9 +2,15 @@ package org.zalando.nakadi.client
 import org.scalatest.{ Matchers, WordSpec }
 import org.zalando.nakadi.client.model._
 import com.fasterxml.jackson.core.`type`.TypeReference
+import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.ModelFactory
+import org.zalando.nakadi.client.scala.EventTypesActions
+import org.zalando.nakadi.client.scala.ClientFactory
+import org.zalando.nakadi.client.scala.EventActions
 
-class ClientSubscriptionTest extends WordSpec with Matchers with JacksonJsonMarshaller with ModelFactory with ClientFactory {
-
+class ClientSubscriptionTest extends WordSpec with Matchers with ModelFactory {
+  import ClientFactory._
+  import JacksonJsonMarshaller._
   case class MyEventExample(orderNumber: String)
   implicit def myEventExampleTR: TypeReference[MyEventExample] = new TypeReference[MyEventExample] {}
   val eventAction = new EventActions(client)
@@ -22,7 +28,7 @@ class ClientSubscriptionTest extends WordSpec with Matchers with JacksonJsonMars
       }
       def onSubscribed(): Unit = ???
       def onUnsubscribed(): Unit = ???
-      def onReceive(sourceUrl: String, cursor: Cursor, event: MyEventExample): Unit = ???
+      def onReceive(sourceUrl: String, cursor: Cursor, event: Seq[MyEventExample]): Unit = ???
     }
     val url = "/event-types/test-client-integration-event-1936085527-148383828851369665/events"
     val eve = "test-client-integration-event-1936085527-148383828851369665"
@@ -30,17 +36,17 @@ class ClientSubscriptionTest extends WordSpec with Matchers with JacksonJsonMars
     client.subscribe(eve, params, listener)
     //    eventAction.create("test-client-integration-event-1936085527-148383828851369665",  List(MyEventExample("test-1")))
     //    eventAction.create("test-client-integration-event-1936085527-148383828851369665", events)
-//    while(true){
-//      
-//    }
+    //    while(true){
+    //      
+    //    }
 
   }
-  
+
   "Create" in {
-        val events = for {
+    val events = for {
       a <- 0 to 4005
-    } yield MyEventExample("order-"+a)
-//    eventAction.create("test-client-integration-event-1936085527-148383828851369665",  List(MyEventExample("test-1")))
+    } yield MyEventExample("order-" + a)
+    //    eventAction.create("test-client-integration-event-1936085527-148383828851369665",  List(MyEventExample("test-1")))
     eventAction.create("test-client-integration-event-1936085527-148383828851369665", events)
   }
 

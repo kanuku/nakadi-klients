@@ -1,9 +1,13 @@
-package org.zalando.nakadi.client.model
+package org.zalando.nakadi.client.scala
 
-import com.fasterxml.jackson.core.`type`.TypeReference
-import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import scala.collection.JavaConversions._
+import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
+import com.fasterxml.jackson.core.`type`.TypeReference
+
+// Updated untill commit 7839be3  
+// Compare
+
 
 // Updated untill commit 7839be3  
 // Compare
@@ -57,7 +61,7 @@ trait BusinessEvent extends Event {
 /**
  * Indicators of a `DataChangeEvent`'s referred data type and the type of operations done on them.
  * @param dataType The datatype of the `DataChangeEvent`.
- * @param dataOp The type of operation executed on the entity. * C: Creation * U: Update * D: Deletion * S: Snapshot
+ * @param dataOperation The type of operation executed on the entity. * C: Creation * U: Update * D: Deletion * S: Snapshot
  */
 trait DataChangeEventQualifier {
   def dataType(): String

@@ -13,16 +13,21 @@ import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
 import org.zalando.nakadi.client.ClientError
+import org.zalando.nakadi.client.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.model.EventStreamBatch
+import org.zalando.nakadi.client.model.Event
+import com.fasterxml.jackson.core.`type`.TypeReference
 
 object EventConsumer {
 
-  case class Msg(
-    msg: ByteString)
+  case class Msg(msg: ByteString)
 
   case class ShutdownMsg()
 }
 
-class EventConsumer[T](url: String, eventType: String, listener: Listener[T], ser: Deserializer[T]) extends Actor with ActorLogging with ActorSubscriber {
+case class MyEventExample(orderNumber: String) extends Event
+
+class EventConsumer[T](url: String, listener: Listener[T], des: Deserializer[T]) extends Actor with ActorLogging with ActorSubscriber {
   import EventConsumer._
   var count = 0
 
@@ -35,16 +40,16 @@ class EventConsumer[T](url: String, eventType: String, listener: Listener[T], se
   override def receive: Receive = {
     case OnNext(msg: ByteString) =>
       val message = msg.utf8String
-      if (message.contains("events")){
-        
+
+      if (message.contains("events")) {
         count += 1
-      println(s"[Got event nr $count for type $eventType and cursor * and message $message ] ")
-      //      Try(ser.fromJson(msg.utf8String)) match {
-      //        case Success(event) =>
-      //          listener.onReceive(eventType, cursor, event)
-      //        case Failure(error) =>
-      //          val errorMsg = "Failed to Deserialize with error:" + error.getMessage
-      listener.onError(eventType, null, ClientError("Failed to Deserialize with an error!", None))
+        log.info("[Got event nr {} for {} and with msg {} ] ", count, url, message)
+        //      Try(ser.fromJson(msg.utf8String)) match {
+        //        case Success(event) =>
+        //          listener.onReceive(eventType, cursor, event)
+        //        case Failure(error) =>
+        //          val errorMsg = "Failed to Deserialize with error:" + error.getMessage
+        //        listener.onError(url, null, ClientError("Failed to Deserialize with an error!", None))
       }
     //      }
     case OnNext(_) =>
@@ -52,4 +57,10 @@ class EventConsumer[T](url: String, eventType: String, listener: Listener[T], se
   }
 }
 
+trait MessageSplitter {
+
+  def deserializeMsg[T<:Event](msg: String)(implicit des: Deserializer[EventStreamBatch[T]]): EventStreamBatch[T] = des.from(msg)
+}
+
+ 
 

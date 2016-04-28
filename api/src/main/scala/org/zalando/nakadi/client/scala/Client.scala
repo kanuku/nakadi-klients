@@ -7,12 +7,6 @@ import org.zalando.nakadi.client.Listener
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.StreamParameters
-import org.zalando.nakadi.client.model.EventEnrichmentStrategy
-import org.zalando.nakadi.client.model.EventType
-import org.zalando.nakadi.client.model.EventValidationStrategy
-import org.zalando.nakadi.client.model.Metrics
-import org.zalando.nakadi.client.model.Partition
-import org.zalando.nakadi.client.model.PartitionStrategy
 
 
 
@@ -26,7 +20,7 @@ trait Client {
    * curl --request GET /metrics
    * }}}
    */
-  def getMetrics()(implicit ser: Deserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]]
+  def getMetrics()(implicit des: Deserializer[Metrics]): Future[Either[ClientError, Option[Metrics]]]
 
   /**
    * Returns a list of all registered EventTypes.
@@ -36,7 +30,7 @@ trait Client {
    * }}}
    *
    */
-  def getEventTypes()(implicit ser: Deserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]]
+  def getEventTypes()(implicit des: Deserializer[Seq[EventType]]): Future[Either[ClientError, Option[Seq[EventType]]]]
 
   /**
    * Creates a new EventType.
@@ -55,18 +49,18 @@ trait Client {
    * {{{
    * curl --request GET /event-types/{name}
    * }}}
-   * @param name - Name of the EventType
+   * @param eventTypeName - Name of the EventType
    */
-  def getEventType(name: String)(implicit ser: Deserializer[EventType]): Future[Either[ClientError, Option[EventType]]]
+  def getEventType(eventTypeName: String)(implicit des: Deserializer[EventType]): Future[Either[ClientError, Option[EventType]]]
   /**
    * Updates the EventType identified by its name.
    * {{{
    * curl --request PUT -d @fileWithEventType /event-types/{name}
    * }}}
-   * @param name - Name of the EventType
+   * @param eventTypeName - Name of the EventType
    * @param event - Event to update
    */
-  def updateEventType(name: String, eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]]
+  def updateEventType(eventTypeName: String, eventType: EventType)(implicit ser: Serializer[EventType]): Future[Option[ClientError]]
   /**
    * Deletes an EventType identified by its name.
    *
@@ -74,49 +68,49 @@ trait Client {
    * curl --request DELETE /event-types/{name}
    * }}}
    *
-   * @param name - Name of the EventType
+   * @param eventTypeName - Name of the EventType
    */
-  def deleteEventType(name: String): Future[Option[ClientError]]
+  def deleteEventType(eventTypeName: String): Future[Option[ClientError]]
 
   /**
-   * Creates a new batch of Events for the given EventType.
+   * Publishes multiple Events for the given EventType.
    * {{{
    * curl --request POST -d @fileWithEvent /event-types/{name}/events
    * }}}
-   * @param name - Name of the EventType
-   * @param event - Event to create
+   * @param eventTypeName - Name of the EventType
+   * @param event - Event to publish
    */
-  def publishEvents[T](name: String, events: Seq[T])(implicit ser: Serializer[Seq[T]]): Future[Option[ClientError]]
+  def publishEvents[T <: Event](eventTypeName: String, events: Seq[T])(implicit ser: Serializer[Seq[T]]): Future[Option[ClientError]]
+
+    /**
+   * Publishes multiple Events for the given EventType.
+   * {{{
+   * curl --request POST -d @fileWithEvent /event-types/{name}/events
+   * }}}
+   * @param eventTypeName - Name of the EventType
+   * @param event - Event to publish
+   */
+  def publishEvents[T <: Event](eventTypeName: String, events: java.util.List[T])(implicit ser: Serializer[T]): Future[Option[ClientError]]
 
   /**
-   * Request a stream delivery for the specified partitions of the given EventType.
+   * Publishes a single Events for the given EventType.
    * {{{
-   * curl --request GET  /event-types/{name}/events
+   * curl --request POST -d @fileWithEvent /event-types/{name}/events
    * }}}
-   * @param name - Name of the EventType
+   * @param eventTypeName - Name of the EventType
+   * @param event - Event to publish
    *
    */
-  def publishEvents[T](name: String, params: Option[StreamParameters])(implicit ser: Deserializer[T]): Future[Either[ClientError, Option[T]]]
+  def publishEvent[T <: Event](eventTypeName: String, event: T)(implicit ser: Serializer[T]): Future[Option[ClientError]]
 
   /**
    * List the partitions for the given EventType.
    * {{{
    * curl --request GET /event-types/{name}/partitions
    * }}}
-   * @param name -  Name of the EventType
+   * @param eventTypeName -  Name of the EventType
    */
-  def getPartitions(name: String)(implicit ser: Deserializer[Seq[Partition]]): Future[Either[ClientError, Option[Seq[Partition]]]]
-
-  /**
-   * Returns the Partition for the given EventType.
-   * {{{
-   * curl --request GET /event-types/{name}/partitions/{partition}
-   * }}}
-   * @param name -  Name of the EventType
-   * @param partition - Partition id for the given EventType
-   */
-
-  def getPartitionById(name: String, id: String)(implicit ser: Deserializer[Partition]): Future[Either[ClientError, Option[Partition]]]
+  def getPartitions(eventTypeName: String)(implicit des: Deserializer[Seq[Partition]]): Future[Either[ClientError, Option[Seq[Partition]]]]
 
   /**
    * Returns all of the validation strategies supported by this installation of Nakadi.
@@ -142,7 +136,7 @@ trait Client {
    * curl --request GET /registry/partitioning-strategies
    * }}}
    */
-  def getPartitionStrategies()(implicit des: Deserializer[Seq[PartitionStrategy.Value]]): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]]
+  def getPartitioningStrategies()(implicit des: Deserializer[Seq[PartitionStrategy.Value]]): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]]
 
   /**
    * Shuts down the communication system of the client
@@ -157,14 +151,14 @@ trait Client {
    * @parameters - Parameters for the streaming of events.
    * @listener - Listener to pass the event to when it is received.
    */
-  def subscribe[T](eventType: String, parameters: StreamParameters, listener: Listener[T])(implicit ser: Deserializer[T]): Future[Option[ClientError]]
+  def subscribe[T](eventTypeName: String, parameters: StreamParameters, listener: Listener[T])(implicit des: Deserializer[T]): Future[Option[ClientError]]
   /**
    * Removes the subscription of a listener, to stop streaming events from a partition.
    *
    * @eventType - Name of the EventType.
    * @listener - Listener to unsubscribe from the streaming events.
    */
-  def unsubscribe[T](eventType: String, listener: Listener[T]): Future[Option[ClientError]]
+  def unsubscribe[T](eventTypeName: String, listener: Listener[T]): Future[Option[ClientError]]
 
 }
 
