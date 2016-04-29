@@ -12,6 +12,8 @@ import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.scala.ModelFactory
 
 import com.fasterxml.jackson.core.`type`.TypeReference
+import org.zalando.nakadi.client.scala.ClientError
+
 class KlientIntegrationTest extends WordSpec with Matchers  with ModelFactory {
   import ClientFactory._
   import JacksonJsonMarshaller._

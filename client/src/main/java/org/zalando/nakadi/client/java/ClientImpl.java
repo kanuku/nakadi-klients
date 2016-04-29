@@ -1,5 +1,6 @@
 package org.zalando.nakadi.client.java;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -19,19 +20,28 @@ import org.zalando.nakadi.client.utils.Uri;
 
 public class ClientImpl implements Client {
 	private final Connection connection;
-	
-	 //Deserializers
-	 private final Deserializer<Metrics> metricsDeserializer =Serialization.metricsDeserializer();
-	 private final Deserializer<Partition> partitionDeserializer = Serialization.partitionDeserializer();
-	 //List Deserializers
-	 private final Deserializer<List<EventType>> seqOfEventTypeDeserializer =Serialization.seqOfEventTypeDeserializer();
-	 private final Deserializer<List<Partition>> seqOfPartitionDeserializer =Serialization.seqOfPartitionDeserializer();
-	 private final Deserializer<List<EventValidationStrategy>> seqOfEventValidationStrategy =Serialization.seqOfEventValidationStrategy();
-	 private final Deserializer<List<EventEnrichmentStrategy>> seqOfEventEnrichmentStrategy =Serialization.seqOfEventEnrichmentStrategy(); 
-	 private final Deserializer<List<PartitionStrategy>> seqOfPartitionStrategy =Serialization.seqOfPartitionStrategy();
-	 //Serializers
-	 private final Serializer<EventType> eventTypeSerializer =Serialization.defaultSerializer();
-	 private final Deserializer<EventType> eventTypeDeserializer = Serialization.eventTypeDeserializer();
+
+	// Deserializers
+	private final Deserializer<Metrics> metricsDeserializer = Serialization
+			.metricsDeserializer();
+	private final Deserializer<Partition> partitionDeserializer = Serialization
+			.partitionDeserializer();
+	// List Deserializers
+	private final Deserializer<List<EventType>> seqOfEventTypeDeserializer = Serialization
+			.seqOfEventTypeDeserializer();
+	private final Deserializer<List<Partition>> seqOfPartitionDeserializer = Serialization
+			.seqOfPartitionDeserializer();
+	private final Deserializer<List<EventValidationStrategy>> seqOfEventValidationStrategy = Serialization
+			.seqOfEventValidationStrategy();
+	private final Deserializer<List<EventEnrichmentStrategy>> seqOfEventEnrichmentStrategy = Serialization
+			.seqOfEventEnrichmentStrategy();
+	private final Deserializer<List<PartitionStrategy>> seqOfPartitionStrategy = Serialization
+			.seqOfPartitionStrategy();
+	// Serializers
+	private final Serializer<EventType> eventTypeSerializer = Serialization
+			.defaultSerializer();
+	private final Deserializer<EventType> eventTypeDeserializer = Serialization
+			.eventTypeDeserializer();
 
 	public ClientImpl(Connection connection) {
 		this.connection = connection;
@@ -40,19 +50,20 @@ public class ClientImpl implements Client {
 	@Override
 	public Future<Optional<Metrics>> getMetrics() {
 
-		return  connection.get4Java(Uri.URI_METRICS(), metricsDeserializer);
+		return connection.get4Java(Uri.URI_METRICS(), metricsDeserializer);
 	}
 
 	@Override
 	public Future<Optional<List<EventType>>> getEventTypes() {
 
-		return  connection.get4Java(Uri.URI_EVENT_TYPES(), seqOfEventTypeDeserializer);
+		return connection.get4Java(Uri.URI_EVENT_TYPES(),
+				seqOfEventTypeDeserializer);
 	}
 
 	@Override
 	public Future<Void> createEventType(EventType eventType) {
-		// TODO Auto-generated method stub
-		return null;
+		return connection.post4Java(Uri.URI_EVENT_TYPES(), eventType,
+				eventTypeSerializer);
 	}
 
 	@Override
@@ -76,30 +87,28 @@ public class ClientImpl implements Client {
 
 	@Override
 	public <T extends Event> Future<Void> publishEvent(String eventTypeName,
-			T event, Serializer<T> serializer) {
-		// TODO Auto-generated method stub
-		return null;
+			T event, Serializer<List<T>> serializer) {
+		return publishEvents(eventTypeName, Arrays.asList(event), serializer);
 	}
 
 	@Override
 	public <T extends Event> Future<Void> publishEvent(String eventTypeName,
 			T event) {
-		// TODO Auto-generated method stub
-		return null;
+		return publishEvents(eventTypeName, Arrays.asList(event));
 	}
 
 	@Override
 	public <T extends Event> Future<Void> publishEvents(String eventTypeName,
-			List<T> events, Serializer<T> serializer) {
-		// TODO Auto-generated method stub
-		return null;
+			List<T> events, Serializer<List<T>> serializer) {
+		return connection.post4Java(Uri.getEventStreamingUri(eventTypeName),
+				events, serializer);
 	}
 
 	@Override
 	public <T extends Event> Future<Void> publishEvents(String eventTypeName,
 			List<T> events) {
-		// TODO Auto-generated method stub
-		return null;
+		return publishEvents(eventTypeName, events,
+				Serialization.defaultSerializer());
 	}
 
 	@Override
@@ -123,7 +132,8 @@ public class ClientImpl implements Client {
 	@Override
 	public Future<Optional<List<PartitionStrategy>>> getPartitioningStrategies() {
 
-		return  connection.get4Java(Uri.URI_PARTITIONING_STRATEGIES(), seqOfPartitionStrategy);
+		return connection.get4Java(Uri.URI_PARTITIONING_STRATEGIES(),
+				seqOfPartitionStrategy);
 	}
 
 	@Override
@@ -146,7 +156,5 @@ public class ClientImpl implements Client {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-	
 
 }

@@ -27,4 +27,5 @@ object Serialization {
   def seqOfEventValidationStrategy(): Deserializer[java.util.List[EventValidationStrategy]] = JavaJacksonJsonMarshaller.deserializer(JavaJacksonJsonMarshaller.listOfEventValidationStrategyTR)
   def seqOfEventEnrichmentStrategy(): Deserializer[java.util.List[EventEnrichmentStrategy]] = JavaJacksonJsonMarshaller.deserializer(JavaJacksonJsonMarshaller.listOfEventEnrichmentStrategyTR)
   def seqOfPartitionStrategy(): Deserializer[java.util.List[PartitionStrategy]] = JavaJacksonJsonMarshaller.deserializer(JavaJacksonJsonMarshaller.listOfPartitionStrategyTR)
+  
 }

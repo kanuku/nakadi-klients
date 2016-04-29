@@ -21,8 +21,11 @@ object FutureConversions {
   def fromOption2Optional[T](in: scala.concurrent.Future[Option[T]]): java.util.concurrent.Future[Optional[T]] = {
     new MFuture[Option[T], Optional[T]](in, a => fromOptional2Optional(a))
   }
+  def fromOption2Void[T](in: scala.concurrent.Future[Option[T]]): java.util.concurrent.Future[Void] = {
+    new MFuture[Option[T], Void](in, a => null)
+  }
   def fromFuture2Future[T](in: scala.concurrent.Future[T]): java.util.concurrent.Future[T] = {
-		  new MFuture[T, T](in, a => a)
+    new MFuture[T, T](in, a => a)
   }
 
   //  /**

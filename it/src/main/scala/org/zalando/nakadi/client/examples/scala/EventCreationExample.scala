@@ -1,10 +1,15 @@
 package org.zalando.nakadi.client.examples.scala
 
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormatter
-import org.zalando.nakadi.client.scala.model._
+import org.zalando.nakadi.client.scala.Client
 import org.zalando.nakadi.client.scala.ClientFactory
-import com.fasterxml.jackson.databind.util.ISO8601DateFormat
+import org.zalando.nakadi.client.scala.model.Event
+import org.zalando.nakadi.client.scala.model.EventType
+import org.zalando.nakadi.client.scala.model.EventTypeCategory
+import org.zalando.nakadi.client.scala.model.EventTypeSchema
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.PartitionStrategy
+import org.zalando.nakadi.client.scala.model.SchemaType
+import org.zalando.nakadi.client.utils.ClientBuilder
 
 object EventCreationExample extends App {
 
@@ -15,7 +20,7 @@ object EventCreationExample extends App {
   import org.zalando.nakadi.client.utils.ClientBuilder
   import org.zalando.nakadi.client.scala.Client
   val client: Client = ClientBuilder()
-    .withHost("nakadi-sandbox.aruha-test.zalan.do")
+    .withHost(ClientFactory.host())
     .withSecuredConnection(true) //s
     .withVerifiedSslCertificate(false) //s
     .withTokenProvider(ClientFactory.OAuth2Token()) //
@@ -28,12 +33,12 @@ object EventCreationExample extends App {
   //We define the Json representation of our Meeting Event.
   val schema: String = """
     { 
-      "properties": 
+      'properties': 
       { 
-        "date": { "type": "string" }, 
-        "topic": { "type": "string"}  
+        'date': { 'type': 'string' }, 
+        'topic': { 'type': 'string'}  
       } 
-    }"""
+    }""".replaceAll("'", "\"")
 
   // 3. Create the EventType, 
   // We need to create an eventType(a topic), where listeners 
@@ -43,7 +48,7 @@ object EventCreationExample extends App {
   //First the eventType name, wich will be part of the URL: https://nakadi.test.io/event-types/{eventTypeName}
   //See the API for more information on the EventType model
   //https://github.com/zalando/nakadi/blob/nakadi-jvm/api/nakadi-event-bus-api.yaml#L1240
-  val eventTypeName = "org.zalando.laas.meetings-1" 
+  val eventTypeName = "org.zalando.laas.meetings-2" 
 
   val owner = "team-laas"
   val category = EventTypeCategory.UNDEFINED // We want just to pass data without through Nakadi, simple schema-validation is enough!
@@ -67,10 +72,11 @@ object EventCreationExample extends App {
   import JacksonJsonMarshaller._
 
   client.createEventType(eventType)
-
+  Thread.sleep(10000)
   // 4. Publish the EventType
-
+   
   val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
-  client.publishEvent(eventTypeName, event)
+  client.publishEvents(eventTypeName, List(event))
+  client.stop()
 
 }

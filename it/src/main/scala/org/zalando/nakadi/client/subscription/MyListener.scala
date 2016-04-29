@@ -2,7 +2,7 @@ package org.zalando.nakadi.client.subscription
 
 import org.zalando.nakadi.client.scala.model.Cursor
 import org.zalando.nakadi.client.scala.Listener
-import org.zalando.nakadi.client.ClientError
+import org.zalando.nakadi.client.scala.ClientError
 
 class MyListener extends Listener[MyEventExample] {
   def id: String = "test"

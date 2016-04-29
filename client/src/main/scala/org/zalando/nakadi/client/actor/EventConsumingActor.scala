@@ -7,7 +7,6 @@ import akka.stream.actor.ActorSubscriberMessage.OnNext
 import akka.stream.actor.RequestStrategy
 import akka.util.ByteString
 import org.zalando.nakadi.client.Deserializer
-import org.zalando.nakadi.client.ClientError
 import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import com.fasterxml.jackson.core.`type`.TypeReference
 import org.zalando.nakadi.client.scala.model._
@@ -35,7 +34,7 @@ class EventConsumer[T <: Event](url: String, listener: Listener[T], des: Deseria
   override def receive: Receive = {
     case OnNext(msg: ByteString) =>
       val message = msg.utf8String
-
+      log.info("##############"+message)
       if (message.contains("events")) {
         count += 1
         log.info("[Got event nr {} for {} and with msg {} ] ", count, url, message)

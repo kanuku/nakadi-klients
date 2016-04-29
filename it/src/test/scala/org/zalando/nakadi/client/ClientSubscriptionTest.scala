@@ -9,6 +9,7 @@ import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.scala.EventActions
 import org.zalando.nakadi.client.scala.StreamParameters
 import org.zalando.nakadi.client.scala.Listener
+import org.zalando.nakadi.client.scala.ClientError
 
 class ClientSubscriptionTest extends WordSpec with Matchers with ModelFactory {
   import ClientFactory._

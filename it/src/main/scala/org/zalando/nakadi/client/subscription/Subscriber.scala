@@ -2,23 +2,24 @@ package org.zalando.nakadi.client.subscription
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import org.zalando.nakadi.client.ClientError
-import org.zalando.nakadi.client.scala.StreamParameters
-import org.zalando.nakadi.client.scala.model.{ Cursor, Event }
-import com.fasterxml.jackson.core.`type`.TypeReference
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+
 import org.zalando.nakadi.client.scala.ClientFactory
+import org.zalando.nakadi.client.scala.StreamParameters
+import org.zalando.nakadi.client.scala.model.Cursor
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+
+import com.fasterxml.jackson.core.`type`.TypeReference
 
 
 object Subscriber extends App {
-  val a = new A()
+  val a = new Subscriber()
   a.startListening()
   //  a.printPartitions()
   //  a.printEventTypes()
   //  a.sendEvents(30)
 }
 
-class A {
+class Subscriber {
   import ClientFactory._
   import JacksonJsonMarshaller._
   val eventType = "test-client-integration-event-1936085527-148383828851369665"

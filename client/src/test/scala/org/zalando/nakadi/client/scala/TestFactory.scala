@@ -13,27 +13,8 @@ import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 
-object ClientFactory {
-  def host():String = "nakadi-sandbox.my-test.fernan.do"
-  def OAuth2Token(): () => String = () => ""
-  def getToken():String = OAuth2Token().apply()
-  def port():Integer = 443
-  def connection():Connection = Connection.newConnection(host, port, OAuth2Token(), true, false)
-  def client():Client = new ClientImpl(connection, "UTF-8")
-
-}
-//trait ClientFactory {
-//  def host():String
-//  def OAuth2Token : () => String
-//  def getToken:String
-//  def port(): Int
-//  def connection(): Connection
-//  def client(): Client
-//
-//}
 
 case class EventActions(client: Client) {
-  import JacksonJsonMarshaller._
   def create[T <: Event](name: String, event: Seq[T])(implicit ser: Serializer[Seq[T]]) = {
     client.publishEvents[T](name, event)
   }

@@ -71,7 +71,7 @@ public interface Client {
      * @param serializer The custom serializer to serialize the event.
      * @return Void in case of success
      */
-    <T extends Event> Future<Void> publishEvent(String eventTypeName, T event, Serializer<T> serializer);
+    <T extends Event> Future<Void> publishEvent(String eventTypeName, T event, Serializer<List<T>> serializer);
     
     /**
      * Publishes a single event to the given eventType. <br>
@@ -93,7 +93,7 @@ public interface Client {
      * @param serializer The custom serializer to serialize the events.
      * @return Void in case of success
      */
-    <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events, Serializer<T> serializer);
+    <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events, Serializer<List<T>> serializer);
     /**
      * Publishes a List of events to the given eventType. <br>
      * Partition selection is done using the defined partition resolution, <br>

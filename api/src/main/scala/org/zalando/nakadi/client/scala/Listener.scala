@@ -1,6 +1,5 @@
 package org.zalando.nakadi.client.scala
 
-import org.zalando.nakadi.client.ClientError
 import org.zalando.nakadi.client.scala.model.Cursor
 import org.zalando.nakadi.client.scala.model.Event
 

@@ -23,7 +23,7 @@ object JacksonJsonMarshaller {
 
   // All TypeReferences
   implicit def problemTR: TypeReference[Problem] = new TypeReference[Problem] {}
-  implicit def metricsTR: TypeReference[Metrics] = new TypeReference[Metrics] {}
+  implicit val metricsTR: TypeReference[Metrics] = new TypeReference[Metrics] {}
   implicit def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
   implicit def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
   implicit def eventTypeSchemaTR: TypeReference[EventTypeSchema] = new TypeReference[EventTypeSchema] {}

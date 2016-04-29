@@ -39,11 +39,12 @@ trait Connection extends HttpFactory {
 
   def get(endpoint: String): Future[HttpResponse]
   def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
-  def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
-  def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
   def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
   def delete(endpoint: String): Future[HttpResponse]
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
+  def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
+  def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
+  def post4Java[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
   def subscribe[T <: Event](url: String, request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T])
   def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T])
@@ -110,26 +111,18 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     logger.info("Get - URL {} - Headers {}", endpoint, headers)
     executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None))
   }
-  def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
-    FutureConversions.fromFuture2Future(get(endpoint).flatMap(deserialize4Java(_, des)))
-  }
-  def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
-    FutureConversions.fromFuture2Future(executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None)).flatMap(deserialize4Java(_, des)))
-  }
-  
-  private def deserialize4Java[T](response:HttpResponse, des: Deserializer[T]):Future[Optional[T]] = response match {
-      case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
 
-        Try(Unmarshal(entity).to[String].map(body => des.from(body))) match {
-          case Success(result) => result.map(Optional.of(_))
-          case Failure(error) => throw new RuntimeException(error.getMessage)
-        }
-      //          val errorMsg = "Failed to Deserialize with error:" + error.getMessage
-      //        listener.onError(url, null, ClientError("Failed to Deserialize with an error!", None))
+  private def deserialize4Java[T](response: HttpResponse, des: Deserializer[T]): Future[Optional[T]] = response match {
+    case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
 
-      case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
-        throw new RuntimeException(status.reason())
-    }
+      Try(Unmarshal(entity).to[String].map(body => des.from(body))) match {
+        case Success(result) => result.map(Optional.of(_))
+        case Failure(error)  =>  throw new RuntimeException(error.getMessage)
+      }
+
+    case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
+      throw new RuntimeException(status.reason())
+  }
   def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
     logger.info("Streaming on Get: {}", endpoint)
     executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None)) //TODO: Change to stream single event
@@ -146,7 +139,42 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     logger.debug("Data to post {}", entity)
     executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST, tokenProvider))
   }
+  def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
+    FutureConversions.fromFuture2Future(get(endpoint).flatMap(deserialize4Java(_, des)))
+  }
+  def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
+    FutureConversions.fromFuture2Future(executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None)).flatMap(deserialize4Java(_, des)))
+  }
+  def post4Java[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void] = {
+    val entity = serializer.to(model)
+    logger.info("Posting to endpoint {}", endpoint)
+    logger.debug("Data to post {}", entity)
+    val result = executeCall(
+      withHttpRequestAndPayload(endpoint, serialize4Java(model), HttpMethods.POST, tokenProvider))
+      .flatMap(response4Java(_))
+    FutureConversions.fromOption2Void(result)
+  }
 
+  private def serialize4Java[T](model: T)(implicit serializer: Serializer[T]): String =
+    Try(serializer.to(model)) match {
+      case Success(result) => result
+      case Failure(error)  => throw new RuntimeException("Failed to serialize: "+error.getMessage)
+    }
+
+  private def response4Java[T](response: HttpResponse): Future[Option[String]] = response match {
+    case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
+      Try(Unmarshal(entity).to[String]) match {
+        case Success(result) => result.map(Option(_))
+        case Failure(error)  => throw new RuntimeException(error.getMessage)
+      }
+
+    case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
+      Unmarshal(entity).to[String].map { x => 
+      val msg = "http-stats(%s) - %s - problem: %s ".format(status.intValue(),x,status.defaultMessage())
+      logger.warn(msg)
+      throw new RuntimeException(msg)
+      }
+  }
   def delete(endpoint: String): Future[HttpResponse] = {
     logger.info("Delete: {}", endpoint)
     executeCall(withHttpRequest(endpoint, HttpMethods.DELETE, Nil, tokenProvider, None))

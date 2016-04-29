@@ -2,7 +2,6 @@ package org.zalando.nakadi.client.java;
 
 import java.util.List;
 
-import org.zalando.nakadi.client.ClientError;
 import org.zalando.nakadi.client.java.model.Cursor;
 import org.zalando.nakadi.client.java.model.Event;
 

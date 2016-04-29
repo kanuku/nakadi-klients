@@ -26,7 +26,7 @@ import JacksonJsonMarshaller._
     case class MyEventExample(orderNumber: String)extends Event
     implicit def problemTR: TypeReference[MyEventExample] = new TypeReference[MyEventExample] {}
     val events = for {
-      a <- 0 to 4005
+      a <- 0 to 12
     } yield MyEventExample("order-"+a)
 //    eventAction.create("test-client-integration-event-1936085527-148383828851369665",  List(MyEventExample("test-1")))
     eventAction.create("test-client-integration-event-1936085527-148383828851369665", events)
