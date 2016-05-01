@@ -16,18 +16,14 @@ object EventReceivingActor {
 
 
 
-//class EventReceivingActor extends Actor with ActorLogging with ActorPublisher[NextEvent] {
-//  val queue: Queue[NextEvent] = Queue()
-//  val receivedOffset: Set[Integer] = Set()
-//
-//  override def receive: Receive = {
-//    case msg: NextEvent =>
-//      if (!visited(msg.lastReceivedCursor.offset.get)) {
-//        visited += url.url
-//        queue.enqueue(url)
-//        if (isActive && totalDemand > 0) {
-//          onNext(queue.dequeue())
-//        }
-//      }
-//  }
-//}
+class EventReceivingActor (url: String, cursor:Option[Cursor]) extends Actor with ActorLogging with ActorPublisher[Cursor] {
+  
+  override def preStart() {
+   self ! cursor
+ }
+
+  override def receive: Receive = {
+    case cursor: Cursor => onNext(cursor)
+
+  }
+}

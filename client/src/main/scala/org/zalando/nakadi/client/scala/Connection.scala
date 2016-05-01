@@ -28,6 +28,7 @@ import scala.util.Success
 import akka.http.scaladsl.model.{ HttpHeader, HttpMethod, HttpMethods, HttpResponse, MediaRange }
 import java.util.Optional
 import org.zalando.nakadi.client.utils.FutureConversions
+import org.zalando.nakadi.client.scala.model.Cursor
 
 trait Connection extends HttpFactory {
 
@@ -46,7 +47,7 @@ trait Connection extends HttpFactory {
   def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
   def post4Java[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
-  def subscribe[T <: Event](url: String, request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T])
+  def subscribe[T <: Event](url: String, cursor:Option[Cursor], request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T])
   def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T])
 
   def stop(): Future[Terminated]
@@ -197,7 +198,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   def stop(): Future[Terminated] = actorSystem.terminate()
 
-  def subscribe[T <: Event](url: String, request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T]) = {
+  def subscribe[T <: Event](url: String, cursor:Option[Cursor], request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T]) = {
     logger.info("Subscribing listener {} with request {}", listener.id, request.uri)
     import EventConsumer._
     case class MyEventExample(orderNumber: String)

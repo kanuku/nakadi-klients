@@ -112,7 +112,7 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
           connection.tokenProvider(), Option(params))
 
         logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} ", listener.id, cursor, params, eventType)
-        connection.subscribe(url, request, listener)
+        connection.subscribe(url, cursor, request, listener)
         Future.successful(None)
     }
   }
