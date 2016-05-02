@@ -29,6 +29,14 @@ import akka.http.scaladsl.model.{ HttpHeader, HttpMethod, HttpMethods, HttpRespo
 import java.util.Optional
 import org.zalando.nakadi.client.utils.FutureConversions
 import org.zalando.nakadi.client.scala.model.Cursor
+import org.zalando.nakadi.client.actor.EventReceivingActor
+import akka.stream.actor.ActorPublisher
+import org.zalando.nakadi.client.scala.model.EventStreamBatch
+import akka.stream.Outlet
+import akka.stream.ActorMaterializerSettings
+import akka.stream.Attributes
+import akka.NotUsed
+import akka.http.scaladsl.settings.ConnectionPoolSettings
 
 trait Connection extends HttpFactory {
 
@@ -47,7 +55,7 @@ trait Connection extends HttpFactory {
   def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
   def post4Java[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
-  def subscribe[T <: Event](url: String, cursor:Option[Cursor], request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T])
+  def subscribe[T <: Event](url: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]])
   def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T])
 
   def stop(): Future[Terminated]
@@ -92,13 +100,22 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   private implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
   private implicit val http = Http(actorSystem)
-  implicit val materializer = ActorMaterializer()
+  implicit val materializer = ActorMaterializer(
+    ActorMaterializerSettings(actorSystem)
+      .withInputBuffer(
+        initialSize = 8,
+        maxSize = 16))
   private val actors: Map[String, Actor] = Map()
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
-
+  val cps = ConnectionPoolSettings(actorSystem).withMaxConnections(64).withPipeliningLimit(1).withMaxOpenRequests(64)
   val connection: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = newSslContext(securedConnection, verifySSlCertificate) match {
-    case Some(result) => http.outgoingConnectionHttps(host, port, result)
+//    case Some(result) => 
+//      val re=http.cachedHostConnectionPoolHttps(host, //
+//      port = port, //
+//      connectionContext = result, //
+//      settings = cps)
+//    case Some(result) => http.outgoingConnectionHttps(host, port, result)
     case None =>
       logger.warn("Disabled HTTPS, switching to HTTP only!")
       http.outgoingConnection(host, port)
@@ -118,7 +135,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
       Try(Unmarshal(entity).to[String].map(body => des.from(body))) match {
         case Success(result) => result.map(Optional.of(_))
-        case Failure(error)  =>  throw new RuntimeException(error.getMessage)
+        case Failure(error)  => throw new RuntimeException(error.getMessage)
       }
 
     case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
@@ -159,7 +176,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   private def serialize4Java[T](model: T)(implicit serializer: Serializer[T]): String =
     Try(serializer.to(model)) match {
       case Success(result) => result
-      case Failure(error)  => throw new RuntimeException("Failed to serialize: "+error.getMessage)
+      case Failure(error)  => throw new RuntimeException("Failed to serialize: " + error.getMessage)
     }
 
   private def response4Java[T](response: HttpResponse): Future[Option[String]] = response match {
@@ -170,10 +187,10 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
       }
 
     case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
-      Unmarshal(entity).to[String].map { x => 
-      val msg = "http-stats(%s) - %s - problem: %s ".format(status.intValue(),x,status.defaultMessage())
-      logger.warn(msg)
-      throw new RuntimeException(msg)
+      Unmarshal(entity).to[String].map { x =>
+        val msg = "http-stats(%s) - %s - problem: %s ".format(status.intValue(), x, status.defaultMessage())
+        logger.warn(msg)
+        throw new RuntimeException(msg)
       }
   }
   def delete(endpoint: String): Future[HttpResponse] = {
@@ -198,27 +215,37 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   def stop(): Future[Terminated] = actorSystem.terminate()
 
-  def subscribe[T <: Event](url: String, cursor:Option[Cursor], request: HttpRequest, listener: Listener[T])(implicit des: Deserializer[T]) = {
-    logger.info("Subscribing listener {} with request {}", listener.id, request.uri)
+  def subscribe[T <: Event](url: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]) = {
+    logger.info("Subscribing listener {} to uri {}", listener.id, url)
     import EventConsumer._
-    case class MyEventExample(orderNumber: String)
-    val subscriberRef = actorSystem.actorOf(Props(classOf[EventConsumer[T]], url, listener, des))
-    val subscriber = ActorSubscriber[ByteString](subscriberRef)
-    val sink2 = Sink.fromSubscriber(subscriber)
-    val flow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = connection
+    import EventReceivingActor._
 
-    val req = Source.single(request) //
-      .via(flow) //
-      .buffer(200, OverflowStrategy.backpressure) //
-      .map(x => x.entity.dataBytes)
-      .runForeach(_.runWith(sink2))
-      .onComplete { _ =>
-        subscriberRef ! ShutdownMsg
-        logger.info("Shutting down")
-      }
+    //Create the Actors
+    val eventReceiver = actorSystem.actorOf(Props(classOf[EventReceivingActor], url))
+    val eventConsumer = actorSystem.actorOf(Props(classOf[EventConsumer[T]], url, listener, eventReceiver, des))
+    val receiver = ActorPublisher[Option[Cursor]](eventReceiver)
+    val consumer = ActorSubscriber[ByteString](eventConsumer)
+
+    //    val A:Outlet[Option[]]= Source.fromPublisher(receiver)
+    val flow = connection //
+    //    .async
+    //    .withAttributes(Attributes.inputBuffer(initial = 8, max = 16))
+
+    Source.fromPublisher(receiver)
+      //          Source.single(cursor)
+      //      .map(withHttpRequest(url, _, None, tokenProvider))
+      .via(toRequest(url: String))
+      .via(flow)
+      .buffer(1024, OverflowStrategy.backpressure)
+      .filter { x => x.status.isSuccess() }
+      .map { x => x.entity.dataBytes }
+      .runForeach(_.runWith(Sink.fromSubscriber(consumer)))
+    eventReceiver ! NextEvent(cursor)
   }
 
-  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T]) = ???
+  def toRequest(url: String)(implicit m: ActorMaterializer): Flow[Option[Cursor], HttpRequest, NotUsed] =
+    Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
 
+  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T]) = ???
 }
 

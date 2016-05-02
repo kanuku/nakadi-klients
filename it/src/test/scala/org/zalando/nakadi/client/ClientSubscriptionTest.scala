@@ -15,7 +15,7 @@ class ClientSubscriptionTest extends WordSpec with Matchers with ModelFactory {
   import ClientFactory._
   import JacksonJsonMarshaller._
   case class MyEventExample(orderNumber: String) extends Event
-  implicit def myEventExampleTR: TypeReference[MyEventExample] = new TypeReference[MyEventExample] {}
+  implicit def myEventExampleTR: TypeReference[EventStreamBatch[MyEventExample]] = new TypeReference[EventStreamBatch[MyEventExample]] {}
   val eventAction = new EventActions(client)
   val eventTypeAction = new EventTypesActions(client)
   "POST/PUT/GET/DELETE single EventType " in {

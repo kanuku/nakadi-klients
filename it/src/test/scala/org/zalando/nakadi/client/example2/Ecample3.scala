@@ -54,7 +54,7 @@ object Test extends App   with HttpFactory {
   // Request Parameters
   val eventName = "/event-types/test-client-integration-event-1936085527-148383828851369665/events"
   val params = Some(StreamParameters())
-  val headers = RawHeader("Accept", "application/x-json-stream") :: withHeaders(params)
+  val headers =  withHeaders(params) :+ RawHeader("Accept", "application/x-json-stream")
   val request = withHttpRequest(eventName, HttpMethods.GET, headers, OAuth2Token(),None)
 
   //Model

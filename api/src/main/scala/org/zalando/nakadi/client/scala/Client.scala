@@ -160,7 +160,7 @@ trait Client {
    * @listener - Listener to pass the event to when it is received.
    * @des - Json Marshaller(implicit) to deserialize the event to Json.
    */
-  def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T])(implicit des: Deserializer[T]): Future[Option[ClientError]]
+  def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]): Future[Option[ClientError]]
   /**
    * Registers the subscription of a listener to start streaming events from a partition in non-blocking fashion.
    *
@@ -169,7 +169,7 @@ trait Client {
    * @listener - Listener to pass the event to when it is received.
    * @typeRef - TypeReference/Helper for using with the Jackson-Objectmapper to deserializing the event to json.
    */
-   def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T], typeRef: TypeReference[T]): Future[Option[ClientError]]
+   def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T], typeRef: TypeReference[EventStreamBatch[T]]): Future[Option[ClientError]]
   /**
    * Removes the subscription of a listener, to stop streaming events from a partition.
    *

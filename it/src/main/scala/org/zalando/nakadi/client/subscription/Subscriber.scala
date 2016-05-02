@@ -34,7 +34,7 @@ class Subscriber {
 //              ,streamTimeout=Some(10)
       //        ,streamKeepAliveLimit =Some(10)
       )
-    client.subscribe(eventType, params, listener)
+//    client.subscribe(eventType, params, listener)
   }
 
   def printPartitions() = {

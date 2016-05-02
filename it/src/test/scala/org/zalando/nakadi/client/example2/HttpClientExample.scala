@@ -32,7 +32,7 @@ object HttpClient extends App   with HttpFactory  {
   val eventName = "/event-types/test-client-integration-event-1936085527-148383828851369665/events"
   val cursor = Cursor(0,30115)
   val params = Some(StreamParameters())
-  val headers = RawHeader("Accept", "application/x-json-stream") :: withHeaders(params)
+  val headers = withHeaders(params) :+ RawHeader("Accept", "application/x-json-stream") 
   val request = withHttpRequest(eventName, HttpMethods.GET, headers, OAuth2Token(),None)
   case class MyEventExample(orderNumber: String)
   implicit val myEvent = new TypeReference[MyEventExample] {}
@@ -40,7 +40,7 @@ object HttpClient extends App   with HttpFactory  {
   receiver.listen()
 }
 
-class ReceiverGraph[T](eventName: String, connection: Connection, request: HttpRequest, headers: List[HttpHeader]) //
+class ReceiverGraph[T](eventName: String, connection: Connection, request: HttpRequest, headers: Seq[HttpHeader]) //
 (implicit system: ActorSystem, m: ActorMaterializer, des: Deserializer[T]) {
 
   import GraphDSL.Implicits._

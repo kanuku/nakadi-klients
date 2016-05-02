@@ -21,13 +21,11 @@ import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.utils.Uri
 import com.fasterxml.jackson.core.`type`.TypeReference
 
-
-
 private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client with HttpFactory {
   implicit val materializer = connection.materializer
   import Uri._
   import JacksonJsonMarshaller._
-//  implicit val
+  //  implicit val
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
   def getMetrics(): Future[Either[ClientError, Option[Metrics]]] = {
     logFutureEither(connection.get(URI_METRICS).flatMap(mapToEither(_)(deserializer(metricsTR))))
@@ -58,15 +56,15 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
   }
   def publishEvents[T <: Event](eventTypeName: String, events: Seq[T]): Future[Option[ClientError]] = {
-	  logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
+    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
   }
 
   def publishEvent[T <: Event](name: String, event: T, ser: Serializer[T]): Future[Option[ClientError]] = {
     logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
   }
-  
+
   def publishEvent[T <: Event](name: String, event: T): Future[Option[ClientError]] = {
-	  logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
+    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
   }
 
   def getPartitions(name: String): Future[Either[ClientError, Option[Seq[Partition]]]] = {
@@ -89,11 +87,11 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     None
   }
 
-   def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T], typeRef: TypeReference[T]): Future[Option[ClientError]] = {
-     subscribe(eventTypeName, parameters, listener)(deserializer(typeRef))
-     
-   }
-	  def subscribe[T <: Event](eventType: String, params: StreamParameters, listener: Listener[T])(implicit des: Deserializer[T]): Future[Option[ClientError]] = {
+  def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T], typeRef: TypeReference[EventStreamBatch[T]]): Future[Option[ClientError]] = {
+    subscribe(eventTypeName, parameters, listener)(deserializer(typeRef))
+
+  }
+  def subscribe[T <: Event](eventType: String, params: StreamParameters, listener: Listener[T])(implicit des:  Deserializer[EventStreamBatch[T]]): Future[Option[ClientError]] =
     (eventType, params, listener) match {
 
       case (_, _, listener) if listener == null =>
@@ -106,16 +104,11 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
 
       case (eventType, StreamParameters(cursor, _, _, _, _, _, _), listener) if Option(eventType).isDefined =>
         val url = URI_EVENTS_OF_EVENT_TYPE.format(eventType)
-
-        val request = withHttpRequest(url, HttpMethods.GET,
-          RawHeader("Accept", "application/x-json-stream") :: withHeaders(Option(params)), //Headers
-          connection.tokenProvider(), Option(params))
-
-        logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} ", listener.id, cursor, params, eventType)
-        connection.subscribe(url, cursor, request, listener)
+        logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} - url {}", listener.id, cursor, params, eventType,url)
+        val finalUrl =withUrl(url, Some(params))
+        connection.subscribe(finalUrl, cursor, listener)(des)
         Future.successful(None)
     }
-  }
 
   def unsubscribe[T <: Event](eventType: String, listener: Listener[T]): Future[Option[ClientError]] = ???
 
@@ -168,7 +161,7 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
   private[client] def mapToOption[T](response: HttpResponse): Future[Option[ClientError]] = {
     response.status match {
       case status if (status.isSuccess()) =>
-        logger.debug("Success. http-status: %s", status.intValue().toString())
+        logger.debug("Success. http-status: %s".format(status.intValue()))
         Future.successful(None)
       case status if (status.isRedirection()) =>
         val msg = "Redirection - http-status: %s, reason[%s]".format(status.intValue().toString(), status.reason())

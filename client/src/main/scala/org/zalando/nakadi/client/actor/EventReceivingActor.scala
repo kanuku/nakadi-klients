@@ -1,29 +1,53 @@
 package org.zalando.nakadi.client.actor
 
-import akka.actor.ActorLogging
-import akka.actor.Actor
-import akka.stream.actor.ActorPublisher
-import EventReceivingActor._
 import scala.collection.mutable.Queue
+
 import org.zalando.nakadi.client.scala.model.Cursor
 
-
-
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.stream.actor.ActorPublisher
+import akka.stream.actor.ActorPublisherMessage.Cancel
+import akka.stream.actor.ActorPublisherMessage.Request
 
 object EventReceivingActor {
-  case class NextEvent(lastReceivedCursor:Cursor)
+  case class NextEvent(lastReceivedCursor: Option[Cursor])
+  case class HttpError(status:Int, msg:Option[String])
 }
 
+class EventReceivingActor(url: String) extends Actor with ActorLogging with ActorPublisher[Option[Cursor]] {
 
+  import EventReceivingActor._
 
-class EventReceivingActor (url: String, cursor:Option[Cursor]) extends Actor with ActorLogging with ActorPublisher[Cursor] {
-  
-  override def preStart() {
-   self ! cursor
- }
+  var prev: Option[Cursor] = None
+  var curr: Option[Cursor] = None
+
+  val queue: Queue[Option[Cursor]] = Queue()
 
   override def receive: Receive = {
-    case cursor: Cursor => onNext(cursor)
+    case NextEvent(cursor) =>
+      log.info("[EventReceivingActor] Request next event chunk {} ", cursor)
+      queue.enqueue(cursor)
+      sendEvents()
+    case Request(cnt) =>
+      log.info("[EventReceivingActor] Requested {} event chunks", cnt)
+      sendEvents()
+    case Cancel =>
+      log.info("[EventReceivingActor] Stopping receiving events!")
+      context.stop(self)
+    case HttpError(status,_) =>
+      log.error("[EventReceivingActor] {}",status)
+    case e =>
+      log.error(e.toString())
+  }
 
+  def sendEvents() {
+    while (isActive && totalDemand > 0 && !queue.isEmpty) {
+//        prev = curr
+        val cursor = queue.dequeue()
+        log.info("Requesting events 4 cursor {} at url {} ", cursor, url)
+        onNext(cursor)
+    }
   }
 }
+
