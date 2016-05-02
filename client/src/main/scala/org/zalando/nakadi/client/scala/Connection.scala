@@ -37,6 +37,8 @@ import akka.stream.ActorMaterializerSettings
 import akka.stream.Attributes
 import akka.NotUsed
 import akka.http.scaladsl.settings.ConnectionPoolSettings
+import akka.http.scaladsl.Http.HostConnectionPool
+import akka.stream.scaladsl.Framing
 
 trait Connection extends HttpFactory {
 
@@ -98,6 +100,9 @@ object Connection {
 sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
   import Connection._
 
+  type HttpFlow[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), HostConnectionPool]
+  type StepResult[T] = (T, Option[String])
+
   private implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
   private implicit val http = Http(actorSystem)
   implicit val materializer = ActorMaterializer(
@@ -110,12 +115,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
   val cps = ConnectionPoolSettings(actorSystem).withMaxConnections(64).withPipeliningLimit(1).withMaxOpenRequests(64)
   val connection: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = newSslContext(securedConnection, verifySSlCertificate) match {
-//    case Some(result) => 
-//      val re=http.cachedHostConnectionPoolHttps(host, //
-//      port = port, //
-//      connectionContext = result, //
-//      settings = cps)
-//    case Some(result) => http.outgoingConnectionHttps(host, port, result)
+    case Some(result) => http.outgoingConnectionHttps(host, port, result)
     case None =>
       logger.warn("Disabled HTTPS, switching to HTTP only!")
       http.outgoingConnection(host, port)
@@ -228,21 +228,28 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
     //    val A:Outlet[Option[]]= Source.fromPublisher(receiver)
     val flow = connection //
-    //    .async
-    //    .withAttributes(Attributes.inputBuffer(initial = 8, max = 16))
+
+     val echo = Flow[ByteString]
+    .via(Framing.delimiter(ByteString("\n"), maximumFrameLength = 256, allowTruncation = true))
+    .map(_.utf8String)
 
     Source.fromPublisher(receiver)
-      //          Source.single(cursor)
-      //      .map(withHttpRequest(url, _, None, tokenProvider))
-      .via(toRequest(url: String))
+      .via(requesCreator(url))
       .via(flow)
       .buffer(1024, OverflowStrategy.backpressure)
-      .filter { x => x.status.isSuccess() }
-      .map { x => x.entity.dataBytes }
+      .via(requestRenderer)
       .runForeach(_.runWith(Sink.fromSubscriber(consumer)))
     eventReceiver ! NextEvent(cursor)
-  }
 
+  } 
+  
+  def requesCreator(url:String):Flow[Option[Cursor],HttpRequest,NotUsed] = Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
+  
+ def requestRenderer={//: Flow[HttpResponse,ByteString,NotUsed] = {
+    Flow[HttpResponse].filter(x => x.status.isSuccess())
+    .map { x => x.entity.dataBytes.via(Framing.delimiter(ByteString("\n"), maximumFrameLength = 256, allowTruncation = true)) }
+    
+  }
   def toRequest(url: String)(implicit m: ActorMaterializer): Flow[Option[Cursor], HttpRequest, NotUsed] =
     Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
 

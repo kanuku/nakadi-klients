@@ -42,7 +42,6 @@ class EventConsumer[T <: Event](url: String, //
 //   val requestStrategy = WatermarkRequestStrategy(50)
   override protected def requestStrategy: RequestStrategy = new RequestStrategy {
     override def requestDemand(remainingRequested: Int): Int = {
-      log.info("########## Received: {}", remainingRequested)
       Math.max(remainingRequested, 10)
     }
   }
