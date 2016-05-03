@@ -237,16 +237,19 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     eventReceiver ! NextEvent(cursor)
   }
 
-  def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
+  private def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
     Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
 
-  def requestRenderer: Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
+  private def requestRenderer: Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
     Flow[HttpResponse].filter(x => x.status.isSuccess())
       .map(_.entity.withSizeLimit(Long.MaxValue).dataBytes.via(delimiterFlow))
 
-  def delimiterFlow = Flow[ByteString]
+  private def delimiterFlow = Flow[ByteString]
     .via(Framing.delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))
 
   def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T]) = ???
+  
+  
+  
 }
 

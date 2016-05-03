@@ -101,7 +101,7 @@ trait Client {
   def publishEvent[T <: Event](eventTypeName: String, event: T, ser: Serializer[T]): Future[Option[ClientError]]
 
   /**
-   * Publishes a single Events for the given EventType.
+   * Publishes a single Events to the given EventType.
    * {{{
    * curl --request POST -d @fileWithEvent /event-types/{name}/events
    * }}}
@@ -112,7 +112,7 @@ trait Client {
   def publishEvent[T <: Event](eventTypeName: String, event: T): Future[Option[ClientError]]
 
   /**
-   * List the partitions for the given EventType.
+   * List the partitions to the given EventType.
    * {{{
    * curl --request GET /event-types/{name}/partitions
    * }}}
@@ -155,26 +155,26 @@ trait Client {
   /**
    * Registers the subscription of a listener to start streaming events from a partition in non-blocking fashion.
    *
-   * @eventType - Name of the EventType to listen for.
-   * @parameters - Parameters for the streaming of events.
-   * @listener - Listener to pass the event to when it is received.
-   * @des - Json Marshaller(implicit) to deserialize the event to Json.
+   * @param eventTypeName - Name of the EventType to listen for.
+   * @param parameters - Parameters for the streaming of events.
+   * @param listener - Listener to pass the event to when it is received.
+   * @param des - Json Marshaller(implicit) to deserialize the event to Json.
    */
   def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]): Future[Option[ClientError]]
   /**
    * Registers the subscription of a listener to start streaming events from a partition in non-blocking fashion.
    *
-   * @eventType - Name of the EventType to listen for.
-   * @parameters - Parameters for the streaming of events.
-   * @listener - Listener to pass the event to when it is received.
-   * @typeRef - TypeReference/Helper for using with the Jackson-Objectmapper to deserializing the event to json.
+   * @param eventTypeName - Name of the EventType to listen for.
+   * @param parameters - Parameters for the streaming of events.
+   * @param listener - Listener to pass the event to when it is received.
+   * @param typeRef - TypeReference/Helper for using with the Jackson-Objectmapper to deserializing the event to json.
    */
    def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T], typeRef: TypeReference[EventStreamBatch[T]]): Future[Option[ClientError]]
   /**
    * Removes the subscription of a listener, to stop streaming events from a partition.
    *
-   * @eventType - Name of the EventType.
-   * @listener - Listener to unsubscribe from the streaming events.
+   * @param eventTypeName - Name of the EventType.
+   * @param listener - Listener to unsubscribe from the streaming events.
    */
   def unsubscribe[T <: Event](eventTypeName: String, listener: Listener[T]): Future[Option[ClientError]]
 

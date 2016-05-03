@@ -10,6 +10,15 @@ EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
 EclipseKeys.withSource := true
 
+def whereToPublishTo(isItSnapshot:Boolean) = {
+  val nexus = "https://maven.zalando.net/"
+  if (isItSnapshot)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases"  at nexus + "content/repositories/releases")
+  }
+
+
 val defaultOptions= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
   "-feature", // Emit warning and location for usages of features that should be imported explicitly.
@@ -22,20 +31,21 @@ val defaultOptions= Seq(
   "-Ywarn-nullary-override", // Warn when non-nullary overrides nullary, e.g. def foo() over def foo.
   "-Ywarn-numeric-widen" // Warn when numerics are widened.
 )
-lazy val commonSettings = Seq(
-  organization := "org.zalando",
-  version := "0.1.0",
-  scalaVersion := "2.11.7"
-)
+
+lazy val root = project.in(file("."))
+  .settings(publishTo := whereToPublishTo(isSnapshot.value))
+  .aggregate(api, client)
 
 lazy val api = withDefaults(
     "nakadi-klients-api",
     project.in(file("api"))
+    ,true
   ).settings(libraryDependencies ++= apiDeps)
 
 lazy val client = withDefaults(
     "nakadi-klients",
     project.in(file("client")).dependsOn(api)
+    ,true
   ).settings(libraryDependencies ++= clientDeps)
 
 
@@ -51,18 +61,27 @@ lazy val client = withDefaults(
       ).settings(libraryDependencies ++= clientDeps)
 
 
-def withDefaults(projectName:String, project:sbt.Project)={
-  project.settings(
-      name := projectName,
-      organization := "org.zalando.nakadi.client",
-      scalaVersion := "2.11.7",
-      resolvers += Resolver.mavenLocal,
-      resolvers += "Maven Central Server" at "http://repo1.maven.org/maven2",
-      scalacOptions ++= defaultOptions)
-      .configs(Configs.all: _*)
-      .settings(Testing.settings: _*)
-
-}
+  def withDefaults(projectName:String, project:sbt.Project, publish:Boolean = false)={
+    project.settings(
+        name := projectName,
+        organization := "org.zalando.nakadi.client",
+        version := "2.0-SNAPSHOT",
+        crossPaths := false,
+        scalaVersion := "2.11.7",
+        publishTo := whereToPublishTo(isSnapshot.value),
+        resolvers += Resolver.mavenLocal,
+        resolvers += "Maven Central Server" at "http://repo1.maven.org/maven2",
+        scalacOptions ++= defaultOptions)
+        .configs(Configs.all: _*)
+        /*.settings(
+          publishArtifact in (Compile, packageDoc) := true //To Publish or Not to Publish scala doc jar
+          ,publishArtifact in (Compile, packageSrc) := true //To Publish or Not to Publish src jar
+          ,publishArtifact := publish // To Publish or Not to Publish
+          ,publishArtifact in Test := false //To Publish or Not to Publish test jar
+          ,sources in (Compile,doc) := Seq.empty
+          )
+          */
+  }
 
 
 }
