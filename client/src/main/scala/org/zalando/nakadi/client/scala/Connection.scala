@@ -68,7 +68,8 @@ trait Connection extends HttpFactory {
  * Companion object with factory methods.
  */
 object Connection {
-  val RECEIVE_BUFFER_SIZE = 20480
+  val RECEIVE_BUFFER_SIZE = 40960
+  val EVENT_DELIMITER = "\n"
   /**
    * Creates a new SSL context for usage with connections based on the HTTPS protocol.
    */
@@ -225,11 +226,6 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     val receiver = ActorPublisher[Option[Cursor]](eventReceiver)
     val consumer = ActorSubscriber[ByteString](eventConsumer)
 
-
-     val echo = Flow[ByteString]
-    .via(Framing.delimiter(ByteString("\n"), maximumFrameLength = 256, allowTruncation = true))
-    .map(_.utf8String)
-
     Source.fromPublisher(receiver)
       .via(requesCreator(url))
       .via(connection)
@@ -238,15 +234,20 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
       .runForeach(_.runWith(Sink.fromSubscriber(consumer)))
     eventReceiver ! NextEvent(cursor)
 
-  } 
-  
-  def requesCreator(url:String):Flow[Option[Cursor],HttpRequest,NotUsed] = Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
-  
- def requestRenderer={//: Flow[HttpResponse,ByteString,NotUsed] = {
-    Flow[HttpResponse].filter(x => x.status.isSuccess())
-    .map { x => x.entity.dataBytes.via(Framing.delimiter(ByteString("\n"), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true)) }
-    
   }
+
+  def requesCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] = Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
+
+  def requestRenderer = { //: Flow[HttpResponse,ByteString,NotUsed] = {
+    Flow[HttpResponse].filter(x => x.status.isSuccess())
+      .map {
+        x => x.entity.dataBytes.via(delimiterFlow)
+      }
+  }
+
+  def delimiterFlow = Flow[ByteString]
+    .via(Framing.delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))
+
   def toRequest(url: String)(implicit m: ActorMaterializer): Flow[Option[Cursor], HttpRequest, NotUsed] =
     Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
 
