@@ -17,7 +17,6 @@ import akka.stream.actor.{ ActorSubscriber, RequestStrategy }
 import akka.stream.scaladsl.{ Flow, Sink, Source }
 import akka.util.ByteString
 import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
-import org.zalando.nakadi.client.actor.EventConsumer.ShutdownMsg
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.scala.model.Event
@@ -217,39 +216,36 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   def subscribe[T <: Event](url: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]) = {
     logger.info("Subscribing listener {} to uri {}", listener.id, url)
-    import EventConsumer._
     import EventReceivingActor._
 
     //Create the Actors
     val eventReceiver = actorSystem.actorOf(Props(classOf[EventReceivingActor], url))
-    val eventConsumer = actorSystem.actorOf(Props(classOf[EventConsumer[T]], url, listener, eventReceiver, des))
     val receiver = ActorPublisher[Option[Cursor]](eventReceiver)
+
+    val eventConsumer = actorSystem.actorOf(Props(classOf[EventConsumer[T]], url, listener, eventReceiver, des))
     val consumer = ActorSubscriber[ByteString](eventConsumer)
 
-    Source.fromPublisher(receiver)
-      .via(requesCreator(url))
+    val pipeline = Flow[Option[Cursor]].via(requestCreator(url))
       .via(connection)
       .buffer(RECEIVE_BUFFER_SIZE, OverflowStrategy.backpressure)
       .via(requestRenderer)
+
+    Source.fromPublisher(receiver)
+      .via(pipeline)
       .runForeach(_.runWith(Sink.fromSubscriber(consumer)))
+
     eventReceiver ! NextEvent(cursor)
-
   }
 
-  def requesCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] = Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
+  def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
+    Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
 
-  def requestRenderer = { //: Flow[HttpResponse,ByteString,NotUsed] = {
+  def requestRenderer: Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
     Flow[HttpResponse].filter(x => x.status.isSuccess())
-      .map {
-        x => x.entity.dataBytes.via(delimiterFlow)
-      }
-  }
+      .map(_.entity.dataBytes.via(delimiterFlow))
 
   def delimiterFlow = Flow[ByteString]
     .via(Framing.delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))
-
-  def toRequest(url: String)(implicit m: ActorMaterializer): Flow[Option[Cursor], HttpRequest, NotUsed] =
-    Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
 
   def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T]) = ???
 }

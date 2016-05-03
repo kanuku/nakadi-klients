@@ -12,42 +12,47 @@ import akka.stream.actor.ActorPublisherMessage.Request
 
 object EventReceivingActor {
   case class NextEvent(lastReceivedCursor: Option[Cursor])
-  case class HttpError(status:Int, msg:Option[String])
+  case class HttpError(
+    url: String,
+    cursor: Option[Cursor],
+    status: Int,
+    msg: Option[String])
 }
 
+/**
+ * This actor is a Publisher and serves as source for the pipeline. <br>
+ * 1. It receives cursors from the EventConsumingActor.
+ * 2. It queues the received cursors.
+ * 3. It sends the next cursor(s) from the queue(FIFO) to the pipeline depending on the demand.
+ */
 class EventReceivingActor(url: String) extends Actor with ActorLogging with ActorPublisher[Option[Cursor]] {
 
   import EventReceivingActor._
-
-  var prev: Option[Cursor] = None
-  var curr: Option[Cursor] = None
 
   val queue: Queue[Option[Cursor]] = Queue()
 
   override def receive: Receive = {
     case NextEvent(cursor) =>
-      log.info("[EventReceivingActor] Request next event chunk {} ", cursor)
+      log.debug("[EventReceivingActor] Request next event chunk {} ", cursor)
       queue.enqueue(cursor)
       sendEvents()
     case Request(cnt) =>
-      log.info("[EventReceivingActor] Requested {} event chunks", cnt)
+      log.debug("[EventReceivingActor] Requested {} event chunks", cnt)
       sendEvents()
     case Cancel =>
-      log.info("[EventReceivingActor] Stopping receiving events!")
+      log.debug("[EventReceivingActor] Stopping the stream of events!")
       context.stop(self)
-    case HttpError(status,_) =>
-      log.error("[EventReceivingActor] {}",status)
+    case HttpError(url, cursor, status, _) =>
+      log.error("[EventReceivingActor] Cursor {} on URL {} caused error {}", cursor, url, status)
     case e =>
       log.error(e.toString())
   }
 
-  def sendEvents() {
-    while (isActive && totalDemand > 0 && !queue.isEmpty) {
-//        prev = curr
-        val cursor = queue.dequeue()
-        log.info("Requesting events 4 cursor {} at url {} ", cursor, url)
-        onNext(cursor)
-    }
+  def sendEvents() = while (isActive && totalDemand > 0 && !queue.isEmpty) {
+    val cursor = queue.dequeue()
+    log.debug("[EventReceivingActor] Requesting events [cursor {} at url {}] ", cursor, url)
+    onNext(cursor)
   }
+
 }
 
