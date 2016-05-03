@@ -77,7 +77,7 @@ object EventCreationExample extends App {
 
   //  val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
      var events = for {
-      a <- 1 to 49976
+      a <- 1 to 445
     } yield MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton" + a)
 
     //    Thread.sleep(1000)
