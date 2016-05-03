@@ -242,7 +242,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   def requestRenderer: Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
     Flow[HttpResponse].filter(x => x.status.isSuccess())
-      .map(_.entity.dataBytes.via(delimiterFlow))
+      .map(_.entity.withSizeLimit(Long.MaxValue).dataBytes.via(delimiterFlow))
 
   def delimiterFlow = Flow[ByteString]
     .via(Framing.delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))

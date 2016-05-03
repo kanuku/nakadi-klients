@@ -12,16 +12,12 @@ import java.util.concurrent.atomic.AtomicLong
 /**
  * Your listener will have to implement the necessary
  */
-class MeetingsListener(val id: String) extends Listener[MeetingsEvent] {
+class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
   private var eventCount: AtomicLong = new AtomicLong(0);
 
   def onError(sourceUrl: String, cursor: Cursor, error: ClientError): Unit = {
     println("An error occurred")
   }
-
-  def onSubscribed(): Unit = ???
-
-  def onUnsubscribed(): Unit = ???
 
   def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MeetingsEvent]): Unit = {
     eventCount.addAndGet(events.size.toLong)
@@ -49,7 +45,7 @@ object EventListenerExample extends App {
   /**
    * Initialize our Listener
    */
-  val listener = new MeetingsListener("Tesst")
+  val listener = new EventCounterListener("Test")
 
   /**
    * Create the Parameters with the cursor.
@@ -59,12 +55,12 @@ object EventListenerExample extends App {
 
   val parameters = new StreamParameters(
     cursor =  Some(cursor) //
-    , batchLimit = Some(200) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
+    , batchLimit = Some(100) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
 //    , streamLimit = Some(2) // Maximum number of `Event`s to stream (over all partitions being streamed in this
     //connection).
-    , batchFlushTimeout = Some(15) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
+//    , batchFlushTimeout = Some(15) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
     //        ,streamKeepAliveLimit=Some(4)
-    , streamTimeout = Some(30)
+//    , streamTimeout = Some(30)
     )
 
   /**
