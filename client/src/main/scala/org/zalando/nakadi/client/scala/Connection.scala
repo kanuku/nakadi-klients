@@ -68,9 +68,9 @@ trait Connection extends HttpFactory {
  * Companion object with factory methods.
  */
 object Connection {
-
+  val RECEIVE_BUFFER_SIZE = 20480
   /**
-   *
+   * Creates a new SSL context for usage with connections based on the HTTPS protocol.
    */
   def newSslContext(secured: Boolean, verified: Boolean): Option[HttpsConnectionContext] = (secured, verified) match {
     case (true, true) => Some(new HttpsConnectionContext(SSLContext.getDefault))
@@ -87,7 +87,7 @@ object Connection {
   }
 
   /**
-   * Creates a new
+   * Creates a new Connection
    */
   def newConnection(host: String, port: Int, tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean): Connection =
     new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate)
@@ -113,7 +113,6 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   private val actors: Map[String, Actor] = Map()
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
-  val cps = ConnectionPoolSettings(actorSystem).withMaxConnections(64).withPipeliningLimit(1).withMaxOpenRequests(64)
   val connection: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = newSslContext(securedConnection, verifySSlCertificate) match {
     case Some(result) => http.outgoingConnectionHttps(host, port, result)
     case None =>
@@ -226,8 +225,6 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     val receiver = ActorPublisher[Option[Cursor]](eventReceiver)
     val consumer = ActorSubscriber[ByteString](eventConsumer)
 
-    //    val A:Outlet[Option[]]= Source.fromPublisher(receiver)
-    val flow = connection //
 
      val echo = Flow[ByteString]
     .via(Framing.delimiter(ByteString("\n"), maximumFrameLength = 256, allowTruncation = true))
@@ -235,8 +232,8 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
     Source.fromPublisher(receiver)
       .via(requesCreator(url))
-      .via(flow)
-      .buffer(1024, OverflowStrategy.backpressure)
+      .via(connection)
+      .buffer(RECEIVE_BUFFER_SIZE, OverflowStrategy.backpressure)
       .via(requestRenderer)
       .runForeach(_.runWith(Sink.fromSubscriber(consumer)))
     eventReceiver ! NextEvent(cursor)
@@ -247,7 +244,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   
  def requestRenderer={//: Flow[HttpResponse,ByteString,NotUsed] = {
     Flow[HttpResponse].filter(x => x.status.isSuccess())
-    .map { x => x.entity.dataBytes.via(Framing.delimiter(ByteString("\n"), maximumFrameLength = 256, allowTruncation = true)) }
+    .map { x => x.entity.dataBytes.via(Framing.delimiter(ByteString("\n"), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true)) }
     
   }
   def toRequest(url: String)(implicit m: ActorMaterializer): Flow[Option[Cursor], HttpRequest, NotUsed] =

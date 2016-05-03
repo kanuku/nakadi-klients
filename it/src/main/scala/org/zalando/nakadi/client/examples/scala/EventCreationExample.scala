@@ -15,8 +15,6 @@ import scala.concurrent.duration.DurationInt
 
 object EventCreationExample extends App {
 
-  
-  
   // 1. Create the client
 
   import org.zalando.nakadi.client.utils.ClientBuilder
@@ -50,7 +48,7 @@ object EventCreationExample extends App {
   //First the eventType name, wich will be part of the URL: https://nakadi.test.io/event-types/{eventTypeName}
   //See the API for more information on the EventType model
   //https://github.com/zalando/nakadi/blob/nakadi-jvm/api/nakadi-event-bus-api.yaml#L1240
-  val eventTypeName = "MeetingsEvent-example-E" 
+  val eventTypeName = "MeetingsEvent-example-E"
 
   val owner = "team-laas"
   val category = EventTypeCategory.UNDEFINED // We want just to pass data without through Nakadi, simple schema-validation is enough!
@@ -73,18 +71,18 @@ object EventCreationExample extends App {
   //You need to import the default Serializer if you don't sepecify your own!
   import JacksonJsonMarshaller._
 
-//  client.createEventType(eventType)
-//  Thread.sleep(10000)
+  //  client.createEventType(eventType)
+  //  Thread.sleep(10000)
   // 4. Publish the EventType
-   
-  val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
-  val events = for {
-      a <- 1 to 25
-    } yield MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton"+a) 
-  
-//    Thread.sleep(1000)
-    
-  Await.result(client.publishEvents(eventTypeName, events),10.seconds)
+
+  //  val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
+     var events = for {
+      a <- 1 to 49976
+    } yield MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton" + a)
+
+    //    Thread.sleep(1000)
+
+      Await.result(client.publishEvents(eventTypeName, events), 120.seconds)
   client.stop()
 
 }

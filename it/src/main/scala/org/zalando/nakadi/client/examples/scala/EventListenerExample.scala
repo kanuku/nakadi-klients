@@ -27,7 +27,7 @@ class MeetingsListener(val id: String) extends Listener[MeetingsEvent] {
     eventCount.addAndGet(events.size.toLong)
     println("#####################################")
     println(s"Received " + events.size.toLong)
-    println(s"Has a total of $eventCount")
+    println(s"Has a total of $eventCount events")
     println("#####################################")
 
   }
@@ -59,12 +59,12 @@ object EventListenerExample extends App {
 
   val parameters = new StreamParameters(
     cursor =  Some(cursor) //
-    , batchLimit = Some(2) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
+    , batchLimit = Some(1) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
 //    , streamLimit = Some(2) // Maximum number of `Event`s to stream (over all partitions being streamed in this
     //connection).
-    , batchFlushTimeout = Some(15) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
+    , batchFlushTimeout = Some(10) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
     //        ,streamKeepAliveLimit=Some(4)
-    , streamTimeout = Some(40)
+    , streamTimeout = Some(50)
     )
 
   /**
