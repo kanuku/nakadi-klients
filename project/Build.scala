@@ -65,7 +65,7 @@ lazy val client = withDefaults(
     project.settings(
         name := projectName,
         organization := "org.zalando.nakadi.client",
-        version := "2.0-SNAPSHOT",
+        version := "2.0.1-SNAPSHOT",
         crossPaths := false,
         scalaVersion := "2.11.7",
         publishTo := whereToPublishTo(isSnapshot.value),

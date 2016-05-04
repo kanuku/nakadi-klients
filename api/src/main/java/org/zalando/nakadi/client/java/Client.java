@@ -9,11 +9,14 @@ import org.zalando.nakadi.client.Serializer;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
+import org.zalando.nakadi.client.java.model.Cursor;
 import org.zalando.nakadi.client.java.model.Event;
+import org.zalando.nakadi.client.java.model.EventStreamBatch;
 import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.model.Metrics;
 import org.zalando.nakadi.client.java.model.Partition;
-import org.zalando.nakadi.client.java.StreamParameters;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 
 public interface Client {
 
@@ -141,7 +144,15 @@ public interface Client {
      * @param listener Listener to pass the event to when it is received.
      * @return Void in case of success
      */
-    public <T extends Event> Future<Void> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<T> deserializer);
+    <T extends Event> Future<Void> subscribe(String eventTypeName, Optional<Cursor> cursor, Listener<T> listener, Deserializer<EventStreamBatch<T>> deserializer);
+    /**
+     * Registers the subscription of a listener to start streaming events from a partition in non-blocking fashion.
+     * @param eventTypeName The unique name (id) of the EventType target 
+     * @param parameters Parameters for customizing the details of the streaming.
+     * @param typeRef TypeReference for unmarshalling with the Jackson ObjectMapper.
+     * @return Void in case of success
+     */
+    <T extends Event> Future<Void> subscribe(String eventTypeName, Optional<Cursor> cursor, Listener<T> listener, TypeReference<EventStreamBatch<T>> typeRef);
     /**
      * Removes the subscription of a listener, to stop streaming events from a partition.
      * @param eventTypeName The unique name (id) of the EventType target 

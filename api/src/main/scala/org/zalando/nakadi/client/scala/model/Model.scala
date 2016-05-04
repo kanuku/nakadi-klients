@@ -33,8 +33,8 @@ trait Event {
  * @param offset Offset of the event being pointed to.
  */
 case class Cursor(
-  partition: Integer,
-  offset: Integer)
+  partition: String,
+  offset: String)
 
 /**
  *

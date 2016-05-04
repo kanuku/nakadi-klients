@@ -13,7 +13,6 @@ import org.zalando.nakadi.client.scala.model.Cursor
 import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging.Logger
 
-
 //
 trait HttpFactory {
   type TokenProvider = () => String
@@ -34,9 +33,9 @@ trait HttpFactory {
       case None => Nil
     }
   }
-  
-  def withUrl(url:String, params: Option[StreamParameters])={
-       val paramsList = withQueryParams(params)
+
+  def withUrl(url: String, params: Option[StreamParameters]) = {
+    val paramsList = withQueryParams(params)
     val urlParams = if (!paramsList.isEmpty) paramsList.mkString("?", "&", "") else ""
     url + urlParams
   }
@@ -44,7 +43,7 @@ trait HttpFactory {
   def withHttpRequest(url: String, httpMethod: HttpMethod, additionalHeaders: Seq[HttpHeader], tokenProvider: TokenProvider, params: Option[StreamParameters]): HttpRequest = {
     val allHeaders: Seq[HttpHeader] = additionalHeaders :+ headers.Authorization(OAuth2BearerToken(tokenProvider()))
     val paramsList = withQueryParams(params)
-    
+
     HttpRequest(uri = url, method = httpMethod).withHeaders(allHeaders)
   }
 
@@ -67,7 +66,6 @@ trait HttpFactory {
   }
 
   def withHttpRequest(url: String, cursor: Option[Cursor], flowId: Option[String], tokenProvider: () => String): HttpRequest = {
-    println("############### URL %s cursor %s".format(url,cursor))
     val customHeaders = withDefaultHeaders(cursor, flowId) :+ RawHeader("Accept", "application/x-json-stream")
     val tokenHeader = headers.Authorization(OAuth2BearerToken(tokenProvider()))
     val allHeaders: Seq[HttpHeader] = customHeaders :+ tokenHeader
@@ -75,4 +73,3 @@ trait HttpFactory {
   }
 
 }
-//

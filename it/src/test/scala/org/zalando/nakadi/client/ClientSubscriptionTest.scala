@@ -26,7 +26,7 @@ class ClientSubscriptionTest extends WordSpec with Matchers with ModelFactory {
 
     val listener = new Listener[MyEventExample] {
       def id: String = "test"
-      def onError(sourceUrl: String, cursor: Cursor, error: ClientError): Unit = {
+      def onError(sourceUrl: String, error: Option[ClientError]): Unit = {
         println("YOOOOOOOOOOOOOO ")
       }
       def onSubscribed(): Unit = ???

@@ -8,7 +8,7 @@ object TestScalaEntity {
   val problem = new Problem("problemType", "title", 312, Option("detail"), Option("instance"))
   val metrics = new Metrics(Map("metrics" -> "test"))
   val partition = new Partition(0, 132, 4423)
-  val cursor = new Cursor(0, 120)
+  val cursor = new Cursor("0", "120")
   val eventTypeSchema = new EventTypeSchema(SchemaType.JSON, "schema")
   val eventValidationStrategy = EventValidationStrategy.NONE
   val partitionResolutionStrategy = PartitionStrategy.HASH

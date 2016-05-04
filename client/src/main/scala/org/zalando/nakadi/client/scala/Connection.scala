@@ -2,45 +2,59 @@ package org.zalando.nakadi.client.scala
 
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import java.util.Optional
 import scala.collection.immutable.Seq
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration.DurationInt
-import org.slf4j.LoggerFactory
-import org.zalando.nakadi.client.actor.EventConsumer
-import com.typesafe.scalalogging.Logger
-import akka.actor.{ Props, ActorSystem, ActorLogging, _ }
-import akka.http.scaladsl.{ Http, HttpsConnectionContext }
-import akka.http.scaladsl.model.{ HttpHeader, _ }
-import akka.stream.{ ActorMaterializer, OverflowStrategy }
-import akka.stream.actor.{ ActorSubscriber, RequestStrategy }
-import akka.stream.scaladsl.{ Flow, Sink, Source }
-import akka.util.ByteString
-import javax.net.ssl.{ SSLContext, TrustManager, X509TrustManager }
-import org.zalando.nakadi.client.Deserializer
-import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.scala.model.Event
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import scala.util.Try
 import scala.util.Failure
 import scala.util.Success
-import akka.http.scaladsl.model.{ HttpHeader, HttpMethod, HttpMethods, HttpResponse, MediaRange }
-import java.util.Optional
-import org.zalando.nakadi.client.utils.FutureConversions
-import org.zalando.nakadi.client.scala.model.Cursor
+import scala.util.Try
+import org.slf4j.LoggerFactory
+import org.zalando.nakadi.client.Deserializer
+import org.zalando.nakadi.client.Serializer
+import org.zalando.nakadi.client.actor.EventConsumingActor
 import org.zalando.nakadi.client.actor.EventReceivingActor
-import akka.stream.actor.ActorPublisher
+import org.zalando.nakadi.client.actor.EventReceivingActor.NextEvent
+import org.zalando.nakadi.client.scala.model.Cursor
+import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
-import akka.stream.Outlet
-import akka.stream.ActorMaterializerSettings
-import akka.stream.Attributes
+import org.zalando.nakadi.client.java.model.{Event => JEvent}
+import org.zalando.nakadi.client.utils.FutureConversions
+import com.typesafe.scalalogging.Logger
 import akka.NotUsed
-import akka.http.scaladsl.settings.ConnectionPoolSettings
+import akka.actor.Actor
+import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.actor.Terminated
+import akka.actor.actorRef2Scala
+import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.HostConnectionPool
+import akka.http.scaladsl.HttpsConnectionContext
+import akka.http.scaladsl.model.HttpHeader
+import akka.http.scaladsl.model.HttpMethods
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.stream.ActorMaterializer
+import akka.stream.ActorMaterializerSettings
+import akka.stream.OverflowStrategy
+import akka.stream.actor.ActorPublisher
+import akka.stream.actor.ActorSubscriber
+import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Framing
+import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
+import org.zalando.nakadi.client.utils.ModelConverter
+
+trait JEmptyEvent extends JEvent
+trait SEmptyEvent extends Event
 
 trait Connection extends HttpFactory {
-
+  
   //Connection details
   def host: String
   def port: Int
@@ -58,8 +72,8 @@ trait Connection extends HttpFactory {
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
   def subscribe[T <: Event](url: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]])
   def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](
-    url: String, cursor: Option[org.zalando.nakadi.client.java.model.Cursor],
-    listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[org.zalando.nakadi.client.java.model.EventStreamBatch[T]])
+    url: String, cursor: Optional[org.zalando.nakadi.client.java.model.Cursor],
+    listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[org.zalando.nakadi.client.java.model.EventStreamBatch[T]]): java.util.concurrent.Future[Void]
 
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
@@ -217,28 +231,36 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   def stop(): Future[Terminated] = actorSystem.terminate()
 
   def subscribe[T <: Event](url: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]) = {
-    logger.info("Subscribing listener {} to uri {}", listener.id, url)
+    val msgHandler:EventHandler[JEmptyEvent, T]  = new EventHandler[JEmptyEvent, T](None,Option((des,listener)))
+    handleSubscription(url, cursor, msgHandler)
+  }
+  private def handleSubscription[J <: JEvent, S <: Event](url: String, cursor: Option[Cursor], msgHandler: EventHandler[J, S] ) = {
+    logger.info("Handler [{}] cursor {} uri [{}]", msgHandler.id, cursor, url)
+    
+    
     import EventReceivingActor._
 
     //Create the Actors
     val eventReceiver = actorSystem.actorOf(Props(classOf[EventReceivingActor], url))
     val receiver = ActorPublisher[Option[Cursor]](eventReceiver)
 
-    val eventConsumer = actorSystem.actorOf(Props(classOf[EventConsumer[T]], url, listener, eventReceiver, des))
+    val eventConsumer = actorSystem.actorOf(Props(classOf[EventConsumingActor[J,S]], url,eventReceiver, msgHandler))
     val consumer = ActorSubscriber[ByteString](eventConsumer)
 
+    //Setup the pipeline flow
     val pipeline = Flow[Option[Cursor]].via(requestCreator(url))
       .via(connection)
       .buffer(RECEIVE_BUFFER_SIZE, OverflowStrategy.backpressure)
       .via(requestRenderer)
 
+    //Put all pieces together
     Source.fromPublisher(receiver)
       .via(pipeline)
       .runForeach(_.runWith(Sink.fromSubscriber(consumer)))
 
+    //HOPAAA!!
     eventReceiver ! NextEvent(cursor)
   }
-   
 
   private def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
     Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
@@ -251,8 +273,18 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     .via(Framing.delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))
 
   def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](
-    url: String, cursor: Option[org.zalando.nakadi.client.java.model.Cursor],
-    listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[org.zalando.nakadi.client.java.model.EventStreamBatch[T]]) =  ???
+    url: String, cursor: Optional[org.zalando.nakadi.client.java.model.Cursor],
+    listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[org.zalando.nakadi.client.java.model.EventStreamBatch[T]]) = {
+    FutureConversions.fromFuture2FutureVoid {
+      Future {
+        import ModelConverter._
+        val scalaCursor = toScalaCursor(cursor)
+        val scalaListener = toScalaListener(listener)
+        val msgHandler:EventHandler[T, SEmptyEvent]  = new EventHandler[T, SEmptyEvent](Option((des,listener)),None)
+                handleSubscription(url, scalaCursor, msgHandler)
 
+      }
+    }
+
+  }
 }
-

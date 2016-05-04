@@ -27,6 +27,9 @@ object FutureConversions {
   def fromFuture2Future[T](in: scala.concurrent.Future[T]): java.util.concurrent.Future[T] = {
     new MFuture[T, T](in, a => a)
   }
+  def fromFuture2FutureVoid[T](in: scala.concurrent.Future[T]): java.util.concurrent.Future[Void] = {
+          new MFuture[T, Void](in, a => null)
+  }
 
   //  /**
   //   * Transforms the sequence in the option wrapped in the either right inside a

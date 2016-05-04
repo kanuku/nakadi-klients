@@ -15,9 +15,9 @@ import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.model.EventTypeSchema;
 import org.zalando.nakadi.client.java.model.EventTypeStatistics;
+import org.zalando.nakadi.client.java.utils.SerializationUtils;
 import org.zalando.nakadi.client.scala.ClientFactory;
 import org.zalando.nakadi.client.utils.ClientBuilder;
-import org.zalando.nakadi.client.utils.Serialization;
 
 import com.google.common.collect.Lists;
 
@@ -126,14 +126,15 @@ public class EventCreationExample {
 		result.get();
 		// Single Event with Serializer,
 		result = client.publishEvent(eventTypeName, event1,
-				Serialization.defaultSerializer());
+		        SerializationUtils.defaultSerializer());
 		result.get();
 		// Multi Event
 		result = client.publishEvents(eventTypeName, Arrays.asList(event2));
 		result.get();
 		// Multi Event with Serializer
-		result = client.publishEvents(eventTypeName, Arrays.asList(event3),
-				Serialization.defaultSerializer());
+		
+		
+		result = client.publishEvents(eventTypeName, Arrays.asList(event3), SerializationUtils.defaultSerializer());
 		result.get();
 
 	}

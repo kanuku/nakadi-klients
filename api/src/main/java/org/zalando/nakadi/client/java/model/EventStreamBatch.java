@@ -2,6 +2,9 @@ package org.zalando.nakadi.client.java.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * One chunk of events in a stream. A batch consists of an array of `Event`s
  * plus a `Cursor` pointing to the offset of the last Event in the stream. The
@@ -10,6 +13,7 @@ import java.util.List;
  * /event-type/{name}/events`) the events array will be omitted. Sequential
  * batches might repeat the cursor if no new events arrive.
  */
+
 public class EventStreamBatch<T extends Event> {
     private final Cursor cursor;
     private final List<T> events;
@@ -37,7 +41,14 @@ public class EventStreamBatch<T extends Event> {
      *            below.
      */
 
-    public EventStreamBatch(Cursor cursor, List<T> events) {
+    @JsonCreator
+    public EventStreamBatch(
+            @JsonProperty("cursor")
+            Cursor cursor,
+            
+            @JsonProperty("events")
+            List<T> events
+            ) {
         super();
         this.cursor = cursor;
         this.events = events;

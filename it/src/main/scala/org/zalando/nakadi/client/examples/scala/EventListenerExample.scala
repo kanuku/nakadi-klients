@@ -15,8 +15,8 @@ import java.util.concurrent.atomic.AtomicLong
 class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
   private var eventCount: AtomicLong = new AtomicLong(0);
 
-  def onError(sourceUrl: String, cursor: Cursor, error: ClientError): Unit = {
-    println("Error %s %s %s".format(sourceUrl,cursor,error))
+  def onError(sourceUrl: String, error: Option[ClientError]): Unit = {
+    println("Error %s %s %s".format(sourceUrl,error))
   }
 
   def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MeetingsEvent]): Unit = {
@@ -51,14 +51,14 @@ object EventListenerExample extends App {
    * Create the Parameters with the cursor.
    */
 
-  val cursor = Cursor(0, 4)
+  val cursor = Cursor("0", "BEGIN")
 
   val parameters = new StreamParameters(
     cursor =  Some(cursor) //
-    , batchLimit = Some(100) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
+    , batchLimit = Some(1) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
 //    , streamLimit = Some(2) // Maximum number of `Event`s to stream (over all partitions being streamed in this
     //connection).
-//    , batchFlushTimeout = Some(15) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
+    , batchFlushTimeout = Some(5) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
     //        ,streamKeepAliveLimit=Some(4)
 //    , streamTimeout = Some(30)
     )

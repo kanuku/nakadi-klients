@@ -39,6 +39,7 @@ class EventReceivingActor(url: String) extends Actor with ActorLogging with Acto
     case Request(cnt) =>
       log.debug("[EventReceivingActor] Requested {} event chunks", cnt)
       sendEvents()
+      Thread.sleep(100000)
     case Cancel =>
       log.debug("[EventReceivingActor] Stopping the stream of events!")
       context.stop(self)

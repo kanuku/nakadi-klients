@@ -1,8 +1,11 @@
 package org.zalando.nakadi.client.java.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Cursor {
-    private final Integer partition;
-    private final Integer offset;
+    private final String partition;
+    private final String offset;
 
     /**
      * @param partition
@@ -10,18 +13,23 @@ public class Cursor {
      * @param offset
      *            Offset of the event being pointed to.
      */
-    public Cursor(Integer partition, Integer offset) {
+    @JsonCreator
+    public Cursor(
+            @JsonProperty("partition") 
+            String partition, 
+            @JsonProperty("offset") 
+            String offset) {
         
         
         this.partition = partition;
         this.offset = offset;
     }
 
-    public Integer getPartition() {
+    public String getPartition() {
         return partition;
     }
 
-    public Integer getOffset() {
+    public String getOffset() {
         return offset;
     }
 
