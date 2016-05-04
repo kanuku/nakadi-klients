@@ -11,6 +11,8 @@ public class Cursor {
      *            Offset of the event being pointed to.
      */
     public Cursor(Integer partition, Integer offset) {
+        
+        
         this.partition = partition;
         this.offset = offset;
     }

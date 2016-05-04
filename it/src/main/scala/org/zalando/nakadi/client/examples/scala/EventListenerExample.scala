@@ -16,7 +16,7 @@ class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
   private var eventCount: AtomicLong = new AtomicLong(0);
 
   def onError(sourceUrl: String, cursor: Cursor, error: ClientError): Unit = {
-    println("An error occurred")
+    println("Error %s %s %s".format(sourceUrl,cursor,error))
   }
 
   def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MeetingsEvent]): Unit = {

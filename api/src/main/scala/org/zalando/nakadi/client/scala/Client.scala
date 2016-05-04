@@ -112,7 +112,7 @@ trait Client {
   def publishEvent[T <: Event](eventTypeName: String, event: T): Future[Option[ClientError]]
 
   /**
-   * List the partitions to the given EventType.
+   * List the partitions tola the given EventType.
    * {{{
    * curl --request GET /event-types/{name}/partitions
    * }}}
