@@ -144,7 +144,7 @@ public class ClientImpl implements Client {
 
 	@Override
 	public <T extends Event> Future<Void> subscribe(String eventTypeName,
-			org.zalando.nakadi.client.scala.StreamParameters parameters,
+			StreamParameters parameters,
 			Listener<T> listener, Deserializer<T> deserializer) {
 		// TODO Auto-generated method stub
 		return null;
