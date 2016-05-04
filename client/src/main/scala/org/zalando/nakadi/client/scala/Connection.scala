@@ -57,7 +57,9 @@ trait Connection extends HttpFactory {
   def post4Java[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
   def subscribe[T <: Event](url: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]])
-  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T])
+  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](
+    url: String, cursor: Option[org.zalando.nakadi.client.java.model.Cursor],
+    listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[org.zalando.nakadi.client.java.model.EventStreamBatch[T]])
 
   def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
@@ -236,6 +238,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
     eventReceiver ! NextEvent(cursor)
   }
+   
 
   private def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
     Flow[Option[Cursor]].map(withHttpRequest(url, _, None, tokenProvider))
@@ -247,9 +250,9 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   private def delimiterFlow = Flow[ByteString]
     .via(Framing.delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))
 
-  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](url: String, request: HttpRequest, listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[T]) = ???
-  
-  
-  
+  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](
+    url: String, cursor: Option[org.zalando.nakadi.client.java.model.Cursor],
+    listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[org.zalando.nakadi.client.java.model.EventStreamBatch[T]]) =  ???
+
 }
 
