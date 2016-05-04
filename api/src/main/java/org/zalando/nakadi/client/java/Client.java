@@ -13,7 +13,7 @@ import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.model.Metrics;
 import org.zalando.nakadi.client.java.model.Partition;
-import org.zalando.nakadi.client.scala.StreamParameters;
+import org.zalando.nakadi.client.java.StreamParameters;
 
 public interface Client {
 
