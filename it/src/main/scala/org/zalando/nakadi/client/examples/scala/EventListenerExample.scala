@@ -8,11 +8,14 @@ import org.zalando.nakadi.client.scala.model._
 import EventCreationExample._
 import com.fasterxml.jackson.core.`type`.TypeReference
 import java.util.concurrent.atomic.AtomicLong
+import org.slf4j.LoggerFactory
+import com.typesafe.scalalogging.Logger
 
 /**
  * Your listener will have to implement the necessary
  */
 class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
+   val log = Logger(LoggerFactory.getLogger(this.getClass))
   private var eventCount: AtomicLong = new AtomicLong(0);
 
   def onError(sourceUrl: String, error: Option[ClientError]): Unit = {
@@ -21,10 +24,10 @@ class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
 
   def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MeetingsEvent]): Unit = {
     eventCount.addAndGet(events.size.toLong)
-    println("#####################################")
-    println(s"Received " + events.size.toLong)
-    println(s"Has a total of $eventCount events")
-    println("#####################################")
+    log.info("#####################################")
+    log.info(s"Received " + events.size.toLong)
+    log.info(s"Has a total of $eventCount events")
+    log.info("#####################################")
 
   }
 }
