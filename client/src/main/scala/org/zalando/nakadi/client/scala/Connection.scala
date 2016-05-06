@@ -254,10 +254,17 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
       .via(requestRenderer)
 
     //Put all pieces together
-    Source.fromPublisher(receiver)
+    val result= Source.fromPublisher(receiver)
       .via(pipeline)
       .runForeach(_.runWith(Sink.fromSubscriber(consumer)))
-
+      
+      result.onFailure{
+      case error =>
+        logger.error(error.getMessage)
+    }
+    
+    
+    
     //HOPAAA!!
     eventReceiver ! NextEvent(cursor)
   }

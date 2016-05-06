@@ -64,48 +64,42 @@ class EventHandler[J <: JEvent, S <: Event](java: Option[(Deserializer[JEventStr
     }
   }
   def handle(url: String, msg: String): Either[ErrorResult, Option[Cursor]] = {
-    //    log.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    //    log.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    //    log.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    //    log.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    //    log.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    //    log.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     (java, scala) match {
       case (Some((des, listener)), _) => // Java
         transformJava(msg, des).right.flatMap {
           case JavaResult(Some(events), Some(sCursor), Some(jCursor)) =>
-            log.debug("RECEIVED SOMETHING 1")
             listener.onReceive(url, jCursor, events)
             Right(Option(sCursor))
           case JavaResult(None, Some(sCursor), Some(jCursor)) =>
-            log.debug("RECEIVED SOMETHING 2")
             Right(Option(sCursor))
           case _ =>
-            log.debug("RECEIVED SOMETHING 3")
             val errorMsg = s"Could not handle JAVA Transformation url [$url] listener [${listener.getId}] msg [$msg]"
+            log.error(errorMsg)
             listener.onError(errorMsg, Optional.empty())
             Left(ErrorResult(createException(errorMsg)))
         }
       case (_, Some((des, listener))) => //Scala
         transformScala(msg, des).right.flatMap {
           case ScalaResult(Some(events), Some(cursor)) =>
-            log.debug("RECEIVED SOMETHING 4")
             listener.onReceive(url, cursor, events)
             Right(Option(cursor))
           case ScalaResult(None, Some(cursor)) =>
-            log.debug("RECEIVED SOMETHING 5")
             Right(Option(cursor))
           case _ =>
-            log.debug("RECEIVED SOMETHING 6")
             val errorMsg = s"Could not handle SCALA Transformation url [$url] listener [${listener.id}] msg [$msg]"
             listener.onError(errorMsg, None)
+            log.error(errorMsg)
             Left(ErrorResult(createException(errorMsg)))
-
         }
       case _ =>
-        val errorMsg = s"Could not handle SCALA Transformation url [$url] msg [$msg]"
+        val errorMsg = s"Could not find a listener and serialiation url [$url] msg [$msg]"
+        log.error(errorMsg)
         Left(ErrorResult(createException(errorMsg)))
     }
+  }
+  
+  def handleError(msg:String, error:Throwable)={
+    
   }
 
 }
