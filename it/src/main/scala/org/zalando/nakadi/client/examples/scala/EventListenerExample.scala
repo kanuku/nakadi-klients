@@ -51,7 +51,7 @@ object EventListenerExample extends App {
    * Create the Parameters with the cursor.
    */
 
-  val cursor = Cursor("0", "BEGIN")
+  val cursor = Cursor("153000", "BEGIN")
 
   val parameters = new StreamParameters(
     cursor =  Some(cursor) //

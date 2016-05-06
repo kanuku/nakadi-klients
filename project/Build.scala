@@ -37,13 +37,13 @@ lazy val root = project.in(file("."))
   .aggregate(api, client)
 
 lazy val api = withDefaults(
-    "nakadi-klients-api",
+    "nakadi-clients-api",
     project.in(file("api"))
     ,true
   ).settings(libraryDependencies ++= apiDeps)
 
 lazy val client = withDefaults(
-    "nakadi-klients",
+    "nakadi-clients",
     project.in(file("client")).dependsOn(api)
     ,true
   ).settings(libraryDependencies ++= clientDeps)
@@ -64,8 +64,8 @@ lazy val client = withDefaults(
   def withDefaults(projectName:String, project:sbt.Project, publish:Boolean = false)={
     project.settings(
         name := projectName,
-        organization := "org.zalando.nakadi.client",
-        version := "2.0.1-SNAPSHOT",
+        organization := "org.zalando.laas",
+        version := "2.0-SNAPSHOT",
         crossPaths := false,
         scalaVersion := "2.11.7",
         publishTo := whereToPublishTo(isSnapshot.value),

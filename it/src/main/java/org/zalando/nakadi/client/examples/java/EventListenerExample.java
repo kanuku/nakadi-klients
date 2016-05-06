@@ -34,9 +34,9 @@ public class EventListenerExample {
          * Initialize our Listener
          */
         Listener<MeetingsEvent> listener = new EventCounterListener("Java-Test");
-        Cursor cursor = new Cursor("0", "BEGIN");
+        Cursor cursor = new Cursor("153000", "BEGIN");
 
-        String eventTypeName = "MeetingsEvent-example-E-2";
+        String eventTypeName = "MeetingsEvent-example-E";
         TypeReference<EventStreamBatch<MeetingsEvent>> typeRef = new TypeReference<EventStreamBatch<MeetingsEvent>>() {
         };
 
