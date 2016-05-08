@@ -20,6 +20,8 @@ import org.zalando.nakadi.client.java.utils.SerializationUtils;
 import org.zalando.nakadi.client.scala.Connection;
 import org.zalando.nakadi.client.utils.Uri;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 
 public class ClientImpl implements Client {
@@ -63,17 +65,17 @@ public class ClientImpl implements Client {
 
     @Override
     public Future<Optional<EventType>> getEventType(String eventTypeName) {
-        return null;
+        return connection.get4Java(Uri.getEventTypeByName(eventTypeName), eventTypeDeserializer);
     }
 
     @Override
     public Future<Void> updateEventType(String eventTypeName, EventType eventType) {
-        return null;
+        throw new NotImplementedException();
     }
 
     @Override
     public Future<Void> deleteEventType(String eventTypeName) {
-        return null;
+        throw new NotImplementedException();
     }
 
     @Override
@@ -98,17 +100,17 @@ public class ClientImpl implements Client {
 
     @Override
     public Future<Optional<List<Partition>>> getPartitions(String eventTypeName) {
-        return null;
+        return connection.get4Java(Uri.getPartitions(eventTypeName), seqOfPartitionDeserializer);
     }
 
     @Override
     public Future<Optional<List<EventValidationStrategy>>> getValidationStrategies() {
-        return null;
+        return connection.get4Java(Uri.URI_VALIDATION_STRATEGIES(), seqOfEventValidationStrategy);
     }
 
     @Override
     public Future<Optional<List<EventEnrichmentStrategy>>> getEnrichmentStrategies() {
-        return null;
+        return connection.get4Java(Uri.URI_ENRICHMENT_STRATEGIES(), seqOfEventEnrichmentStrategy);
     }
 
     @Override
@@ -119,7 +121,7 @@ public class ClientImpl implements Client {
 
     @Override
     public Future<Void> stop() {
-        return null;
+        throw new NotImplementedException();
     }
 
     @Override
@@ -136,7 +138,7 @@ public class ClientImpl implements Client {
 
     @Override
     public <T extends Event> Future<Void> unsubscribe(String eventTypeName, Listener<T> listener) {
-        return null;
+        throw new NotImplementedException();
     }
 
 }
