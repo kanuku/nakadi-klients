@@ -89,12 +89,7 @@ public class EventCreationExample {
 		/**
 		 * Create client
 		 */
-		final Client client = new ClientBuilder()//
-				.withHost(ClientFactory.host())//
-				.withSecuredConnection(true) // s
-				.withVerifiedSslCertificate(false) // s
-				.withTokenProvider4Java(() -> ClientFactory.getToken())//
-				.buildJavaClient();
+		final Client client = ClientFactory.getJavaClient();
 
 		/**
 		 * nakadi needs to know what kind of Json-schema you are going to send to

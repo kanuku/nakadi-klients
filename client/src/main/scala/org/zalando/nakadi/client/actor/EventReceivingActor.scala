@@ -9,9 +9,13 @@ import akka.actor.ActorLogging
 import akka.stream.actor.ActorPublisher
 import akka.stream.actor.ActorPublisherMessage.Cancel
 import akka.stream.actor.ActorPublisherMessage.Request
+import org.zalando.nakadi.client.scala.EventHandler
 
-object EventReceivingActor {
+object EventPublishingActor {
+  case class Subscribe(handler:EventHandler)
+  case class Unsubscribe(handler:EventHandler)
   case class NextEvent(lastReceivedCursor: Option[Cursor])
+  case class Restart()
   case class HttpError(
     url: String,
     cursor: Option[Cursor],
@@ -27,7 +31,7 @@ object EventReceivingActor {
  */
 class EventReceivingActor(url: String) extends Actor with ActorLogging with ActorPublisher[Option[Cursor]] {
 
-  import EventReceivingActor._
+  import EventPublishingActor._
 
   val queue: Queue[Option[Cursor]] = Queue()
 
@@ -39,14 +43,13 @@ class EventReceivingActor(url: String) extends Actor with ActorLogging with Acto
     case Request(cnt) =>
       log.debug("[EventReceivingActor] Requested {} event chunks", cnt)
       sendEvents()
-      Thread.sleep(100000)
     case Cancel =>
       log.debug("[EventReceivingActor] Stopping the stream of events!")
       context.stop(self)
     case HttpError(url, cursor, status, _) =>
       log.error("[EventReceivingActor] Cursor {} on URL {} caused error {}", cursor, url, status)
     case e =>
-      log.error(e.toString())
+      log.error("[EventReceivingActor] an Error occurred {}",e.toString())
   }
 
   def sendEvents() = while (isActive && totalDemand > 0 && !queue.isEmpty) {

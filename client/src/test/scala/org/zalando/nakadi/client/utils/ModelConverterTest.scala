@@ -24,7 +24,7 @@ import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.ContentTypes
 import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 
-class ConversionsTest extends WordSpec with Matchers with MockitoSugar {
+class ModelConverterTest extends WordSpec with Matchers with MockitoSugar {
   "Conversions" should {
 
     "be implemented" in {

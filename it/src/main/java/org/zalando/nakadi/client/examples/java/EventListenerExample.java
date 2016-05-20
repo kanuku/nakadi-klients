@@ -13,34 +13,32 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 public class EventListenerExample {
 
-    /**
-     * Implement the Listener interface
-     */
+	/**
+	 * Implement the Listener interface
+	 */
 
-    public static void main(String[] args) throws InterruptedException, ExecutionException {
-        /**
-         * Create client
-         */
-        final Client client = new ClientBuilder()//
-                .withHost(ClientFactory.host())//
-                .withSecuredConnection(true) // s
-                .withVerifiedSslCertificate(false) // s
-                .withTokenProvider4Java(() -> ClientFactory.getToken())//
-                .buildJavaClient();
+	public static void main(String[] args) throws InterruptedException,
+			ExecutionException {
+		/**
+		 * Create client
+		 */
+		final Client client = ClientFactory.getJavaClient();
 
-/**
- * Initialize our Listener
- */
-Listener<MeetingsEvent> listener = new EventCounterListener("Java-Test");
-Cursor cursor = new Cursor("0", "BEGIN");
+		/**
+		 * Initialize our Listener
+		 */
+		Listener<MeetingsEvent> listener = new EventCounterListener("Java-Test");
+		Cursor cursor = new Cursor("0", "BEGIN");
 
-String eventTypeName = "MeetingsEvent-example-E";
-TypeReference<EventStreamBatch<MeetingsEvent>> typeRef = new TypeReference<EventStreamBatch<MeetingsEvent>>() {
-};
+		String eventTypeName = "Event-example-with-0-messages";
+		TypeReference<EventStreamBatch<MeetingsEvent>> typeRef = new TypeReference<EventStreamBatch<MeetingsEvent>>() {
+		};
 
-java.util.concurrent.Future<Void> result = client.subscribe(eventTypeName, java.util.Optional.of(cursor), listener, typeRef);
+		java.util.concurrent.Future<Void> result = client
+				.subscribe(eventTypeName, java.util.Optional.of(cursor),
+						listener, typeRef);
 
-//result.get();
+		 result.get();
 
-    }
+	}
 }

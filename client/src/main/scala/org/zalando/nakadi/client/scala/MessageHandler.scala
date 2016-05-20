@@ -12,14 +12,13 @@ import org.zalando.nakadi.client.java.{ ClientError => JClientError }
 import org.zalando.nakadi.client.scala.model.Cursor
 import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
-import org.zalando.nakadi.client.utils.ModelConverter
+import org.zalando.nakadi.client.utils.ModelConverter._
 import java.util.{ List => JList }
 import java.util.Optional
 import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging.Logger
 
 private object EventHandler {
-  import ModelConverter._
   def transformScala[S <: Event](message: String, des: Deserializer[EventStreamBatch[S]]): Either[ErrorResult, ScalaResult[S]] = Try(des.from(message)) match {
     case Success(eventBatch) =>
       eventBatch match {
@@ -39,6 +38,7 @@ private object EventHandler {
     }
   }
 }
+
 trait Result
 
 case class JavaResult[J <: JEvent](
@@ -51,7 +51,13 @@ case class ScalaResult[S <: Event](
   scalaCursor: Option[Cursor]) extends Result
 case class ErrorResult(error: Throwable) extends Result
 
-class EventHandler[J <: JEvent, S <: Event](java: Option[(Deserializer[JEventStreamBatch[J]], JListener[J])], scala: Option[(Deserializer[EventStreamBatch[S]], Listener[S])]) {
+trait EventHandler {
+  def id(): String
+  def handle(url: String, msg: String): Either[ErrorResult, Option[Cursor]]
+  def handleError(url: String, msg: Option[String], exception: Throwable)
+}
+
+class EventHandlerImpl[J <: JEvent, S <: Event](java: Option[(Deserializer[JEventStreamBatch[J]], JListener[J])], scala: Option[(Deserializer[EventStreamBatch[S]], Listener[S])]) extends EventHandler {
   import EventHandler._
   val log = Logger(LoggerFactory.getLogger(this.getClass))
 
@@ -97,9 +103,19 @@ class EventHandler[J <: JEvent, S <: Event](java: Option[(Deserializer[JEventStr
         Left(ErrorResult(createException(errorMsg)))
     }
   }
-  
-  def handleError(msg:String, error:Throwable)={
-    
+
+  def handleError(url: String, msg: Option[String], exception: Throwable) = {
+    val errorMsg = if (msg.isDefined) msg.get else exception.getMessage
+    val clientError = Some(ClientError(errorMsg, exception = Some(exception)))
+    (java, scala) match {
+      case (Some((des, listener)), _) => // Java
+        listener.onError(errorMsg, toJavaClientError(clientError))
+      case (_, Some((des, listener))) => //Scala
+        listener.onError(errorMsg, clientError)
+      case _ =>
+        val errorMsg = s"Could not find a listener to pass the error, url [$url] msg [$msg]"
+        log.error(errorMsg)
+    }
   }
 
 }

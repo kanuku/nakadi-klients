@@ -13,7 +13,10 @@ import scala.collection.JavaConversions._
 import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging.Logger
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
+
 object ModelConverter {
+  import GeneralConversions._
+
   def toScalaCursor(in: Optional[JCursor]): Option[Cursor] = {
     if (in.isPresent()) {
       toScalaCursor(in.get)
@@ -21,11 +24,13 @@ object ModelConverter {
       None
     }
   }
+
   def toScalaCursor(in: JCursor): Option[Cursor] = Option(in) match {
     case None    => None
     case Some(c) => Some(Cursor(c.getPartition, c.getOffset))
 
   }
+
   def toJavaCursor(in: Cursor): JCursor = in match {
     case Cursor(partition, offset) =>
       new JCursor(partition, offset)
@@ -40,7 +45,7 @@ object ModelConverter {
     }
   }
 
-  def getScalaCursor[T <: JEvent](in: JEventStreamBatch[T]): Option[Cursor] = {
+  def toScalaCursor[T <: JEvent](in: JEventStreamBatch[T]): Option[Cursor] = {
     in.getCursor
     Option(in) match {
       case None     => None
@@ -48,7 +53,7 @@ object ModelConverter {
     }
   }
 
-  def getJavaEvents[T <: JEvent](in: JEventStreamBatch[T]): Option[java.util.List[T]] = {
+  def toJavaEvents[T <: JEvent](in: JEventStreamBatch[T]): Option[java.util.List[T]] = {
     Option(in) match {
       case None     => None
       case Some(in) => Option(in.getEvents)
@@ -56,9 +61,8 @@ object ModelConverter {
   }
 
   def toJavaClientError(error: Option[ClientError]): Optional[JClientError] = error match {
-    case Some(ClientError(msg, Some(httpStatusCode))) => Optional.of(new JClientError(msg, Optional.of(httpStatusCode)))
-    case Some(ClientError(msg, None))                 => Optional.of(new JClientError(msg, Optional.empty()))
-    case None                                         => Optional.empty()
+    case Some(ClientError(msg, httpStatusCodeOpt, exceptionOpt)) => Optional.of(new JClientError(msg, fromOption(httpStatusCodeOpt), fromOption(exceptionOpt)))
+    case None => Optional.empty()
   }
 
   private def createListenerWrapper[T <: org.zalando.nakadi.client.java.model.Event, B <: Event](in: org.zalando.nakadi.client.java.Listener[T]): Listener[T] = {

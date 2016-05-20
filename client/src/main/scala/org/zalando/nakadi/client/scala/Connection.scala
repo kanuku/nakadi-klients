@@ -13,12 +13,12 @@ import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.actor.EventConsumingActor
-import org.zalando.nakadi.client.actor.EventReceivingActor
-import org.zalando.nakadi.client.actor.EventReceivingActor.NextEvent
+import org.zalando.nakadi.client.actor.EventPublishingActor
+import org.zalando.nakadi.client.actor.EventPublishingActor.NextEvent
 import org.zalando.nakadi.client.scala.model.Cursor
 import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
-import org.zalando.nakadi.client.java.model.{Event => JEvent}
+import org.zalando.nakadi.client.java.model.{ Event => JEvent }
 import org.zalando.nakadi.client.utils.FutureConversions
 import com.typesafe.scalalogging.Logger
 import akka.NotUsed
@@ -49,16 +49,21 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import org.zalando.nakadi.client.utils.ModelConverter
+import akka.actor.ActorRef
+import org.reactivestreams.Publisher
+import org.reactivestreams.Subscriber
+import org.zalando.nakadi.client.actor.EventReceivingActor
+import java.util.concurrent.TimeoutException
 
-trait JEmptyEvent extends JEvent
-trait SEmptyEvent extends Event
+trait EmptyJavaEvent extends JEvent
+trait EmptyScalaEvent extends Event
 
 trait Connection extends HttpFactory {
-  
+
   //Connection details
   def host: String
   def port: Int
-  def tokenProvider(): TokenProvider
+  def tokenProvider(): Option[TokenProvider]
   def connection(): Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]]
 
   def get(endpoint: String): Future[HttpResponse]
@@ -105,7 +110,7 @@ object Connection {
   /**
    * Creates a new Connection
    */
-  def newConnection(host: String, port: Int, tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean): Connection =
+  def newConnection(host: String, port: Int, tokenProvider: Option[() => String], securedConnection: Boolean, verifySSlCertificate: Boolean): Connection =
     new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate)
 }
 
@@ -113,7 +118,7 @@ object Connection {
  * Class for handling the basic http calls.
  */
 
-sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: () => String, securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
+sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: Option[() => String], securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
   import Connection._
 
   type HttpFlow[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), HostConnectionPool]
@@ -231,42 +236,50 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   def stop(): Future[Terminated] = actorSystem.terminate()
 
   def subscribe[T <: Event](url: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]) = {
-    val msgHandler:EventHandler[JEmptyEvent, T]  = new EventHandler[JEmptyEvent, T](None,Option((des,listener)))
-    handleSubscription(url, cursor, msgHandler)
+    val eventHandler: EventHandler = new EventHandlerImpl[EmptyJavaEvent, T](None, Option((des, listener)))
+    handleSubscription(url, cursor, eventHandler)
   }
-  private def handleSubscription[J <: JEvent, S <: Event](url: String, cursor: Option[Cursor], msgHandler: EventHandler[J, S] ) = {
-    logger.info("Handler [{}] cursor {} uri [{}]", msgHandler.id, cursor, url)
-    
-    
-    import EventReceivingActor._
+  private def handleSubscription[J <: JEvent, S <: Event](url: String, cursor: Option[Cursor], eventHandler: EventHandler) = {
+    logger.info("Handler [{}] cursor {} uri [{}]", eventHandler.id, cursor, url)
+
+    import EventPublishingActor._
 
     //Create the Actors
-    val eventReceiver = actorSystem.actorOf(Props(classOf[EventReceivingActor], url))
-    val receiver = ActorPublisher[Option[Cursor]](eventReceiver)
+    val publishingActor = actorSystem.actorOf(Props(classOf[EventReceivingActor], url))
+    val publisher = ActorPublisher[Option[Cursor]](publishingActor)
 
-    val eventConsumer = actorSystem.actorOf(Props(classOf[EventConsumingActor[J,S]], url,eventReceiver, msgHandler))
-    val consumer = ActorSubscriber[ByteString](eventConsumer)
+    val subscribingActor = actorSystem.actorOf(Props(classOf[EventConsumingActor], url, publishingActor, eventHandler))
+    val subscriber = ActorSubscriber[ByteString](subscribingActor)
 
-    //Setup the pipeline flow
-    val pipeline = Flow[Option[Cursor]].via(requestCreator(url))
+    val pipeline = createPipeline(publisher, subscriber, url, eventHandler)
+
+    //Start
+    publishingActor ! NextEvent(cursor)
+  }
+
+  private def createPipeline(publisher: Publisher[Option[Cursor]], subscriber: Subscriber[ByteString], url: String, eventHandler: EventHandler) = {
+    //Setup a flow for the request
+    val requestFlow = Flow[Option[Cursor]].via(requestCreator(url))
       .via(connection)
       .buffer(RECEIVE_BUFFER_SIZE, OverflowStrategy.backpressure)
       .via(requestRenderer)
 
-    //Put all pieces together
-    val result= Source.fromPublisher(receiver)
-      .via(pipeline)
-      .runForeach(_.runWith(Sink.fromSubscriber(consumer)))
-      
-      result.onFailure{
-      case error =>
-        logger.error(error.getMessage)
+    //create the pipeline
+    val result = Source.fromPublisher(publisher)
+      .via(requestFlow)
+      .runForeach(_.runWith(Sink.fromSubscriber(subscriber)))
+
+    result.onFailure {
+      case exception:TimeoutException =>
+        logger.error("Received an Exception timeout, restarting the client {}",exception.getMessage)
+        eventHandler.handleError(url, None, exception)
     }
-    
-    
-    
-    //HOPAAA!!
-    eventReceiver ! NextEvent(cursor)
+
+    result
+  }
+
+  private def start() = {
+
   }
 
   private def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
@@ -287,8 +300,8 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
         import ModelConverter._
         val scalaCursor = toScalaCursor(cursor)
         val scalaListener = toScalaListener(listener)
-        val msgHandler:EventHandler[T, SEmptyEvent]  = new EventHandler[T, SEmptyEvent](Option((des,listener)),None)
-                handleSubscription(url, scalaCursor, msgHandler)
+        val handler: EventHandler = new EventHandlerImpl[T, EmptyScalaEvent](Option((des, listener)), None)
+        handleSubscription(url, scalaCursor, handler)
 
       }
     }

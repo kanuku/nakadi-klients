@@ -29,7 +29,6 @@ public class ClientImpl implements Client {
 
     // Deserializers
     private final Deserializer<Metrics> metricsDeserializer = SerializationUtils.metricsDeserializer();
-    private final Deserializer<Partition> partitionDeserializer = SerializationUtils.partitionDeserializer();
     // List Deserializers
     private final Deserializer<List<EventType>> seqOfEventTypeDeserializer = SerializationUtils.seqOfEventTypeDeserializer();
     private final Deserializer<List<Partition>> seqOfPartitionDeserializer = SerializationUtils.seqOfPartitionDeserializer();

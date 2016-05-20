@@ -40,18 +40,27 @@ trait HttpFactory {
     url + urlParams
   }
 
-  def withHttpRequest(url: String, httpMethod: HttpMethod, additionalHeaders: Seq[HttpHeader], tokenProvider: TokenProvider, params: Option[StreamParameters]): HttpRequest = {
-    val allHeaders: Seq[HttpHeader] = additionalHeaders :+ headers.Authorization(OAuth2BearerToken(tokenProvider()))
+  def withHttpRequest(url: String, httpMethod: HttpMethod, additionalHeaders: Seq[HttpHeader], tokenProvider: Option[TokenProvider], params: Option[StreamParameters]): HttpRequest = {
+    val allHeaders: Seq[HttpHeader] = tokenProvider match {
+      case None        => additionalHeaders
+      case Some(token) => additionalHeaders :+ headers.Authorization(OAuth2BearerToken(token()))
+    }
+
     val paramsList = withQueryParams(params)
 
     HttpRequest(uri = url, method = httpMethod).withHeaders(allHeaders)
   }
 
-  def withHttpRequestAndPayload(url: String, entity: String, httpMethod: HttpMethod, tokenProvider: TokenProvider): HttpRequest = {
-    HttpRequest(uri = url, method = httpMethod) //
-      .withHeaders(headers.Authorization(OAuth2BearerToken(tokenProvider())),
+  def withHttpRequestAndPayload(url: String, entity: String, httpMethod: HttpMethod, tokenProvider: Option[TokenProvider]): HttpRequest = {
+    val request = HttpRequest(uri = url, method = httpMethod)
+    tokenProvider match {
+      case None => request.withHeaders(headers.Accept(MediaRange(`application/json`)))
+        .withEntity(ContentType(`application/json`), entity)
+      case Some(token) => request.withHeaders(headers.Authorization(OAuth2BearerToken(token())),
         headers.Accept(MediaRange(`application/json`)))
-      .withEntity(ContentType(`application/json`), entity)
+        .withEntity(ContentType(`application/json`), entity)
+    }
+
   }
 
   def withDefaultHeaders(cursor: Option[Cursor], flowId: Option[String]): Seq[HttpHeader] = {
@@ -65,11 +74,16 @@ trait HttpFactory {
     for { (key, optional) <- parameters; value <- optional } yield RawHeader(key, value)
   }
 
-  def withHttpRequest(url: String, cursor: Option[Cursor], flowId: Option[String], tokenProvider: () => String): HttpRequest = {
+  def withHttpRequest(url: String, cursor: Option[Cursor], flowId: Option[String], tokenProvider: Option[TokenProvider]): HttpRequest = {
     val customHeaders = withDefaultHeaders(cursor, flowId) :+ RawHeader("Accept", "application/x-json-stream")
-    val tokenHeader = headers.Authorization(OAuth2BearerToken(tokenProvider()))
-    val allHeaders: Seq[HttpHeader] = customHeaders :+ tokenHeader
+
+    val allHeaders = tokenProvider match {
+      case None        => customHeaders
+      case Some(token) => customHeaders :+ headers.Authorization(OAuth2BearerToken(token()))
+    }
+
     HttpRequest(uri = url, method = HttpMethods.GET).withHeaders(allHeaders)
   }
+  
 
 }

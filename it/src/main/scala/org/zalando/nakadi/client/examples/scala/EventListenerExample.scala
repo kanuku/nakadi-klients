@@ -37,13 +37,7 @@ object EventListenerExample extends App {
   /**
    * Create our client
    */
-  val client: Client = ClientBuilder()
-    .withHost(ClientFactory.host())
-    .withSecuredConnection(true) //s
-    .withVerifiedSslCertificate(false) //s
-    .withTokenProvider(ClientFactory.OAuth2Token()) //
-    //    .build();
-    .build()
+  val client: Client = ClientFactory.getScalaClient()
 
   /**
    * Initialize our Listener

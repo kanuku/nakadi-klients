@@ -12,7 +12,7 @@ import org.zalando.nakadi.client.scala.ClientFactory;
 import org.zalando.nakadi.client.utils.ClientBuilder;
 
 public class ClientExample {
-	private static final String token = ClientFactory.getToken();
+	private static final String token = "";
 
 	private static <T> Optional<List<T>> unwrap(
 			Future<Optional<List<T>>> result)

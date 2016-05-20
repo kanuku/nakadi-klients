@@ -9,7 +9,7 @@ import org.zalando.nakadi.client.scala.Listener
 import org.zalando.nakadi.client.scala.model.Cursor
 import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
-import EventReceivingActor.NextEvent
+import EventPublishingActor.NextEvent
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
@@ -35,9 +35,9 @@ import org.zalando.nakadi.client.java.model.{ Event => JEvent }
  *
  */
 
-class EventConsumingActor[J <: JEvent, S <: Event](url: String,
+class EventConsumingActor(url: String,
                                              receivingActor: ActorRef, //
-                                             handler: EventHandler[J, S])
+                                             handler: EventHandler)
     extends Actor with ActorLogging with ActorSubscriber {
   import ModelConverter._
   var currCursor: Cursor = null
@@ -58,7 +58,8 @@ class EventConsumingActor[J <: JEvent, S <: Event](url: String,
       log.error(err, "[EventConsumer] onError [preCursor {} currCursor {} url {}]", prevCursor, currCursor, url)
       context.stop(self)
     case OnComplete =>
-      log.info("[EventConsumer] onComplete [preCursor {} currCursor {} url {}]", prevCursor, currCursor, url)
+      log.info("[EventConsumer] onComplete  [preCursor {} currCursor {} url {}]", prevCursor, currCursor, url)
+      context.stop(self)
   }
 
   def request4NextEvent(cursor: Cursor) = {

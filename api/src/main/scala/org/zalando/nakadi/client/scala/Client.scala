@@ -7,7 +7,7 @@ import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client._
 import com.fasterxml.jackson.core.`type`.TypeReference
 
-case class ClientError(msg: String, status: Option[Int])
+case class ClientError(msg: String, status: Option[Integer] = None, exception: Option[Throwable] = None)
 
 trait Client {
 
@@ -169,7 +169,7 @@ trait Client {
    * @param listener - Listener to pass the event to when it is received.
    * @param typeRef - TypeReference/Helper for using with the Jackson-Objectmapper to deserializing the event to json.
    */
-   def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T], typeRef: TypeReference[EventStreamBatch[T]]): Future[Option[ClientError]]
+  def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T], typeRef: TypeReference[EventStreamBatch[T]]): Future[Option[ClientError]]
   /**
    * Removes the subscription of a listener, to stop streaming events from a partition.
    *

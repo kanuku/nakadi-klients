@@ -19,13 +19,7 @@ object EventCreationExample extends App {
 
   import org.zalando.nakadi.client.utils.ClientBuilder
   import org.zalando.nakadi.client.scala.Client
-  val client: Client = ClientBuilder()
-    .withHost(ClientFactory.host())
-    .withSecuredConnection(true) //s
-    .withVerifiedSslCertificate(false) //s
-    .withTokenProvider(ClientFactory.OAuth2Token()) //
-    //    .build();
-    .build()
+  val client: Client =  ClientFactory.getScalaClient()
 
   // 2. Create a simple Meeting Event class
   case class MeetingsEvent(date: String, topic: String) extends Event
@@ -72,17 +66,17 @@ object EventCreationExample extends App {
   import JacksonJsonMarshaller._
 
     client.createEventType(eventType)
-  //  Thread.sleep(10000)
+    Thread.sleep(1000)
   // 4. Publish the EventType
 
-  //  val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
-//     var events = for {
-//      a <- 1 to 49999
-//    } yield MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton" + a)
-//
-//    //    Thread.sleep(1000)
-//
-//      Await.result(client.publishEvents(eventTypeName, events), 120.seconds)
+    val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
+     var events = for {
+      a <- 1 to 10000
+    } yield MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton" + a)
+
+    //    Thread.sleep(1000)
+
+      Await.result(client.publishEvents(eventTypeName, events), 120.seconds)
   client.stop()
 
 }
