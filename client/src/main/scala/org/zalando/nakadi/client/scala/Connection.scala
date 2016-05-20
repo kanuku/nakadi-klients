@@ -19,6 +19,12 @@ import org.zalando.nakadi.client.scala.model.Cursor
 import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
 import org.zalando.nakadi.client.java.model.{ Event => JEvent }
+import org.zalando.nakadi.client.java.model.{ EventStreamBatch => JEventStreamBatch }
+import org.zalando.nakadi.client.java.model.{ Cursor => JCursor }
+import org.zalando.nakadi.client.java.{ StreamParameters => JStreamParameters }
+import org.zalando.nakadi.client.java.{ ClientHandler => JClientHandler }
+import org.zalando.nakadi.client.java.{ ClientHandlerImpl => JClientHandlerImpl }
+import org.zalando.nakadi.client.java.{ Listener => JListener }
 import org.zalando.nakadi.client.utils.FutureConversions
 import com.typesafe.scalalogging.Logger
 import akka.NotUsed
@@ -55,33 +61,19 @@ import org.reactivestreams.Subscriber
 import org.zalando.nakadi.client.actor.EventReceivingActor
 import java.util.concurrent.TimeoutException
 
-trait EmptyJavaEvent extends JEvent
-trait EmptyScalaEvent extends Event
+sealed trait EmptyJavaEvent extends JEvent
+sealed trait EmptyScalaEvent extends Event
 
-trait Connection extends HttpFactory {
-
+trait Connection {
   //Connection details
-  def host: String
-  def port: Int
+  import HttpFactory.TokenProvider
   def tokenProvider(): Option[TokenProvider]
+  def executeCall(request: HttpRequest): Future[HttpResponse]
+  def handleSubscription[J <: JEvent, S <: Event](url: String, cursor: Option[Cursor], eventHandler: EventHandler)
+
   def connection(): Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]]
-
-  def get(endpoint: String): Future[HttpResponse]
-  def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
-  def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse]
-  def delete(endpoint: String): Future[HttpResponse]
-  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
-  def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
-  def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
-  def post4Java[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
-  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
-  def subscribe[T <: Event](url: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]])
-  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](
-    url: String, cursor: Optional[org.zalando.nakadi.client.java.model.Cursor],
-    listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[org.zalando.nakadi.client.java.model.EventStreamBatch[T]]): java.util.concurrent.Future[Void]
-
-  def stop(): Future[Terminated]
   def materializer(): ActorMaterializer
+  def shutdown(): Future[Terminated]
 }
 
 /**
@@ -108,10 +100,17 @@ object Connection {
   }
 
   /**
-   * Creates a new Connection
+   * Creates a new Client Handler
    */
-  def newConnection(host: String, port: Int, tokenProvider: Option[() => String], securedConnection: Boolean, verifySSlCertificate: Boolean): Connection =
-    new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate)
+  def newClient(host: String, port: Int, tokenProvider: Option[() => String], securedConnection: Boolean, verifySSlCertificate: Boolean): Client = {
+    val connection = new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate)
+    val handler = new ClientHandlerImpl(connection)
+    new ClientImpl(handler)
+  }
+
+  def newClientHandler4Java(host: String, port: Int, tokenProvider: Option[() => String], securedConnection: Boolean, verifySSlCertificate: Boolean): JClientHandler = {
+    new JClientHandlerImpl(new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate))
+  }
 }
 
 /**
@@ -120,6 +119,7 @@ object Connection {
 
 sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: Option[() => String], securedConnection: Boolean, verifySSlCertificate: Boolean) extends Connection {
   import Connection._
+  import HttpFactory._
 
   type HttpFlow[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), HostConnectionPool]
   type StepResult[T] = (T, Option[String])
@@ -141,84 +141,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
       http.outgoingConnection(host, port)
   }
 
-  def get(endpoint: String): Future[HttpResponse] = {
-    logger.info("Get - URL {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider, None))
-  }
-  def get(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
-    logger.info("Get - URL {} - Headers {}", endpoint, headers)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None))
-  }
-
-  private def deserialize4Java[T](response: HttpResponse, des: Deserializer[T]): Future[Optional[T]] = response match {
-    case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
-
-      Try(Unmarshal(entity).to[String].map(body => des.from(body))) match {
-        case Success(result) => result.map(Optional.of(_))
-        case Failure(error)  => throw new RuntimeException(error.getMessage)
-      }
-
-    case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
-      throw new RuntimeException(status.reason())
-  }
-  def stream(endpoint: String, headers: Seq[HttpHeader]): Future[HttpResponse] = {
-    logger.info("Streaming on Get: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None)) //TODO: Change to stream single event
-  }
-
-  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
-    logger.info("Get: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider, None))
-  }
-
-  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
-    val entity = serializer.to(model)
-    logger.info("Posting to endpoint {}", endpoint)
-    logger.debug("Data to post {}", entity)
-    executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST, tokenProvider))
-  }
-  def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
-    FutureConversions.fromFuture2Future(get(endpoint).flatMap(deserialize4Java(_, des)))
-  }
-  def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
-    FutureConversions.fromFuture2Future(executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, tokenProvider, None)).flatMap(deserialize4Java(_, des)))
-  }
-  def post4Java[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void] = {
-    val entity = serializer.to(model)
-    logger.info("Posting to endpoint {}", endpoint)
-    logger.debug("Data to post {}", entity)
-    val result = executeCall(
-      withHttpRequestAndPayload(endpoint, serialize4Java(model), HttpMethods.POST, tokenProvider))
-      .flatMap(response4Java(_))
-    FutureConversions.fromOption2Void(result)
-  }
-
-  private def serialize4Java[T](model: T)(implicit serializer: Serializer[T]): String =
-    Try(serializer.to(model)) match {
-      case Success(result) => result
-      case Failure(error)  => throw new RuntimeException("Failed to serialize: " + error.getMessage)
-    }
-
-  private def response4Java[T](response: HttpResponse): Future[Option[String]] = response match {
-    case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
-      Try(Unmarshal(entity).to[String]) match {
-        case Success(result) => result.map(Option(_))
-        case Failure(error)  => throw new RuntimeException(error.getMessage)
-      }
-
-    case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
-      Unmarshal(entity).to[String].map { x =>
-        val msg = "http-stats(%s) - %s - problem: %s ".format(status.intValue(), x, status.defaultMessage())
-        logger.warn(msg)
-        throw new RuntimeException(msg)
-      }
-  }
-  def delete(endpoint: String): Future[HttpResponse] = {
-    logger.info("Delete: {}", endpoint)
-    executeCall(withHttpRequest(endpoint, HttpMethods.DELETE, Nil, tokenProvider, None))
-  }
-
-  private def executeCall(request: HttpRequest): Future[HttpResponse] = {
+  def executeCall(request: HttpRequest): Future[HttpResponse] = {
     val response: Future[HttpResponse] =
       Source.single(request)
         .via(connection).
@@ -233,13 +156,9 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     }
   }
 
-  def stop(): Future[Terminated] = actorSystem.terminate()
+  def shutdown(): Future[Terminated] = actorSystem.terminate()
 
-  def subscribe[T <: Event](url: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]) = {
-    val eventHandler: EventHandler = new EventHandlerImpl[EmptyJavaEvent, T](None, Option((des, listener)))
-    handleSubscription(url, cursor, eventHandler)
-  }
-  private def handleSubscription[J <: JEvent, S <: Event](url: String, cursor: Option[Cursor], eventHandler: EventHandler) = {
+  def handleSubscription[J <: JEvent, S <: Event](url: String, cursor: Option[Cursor], eventHandler: EventHandler) = {
     logger.info("Handler [{}] cursor {} uri [{}]", eventHandler.id, cursor, url)
 
     import EventPublishingActor._
@@ -270,8 +189,8 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
       .runForeach(_.runWith(Sink.fromSubscriber(subscriber)))
 
     result.onFailure {
-      case exception:TimeoutException =>
-        logger.error("Received an Exception timeout, restarting the client {}",exception.getMessage)
+      case exception: TimeoutException =>
+        logger.error("Received an Exception timeout, restarting the client {}", exception.getMessage)
         eventHandler.handleError(url, None, exception)
     }
 
@@ -292,19 +211,4 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   private def delimiterFlow = Flow[ByteString]
     .via(Framing.delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))
 
-  def subscribeJava[T <: org.zalando.nakadi.client.java.model.Event](
-    url: String, cursor: Optional[org.zalando.nakadi.client.java.model.Cursor],
-    listener: org.zalando.nakadi.client.java.Listener[T])(implicit des: Deserializer[org.zalando.nakadi.client.java.model.EventStreamBatch[T]]) = {
-    FutureConversions.fromFuture2FutureVoid {
-      Future {
-        import ModelConverter._
-        val scalaCursor = toScalaCursor(cursor)
-        val scalaListener = toScalaListener(listener)
-        val handler: EventHandler = new EventHandlerImpl[T, EmptyScalaEvent](Option((des, listener)), None)
-        handleSubscription(url, scalaCursor, handler)
-
-      }
-    }
-
-  }
 }

@@ -14,7 +14,10 @@ import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging.Logger
 
 //
-trait HttpFactory {
+object HttpFactory {
+  /**
+   * Alias for a function that returns a string.
+   */
   type TokenProvider = () => String
   def withHeaders(params: Option[StreamParameters]): Seq[HttpHeader] = {
     params match {
@@ -76,7 +79,6 @@ trait HttpFactory {
 
   def withHttpRequest(url: String, cursor: Option[Cursor], flowId: Option[String], tokenProvider: Option[TokenProvider]): HttpRequest = {
     val customHeaders = withDefaultHeaders(cursor, flowId) :+ RawHeader("Accept", "application/x-json-stream")
-
     val allHeaders = tokenProvider match {
       case None        => customHeaders
       case Some(token) => customHeaders :+ headers.Authorization(OAuth2BearerToken(token()))
@@ -84,6 +86,5 @@ trait HttpFactory {
 
     HttpRequest(uri = url, method = HttpMethods.GET).withHeaders(allHeaders)
   }
-  
 
 }

@@ -51,7 +51,6 @@ object JavaJacksonJsonMarshaller {
 
    def optionalDeserializer[T]( expectedType: TypeReference[T]): Deserializer[Option[T]] = new Deserializer[Option[T]] {
     def from(from: String): Option[T] = {
-      logger.debug("json: {}",from)
       defaultObjectMapper.readValue[Option[T]](from, expectedType)
     }
   }
@@ -62,7 +61,6 @@ object JavaJacksonJsonMarshaller {
 
    def deserializer[T]( expectedType: TypeReference[T]): Deserializer[T] = new Deserializer[T] {
     def from(from: String): T = {
-      logger.debug("json: {}",from)
       defaultObjectMapper.readValue[T](from, expectedType)
     }
   }

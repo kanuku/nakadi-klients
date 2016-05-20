@@ -17,7 +17,6 @@ import org.zalando.nakadi.client.java.model.EventTypeSchema;
 import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 import org.zalando.nakadi.client.java.utils.SerializationUtils;
 import org.zalando.nakadi.client.scala.ClientFactory;
-import org.zalando.nakadi.client.utils.ClientBuilder;
 
 import com.google.common.collect.Lists;
 

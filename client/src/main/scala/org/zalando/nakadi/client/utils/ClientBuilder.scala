@@ -1,9 +1,12 @@
 package org.zalando.nakadi.client.utils
 
 import org.zalando.nakadi.client.scala.Client
+import org.zalando.nakadi.client.java.{ Client => JClient }
+import org.zalando.nakadi.client.java.{ ClientImpl => JClientImpl }
 import org.zalando.nakadi.client.scala.ClientImpl
 import org.zalando.nakadi.client.scala.Connection
 import java.util.function.Supplier
+import com.google.common.base.Preconditions._
 
 object ClientBuilder {
 
@@ -17,12 +20,12 @@ object ClientBuilder {
   private val DEFAULT_PORT = 443
 }
 
-class ClientBuilder private (host: String = "", //
+class ClientBuilder private (host: String = null, //
                              port: Int, //
                              tokenProvider: Option[() => String] = None, //
                              securedConnection: Boolean = true, //
                              verifySSlCertificate: Boolean = true) {
-  def this() = this(null, ClientBuilder.DEFAULT_PORT, null, true, true)
+  def this() = this(null, ClientBuilder.DEFAULT_PORT, None, true, true)
   def withHost(host: String): ClientBuilder = new ClientBuilder(
     checkNotNull(host),
     port,
@@ -66,17 +69,11 @@ class ClientBuilder private (host: String = "", //
     securedConnection,
     checkNotNull(verifySSlCertificate))
 
-  def build(): Client = new ClientImpl(Connection.newConnection(host, port, tokenProvider, securedConnection, verifySSlCertificate), "UTF-8")
+  def build(): Client = Connection.newClient(host, port, tokenProvider, securedConnection, verifySSlCertificate)
 
-  def buildJavaClient(): org.zalando.nakadi.client.java.Client = {
-    val connection = Connection.newConnection(host, port, tokenProvider, securedConnection, verifySSlCertificate)
-    new org.zalando.nakadi.client.java.ClientImpl(connection)
+  def buildJavaClient(): JClient = {
+    val connection = Connection.newClientHandler4Java(host, port, tokenProvider, securedConnection, verifySSlCertificate)
+    new JClientImpl(connection)
   }
-
-  private def checkNotNull[T](subject: T): T =
-    if (Option(subject).isEmpty) throw new NullPointerException else subject
-
-  private def checkState[T](subject: T, predicate: (T) => Boolean, msg: String): T =
-    if (predicate(subject)) subject else throw new IllegalStateException()
 
 }

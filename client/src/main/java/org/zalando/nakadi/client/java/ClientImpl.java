@@ -10,14 +10,12 @@ import org.zalando.nakadi.client.Serializer;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
-import org.zalando.nakadi.client.java.model.Cursor;
 import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventStreamBatch;
 import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.model.Metrics;
 import org.zalando.nakadi.client.java.model.Partition;
 import org.zalando.nakadi.client.java.utils.SerializationUtils;
-import org.zalando.nakadi.client.scala.Connection;
 import org.zalando.nakadi.client.utils.Uri;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -25,7 +23,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 public class ClientImpl implements Client {
-    private final Connection connection;
+    private final ClientHandler handler;
 
     // Deserializers
     private final Deserializer<Metrics> metricsDeserializer = SerializationUtils.metricsDeserializer();
@@ -41,30 +39,30 @@ public class ClientImpl implements Client {
     private final Serializer<EventType> eventTypeSerializer = SerializationUtils.defaultSerializer();
     private final Deserializer<EventType> eventTypeDeserializer = SerializationUtils.eventTypeDeserializer();
 
-    public ClientImpl(Connection connection) {
-        this.connection = connection;
+    public ClientImpl(ClientHandler handler) {
+        this.handler = handler;
     }
 
     @Override
     public Future<Optional<Metrics>> getMetrics() {
 
-        return connection.get4Java(Uri.URI_METRICS(), metricsDeserializer);
+        return handler.get4Java(Uri.URI_METRICS(), metricsDeserializer);
     }
 
     @Override
     public Future<Optional<List<EventType>>> getEventTypes() {
 
-        return connection.get4Java(Uri.URI_EVENT_TYPES(), seqOfEventTypeDeserializer);
+        return handler.get4Java(Uri.URI_EVENT_TYPES(), seqOfEventTypeDeserializer);
     }
 
     @Override
     public Future<Void> createEventType(EventType eventType) {
-        return connection.post4Java(Uri.URI_EVENT_TYPES(), eventType, eventTypeSerializer);
+        return handler.post4Java(Uri.URI_EVENT_TYPES(), eventType, eventTypeSerializer);
     }
 
     @Override
     public Future<Optional<EventType>> getEventType(String eventTypeName) {
-        return connection.get4Java(Uri.getEventTypeByName(eventTypeName), eventTypeDeserializer);
+        return handler.get4Java(Uri.getEventTypeByName(eventTypeName), eventTypeDeserializer);
     }
 
     @Override
@@ -89,7 +87,7 @@ public class ClientImpl implements Client {
 
     @Override
     public <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events, Serializer<List<T>> serializer) {
-        return connection.post4Java(Uri.getEventStreamingUri(eventTypeName), events, serializer);
+        return handler.post4Java(Uri.getEventStreamingUri(eventTypeName), events, serializer);
     }
 
     @Override
@@ -99,23 +97,23 @@ public class ClientImpl implements Client {
 
     @Override
     public Future<Optional<List<Partition>>> getPartitions(String eventTypeName) {
-        return connection.get4Java(Uri.getPartitions(eventTypeName), seqOfPartitionDeserializer);
+        return handler.get4Java(Uri.getPartitions(eventTypeName), seqOfPartitionDeserializer);
     }
 
     @Override
     public Future<Optional<List<EventValidationStrategy>>> getValidationStrategies() {
-        return connection.get4Java(Uri.URI_VALIDATION_STRATEGIES(), seqOfEventValidationStrategy);
+        return handler.get4Java(Uri.URI_VALIDATION_STRATEGIES(), seqOfEventValidationStrategy);
     }
 
     @Override
     public Future<Optional<List<EventEnrichmentStrategy>>> getEnrichmentStrategies() {
-        return connection.get4Java(Uri.URI_ENRICHMENT_STRATEGIES(), seqOfEventEnrichmentStrategy);
+        return handler.get4Java(Uri.URI_ENRICHMENT_STRATEGIES(), seqOfEventEnrichmentStrategy);
     }
 
     @Override
     public Future<Optional<List<PartitionStrategy>>> getPartitioningStrategies() {
 
-        return connection.get4Java(Uri.URI_PARTITIONING_STRATEGIES(), seqOfPartitionStrategy);
+        return handler.get4Java(Uri.URI_PARTITIONING_STRATEGIES(), seqOfPartitionStrategy);
     }
 
     @Override
@@ -124,19 +122,19 @@ public class ClientImpl implements Client {
     }
 
     @Override
-    public <T extends Event> Future<Void> subscribe(String eventTypeName, Optional<Cursor> cursor, Listener<T> listener,
-            Deserializer<EventStreamBatch<T>> deserializer) {
-        return connection.subscribeJava(Uri.getEventStreamingUri(eventTypeName), cursor, listener, deserializer);
+    public <T extends Event> Future<Void> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<EventStreamBatch<T>> deserializer) {
+        return handler.subscribeJava(Uri.getEventStreamingUri(eventTypeName), parameters, listener, deserializer);
+        
     }
 
     @Override
-    public <T extends Event> Future<Void> subscribe(String eventTypeName, Optional<Cursor> cursor, Listener<T> listener,
+    public <T extends Event> Future<Void> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener,
             TypeReference<EventStreamBatch<T>> typeRef) {
-        return connection.subscribeJava(Uri.getEventStreamingUri(eventTypeName), cursor, listener, SerializationUtils.withCustomDeserializer(typeRef));
+        return handler.subscribeJava(Uri.getEventStreamingUri(eventTypeName), parameters, listener, SerializationUtils.withCustomDeserializer(typeRef));
     }
 
     @Override
-    public <T extends Event> Future<Void> unsubscribe(String eventTypeName, Listener<T> listener) {
+    public <T extends Event> Future<Optional<ClientError>> unsubscribe(String eventTypeName, Listener<T> listener) {
         throw new NotImplementedException();
     }
 

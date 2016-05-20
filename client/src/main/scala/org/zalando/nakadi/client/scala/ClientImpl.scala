@@ -21,10 +21,11 @@ import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.utils.Uri
 import com.fasterxml.jackson.core.`type`.TypeReference
 
-private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client with HttpFactory {
-  implicit val materializer = connection.materializer
+private[scala] class ClientImpl(connection: ClientHandler, charSet: String = "UTF-8") extends Client   {
   import Uri._
   import JacksonJsonMarshaller._
+  import HttpFactory._
+  implicit val materializer = connection.materializer
   //  implicit val
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
   def getMetrics(): Future[Either[ClientError, Option[Metrics]]] = {
@@ -83,7 +84,7 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     logFutureEither(connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfPartitionStrategyTR))))
 
   def stop(): Option[ClientError] = {
-    val result = Await.ready(connection.stop(), Duration.Inf)
+    val result = Await.ready(connection.shutdown(), Duration.Inf)
     None
   }
 
@@ -91,7 +92,7 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
     subscribe(eventTypeName, parameters, listener)(deserializer(typeRef))
 
   }
-  def subscribe[T <: Event](eventType: String, params: StreamParameters, listener: Listener[T])(implicit des:  Deserializer[EventStreamBatch[T]]): Future[Option[ClientError]] =
+  def subscribe[T <: Event](eventType: String, params: StreamParameters, listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]): Future[Option[ClientError]] =
     (eventType, params, listener) match {
 
       case (_, _, listener) if listener == null =>
@@ -104,8 +105,8 @@ private[client] class ClientImpl(connection: Connection, charSet: String = "UTF-
 
       case (eventType, StreamParameters(cursor, _, _, _, _, _, _), listener) if Option(eventType).isDefined =>
         val url = URI_EVENTS_OF_EVENT_TYPE.format(eventType)
-        logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} - url {}", listener.id, cursor, params, eventType,url)
-        val finalUrl =withUrl(url, Some(params))
+        logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} - url {}", listener.id, cursor, params, eventType, url)
+        val finalUrl = withUrl(url, Some(params))
         connection.subscribe(finalUrl, cursor, listener)(des)
         Future.successful(None)
     }

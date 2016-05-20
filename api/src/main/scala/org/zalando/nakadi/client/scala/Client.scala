@@ -9,7 +9,7 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 
 case class ClientError(msg: String, status: Option[Integer] = None, exception: Option[Throwable] = None)
 
-trait Client {
+ trait Client {
 
   /**
    * Retrieve monitoring metrics
