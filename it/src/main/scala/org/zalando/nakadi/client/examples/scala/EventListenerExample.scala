@@ -15,11 +15,12 @@ import com.typesafe.scalalogging.Logger
  * Your listener will have to implement the necessary
  */
 class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
-   val log = Logger(LoggerFactory.getLogger(this.getClass))
+  val log = Logger(LoggerFactory.getLogger(this.getClass))
   private var eventCount: AtomicLong = new AtomicLong(0);
+  private var callerCount: AtomicLong = new AtomicLong(0);
 
   def onError(sourceUrl: String, error: Option[ClientError]): Unit = {
-    println("Error %s %s %s".format(sourceUrl,error))
+    println("Error %s %s %s".format(sourceUrl, error))
   }
 
   def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MeetingsEvent]): Unit = {
@@ -27,6 +28,13 @@ class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
     log.info("#####################################")
     log.info(s"Received " + events.size.toLong)
     log.info(s"Has a total of $eventCount events")
+    log.info("#####################################")
+
+  }
+  def onSubscribed(endpoint: String, cursor: Option[Cursor]): Unit = {
+    log.info("########## onSubscribed ############")
+    log.info("Endpoint " + endpoint )
+    log.info("Cursor " + cursor )
     log.info("#####################################")
 
   }
@@ -48,16 +56,16 @@ object EventListenerExample extends App {
    * Create the Parameters with the cursor.
    */
 
-  val cursor = Cursor("153000", "BEGIN")
+  val cursor = Cursor("0", "BEGIN")
 
   val parameters = new StreamParameters(
-    cursor =  Some(cursor) //
-    , batchLimit = Some(200) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
-//    , streamLimit = Some(2) // Maximum number of `Event`s to stream (over all partitions being streamed in this
+    cursor = Some(cursor) //
+    , batchLimit = Some(1) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
+    //    , streamLimit = Some(2) // Maximum number of `Event`s to stream (over all partitions being streamed in this
     //connection).
-//    , batchFlushTimeout = Some(5) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
+    //    , batchFlushTimeout = Some(5) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
     //        ,streamKeepAliveLimit=Some(4)
-//    , streamTimeout = Some(30)
+    //    , streamTimeout = Some(30)
     )
 
   /**
@@ -67,7 +75,8 @@ object EventListenerExample extends App {
   implicit def typeRef: TypeReference[EventStreamBatch[MeetingsEvent]] = new TypeReference[EventStreamBatch[MeetingsEvent]] {}
   import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller._
 
-  val eventTypeName = "MeetingsEvent-example-E"
+  //  val eventTypeName = "Event-example-with-0-messages"
+  val eventTypeName = "Example-unique-million-messages"
   val result = client.subscribe(eventTypeName, parameters, listener)
 
 }

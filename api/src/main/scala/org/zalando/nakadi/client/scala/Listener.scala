@@ -8,6 +8,7 @@ import org.zalando.nakadi.client.scala.model.Event
 
 trait Listener[T] {
   def id: String
-  def onReceive(eventUrl: String, cursor: Cursor, events: Seq[T]): Unit
-  def onError(eventUrl: String, error: Option[ClientError]): Unit
+  def onReceive(endpoint: String, cursor: Cursor, events: Seq[T]): Unit
+  def onSubscribed(endpoint: String,cursor: Option[Cursor]):Unit
+  def onError(endpoint: String, error: Option[ClientError]): Unit
 }

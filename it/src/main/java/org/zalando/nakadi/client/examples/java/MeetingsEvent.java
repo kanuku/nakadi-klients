@@ -22,5 +22,7 @@ public class MeetingsEvent  implements Event {
     public String getTopic() {
         return topic;
     }
+    
+    
 
 }

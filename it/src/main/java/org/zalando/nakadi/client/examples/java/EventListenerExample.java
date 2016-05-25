@@ -30,21 +30,21 @@ public class EventListenerExample {
 		 */
 		Listener<MeetingsEvent> listener = new EventCounterListener("Java-Test");
 
-		StreamParameters params = new StreamParameters(
-				Optional.of(new Cursor("0", "BEGIN")),
-				Optional.empty(),//batchLimit,
-				Optional.empty(),//streamLimit,
-				Optional.empty(),//batchFlushTimeout,
-				Optional.empty(),//streamTimeout,
-				Optional.empty(),//streamKeepAliveLimit,
-				Optional.empty()//flowId
-				);
+		StreamParameters params = new StreamParameters(Optional.of(new Cursor(
+				"0", "BEGIN")), Optional.empty(),// batchLimit,
+				Optional.empty(),// streamLimit,
+				Optional.empty(),// batchFlushTimeout,
+				Optional.empty(),// streamTimeout,
+				Optional.empty(),// streamKeepAliveLimit,
+				Optional.empty()// flowId
+		);
 
-		String eventTypeName = "Event-example-with-0-messages";
-		TypeReference<EventStreamBatch<MeetingsEvent>> typeRef = new TypeReference<EventStreamBatch<MeetingsEvent>>() {};
 
-		java.util.concurrent.Future<Void> result = client.subscribe(eventTypeName, params, listener, typeRef);
+		// String eventTypeName = "Example-unique-hundred-messages-3";
+		String eventTypeName = "Example-unique-million-messages";
+		TypeReference<EventStreamBatch<MeetingsEvent>> typeRef = new TypeReference<EventStreamBatch<MeetingsEvent>>() {
+		};
 
-		result.get();
+		client.subscribe(eventTypeName, params, listener, typeRef);
 	}
 }

@@ -29,7 +29,7 @@ class ReceiverGraph[T](eventName: String, connection: Connection, request: HttpR
 
     val g: RunnableGraph[_] = RunnableGraph.fromGraph(GraphDSL.create() { implicit builder =>
 
-      val flow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = connection.connection()
+      val flow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = connection.requestFlow()
 
       // Source
       val out: Outlet[HttpResponse] = builder.add(Source.single(request).via(flow)).out

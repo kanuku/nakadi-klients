@@ -53,12 +53,12 @@ object ModelConverter {
       new JCursor(partition, offset)
     case null => null
   }
-
-  def toScalaListener[T <: JEvent](in: org.zalando.nakadi.client.java.Listener[T]): Listener[T] = if (in == null) {
-    null
-  } else {
-    createListenerWrapper(in)
+  def toJavaCursor(in: Option[Cursor]): Optional[JCursor] = in match {
+    case Some(Cursor(partition, offset)) => Optional.of(new JCursor(partition, offset))
+    case None                            => null
   }
+
+  
 
   def toScalaCursor[T <: JEvent](in: JEventStreamBatch[T]): Option[Cursor] = Option(in) match {
     case None     => None
@@ -75,19 +75,5 @@ object ModelConverter {
     case None => Optional.empty()
   }
 
-  private def createListenerWrapper[T <: org.zalando.nakadi.client.java.model.Event, B <: Event](in: org.zalando.nakadi.client.java.Listener[T]): Listener[T] = {
-    new Listener[T] {
-      val logger = Logger(LoggerFactory.getLogger(this.getClass))
-      def id: String = in.getId
-      def onReceive(eventUrl: String, cursor: Cursor, events: Seq[T]): Unit = {
-        logger.debug("[ListenerWrapper] cursor {} url {} events {}", cursor, eventUrl, events)
-        in.onReceive(eventUrl, toJavaCursor(cursor), seqAsJavaList(events))
-      }
-      def onError(eventUrl: String, error: Option[ClientError]) = {
-        logger.debug("[ListenerWrapper] cursor {} url {} error {}", eventUrl, error)
-        in.onError(eventUrl, toJavaClientError(error))
-      }
-    }
-
-  }
+   
 }

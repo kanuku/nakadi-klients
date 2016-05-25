@@ -7,9 +7,12 @@ import org.zalando.nakadi.client.java.model.Cursor;
 import org.zalando.nakadi.client.java.model.Event;
 
 public interface Listener<T extends Event> {
-    String getId();
+	
+	String getId();
 
-    void onReceive(String eventUrl, Cursor cursor, List<T> events);
+	void onReceive(String endpoint, Cursor cursor, List<T> events);
 
-    void onError(String eventUrl, Optional<ClientError> error);
+	void onSubscribed(String endpoint, Optional<Cursor> cursor);
+
+	void onError(String endpoint, Optional<ClientError> error);
 }

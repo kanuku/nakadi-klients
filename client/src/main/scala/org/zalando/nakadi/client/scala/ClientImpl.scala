@@ -20,71 +20,74 @@ import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.utils.Uri
 import com.fasterxml.jackson.core.`type`.TypeReference
+import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
 
-private[scala] class ClientImpl(connection: ClientHandler, charSet: String = "UTF-8") extends Client   {
+private[scala] class ClientImpl(connection: Connection, charSet: String = "UTF-8") extends Client {
   import Uri._
   import JacksonJsonMarshaller._
   import HttpFactory._
-  implicit val materializer = connection.materializer
-  //  implicit val
-  val logger = Logger(LoggerFactory.getLogger(this.getClass))
+  implicit val materializer = connection.materializer()
+
+  private val logger = Logger(LoggerFactory.getLogger(this.getClass))
+  private val subscriber = new SubscriptionHandlerImpl(connection)
+
   def getMetrics(): Future[Either[ClientError, Option[Metrics]]] = {
-    logFutureEither(connection.get(URI_METRICS).flatMap(mapToEither(_)(deserializer(metricsTR))))
+    logFutureEither(get(URI_METRICS).flatMap(mapToEither(_)(deserializer(metricsTR))))
   }
 
   def getEventTypes(): Future[Either[ClientError, Option[Seq[EventType]]]] = {
-    logFutureEither(connection.get(URI_EVENT_TYPES).flatMap(mapToEither(_)(deserializer(listOfEventTypeTR))))
+    logFutureEither(get(URI_EVENT_TYPES).flatMap(mapToEither(_)(deserializer(listOfEventTypeTR))))
   }
 
   def createEventType(eventType: EventType): Future[Option[ClientError]] = {
-    logFutureOption(connection.post(URI_EVENT_TYPES, eventType).flatMap(mapToOption(_)))
+    logFutureOption(post(URI_EVENT_TYPES, eventType).flatMap(mapToOption(_)))
   }
 
   def getEventType(name: String): Future[Either[ClientError, Option[EventType]]] = {
-    logFutureEither(connection.get(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToEither(in)(deserializer(eventTypeTR))))
+    logFutureEither(get(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToEither(in)(deserializer(eventTypeTR))))
   }
 
   def updateEventType(name: String, eventType: EventType): Future[Option[ClientError]] = {
-    val result = connection.put(URI_EVENT_TYPE_BY_NAME.format(name), eventType)
+    val result = put(URI_EVENT_TYPE_BY_NAME.format(name), eventType)
     logFutureOption(result.flatMap(in => mapToOption(in)))
   }
 
   def deleteEventType(name: String): Future[Option[ClientError]] = {
-    logFutureOption(connection.delete(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToOption(in)))
+    logFutureOption(delete(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToOption(in)))
   }
 
   def publishEvents[T <: Event](eventTypeName: String, events: Seq[T], ser: Serializer[Seq[T]]): Future[Option[ClientError]] = {
-    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
+    logFutureOption(post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
   }
   def publishEvents[T <: Event](eventTypeName: String, events: Seq[T]): Future[Option[ClientError]] = {
-    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
+    logFutureOption(post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
   }
 
   def publishEvent[T <: Event](name: String, event: T, ser: Serializer[T]): Future[Option[ClientError]] = {
-    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
+    logFutureOption(post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
   }
 
   def publishEvent[T <: Event](name: String, event: T): Future[Option[ClientError]] = {
-    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
+    logFutureOption(post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
   }
 
   def getPartitions(name: String): Future[Either[ClientError, Option[Seq[Partition]]]] = {
-    logFutureEither(connection.get(URI_PARTITIONS_BY_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)(deserializer(listOfPartitionTR))))
+    logFutureEither(get(URI_PARTITIONS_BY_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)(deserializer(listOfPartitionTR))))
   }
 
   def getValidationStrategies(): Future[Either[ClientError, Option[Seq[EventValidationStrategy.Value]]]] = {
-    logFutureEither(connection.get(URI_VALIDATION_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfEventValidationStrategyTR))))
+    logFutureEither(get(URI_VALIDATION_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfEventValidationStrategyTR))))
   }
 
   def getEnrichmentStrategies(): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.Value]]]] = {
-    logFutureEither(connection.get(URI_ENRICHMENT_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfEventEnrichmentStrategyTR))))
+    logFutureEither(get(URI_ENRICHMENT_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfEventEnrichmentStrategyTR))))
   }
 
   def getPartitioningStrategies(): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]] =
-    logFutureEither(connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfPartitionStrategyTR))))
+    logFutureEither(get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfPartitionStrategyTR))))
 
   def stop(): Option[ClientError] = {
-    val result = Await.ready(connection.shutdown(), Duration.Inf)
+    val result = Await.ready(connection.actorSystem().terminate(), Duration.Inf)
     None
   }
 
@@ -107,24 +110,57 @@ private[scala] class ClientImpl(connection: ClientHandler, charSet: String = "UT
         val url = URI_EVENTS_OF_EVENT_TYPE.format(eventType)
         logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} - url {}", listener.id, cursor, params, eventType, url)
         val finalUrl = withUrl(url, Some(params))
-        connection.subscribe(finalUrl, cursor, listener)(des)
+        subscribe(finalUrl, cursor, listener)(des)
+        val eventHandler: EventHandler = new EventHandlerImpl[EmptyJavaEvent, T](Right((des, listener)))
+        subscriber.subscribe(finalUrl, cursor, eventHandler)
         Future.successful(None)
     }
 
   def unsubscribe[T <: Event](eventType: String, listener: Listener[T]): Future[Option[ClientError]] = ???
 
+  def unsubscribe[T <: Event](endpoint: String, cursor: Option[Cursor], listener: Listener[T]): Unit = {
+    val eventHandler: EventHandler = new EventHandlerImpl[EmptyJavaEvent, T](Right((null, listener)))
+    subscriber.subscribe(endpoint, cursor, eventHandler)
+  }
+
   //####################
   //#  HELPER METHODS  #
   //####################
 
-  private[client] def logFutureEither[A, T](future: Future[Either[ClientError, T]]): Future[Either[ClientError, T]] = {
+  private def get(endpoint: String): Future[HttpResponse] = {
+    logger.info("Get - URL {}", endpoint)
+    connection.executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, connection.tokenProvider, None))
+  }
+  private def delete(endpoint: String): Future[HttpResponse] = {
+    logger.info("Delete: {}", endpoint)
+    connection.executeCall(withHttpRequest(endpoint, HttpMethods.DELETE, Nil, connection.tokenProvider, None))
+  }
+
+  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
+    logger.info("Get: {}", endpoint)
+    connection.executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, connection.tokenProvider, None))
+  }
+
+  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
+    val entity = serializer.to(model)
+    logger.info("Posting to endpoint {}", endpoint)
+    logger.debug("Data to post {}", entity)
+    connection.executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST, connection.tokenProvider))
+  }
+
+  def subscribe[T <: Event](endpoint: String, cursor: Option[Cursor], listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]) = {
+    val eventHandler: EventHandler = new EventHandlerImpl[EmptyJavaEvent, T](Right((des, listener)))
+    subscriber.subscribe(endpoint, cursor, eventHandler)
+  }
+
+  private def logFutureEither[A, T](future: Future[Either[ClientError, T]]): Future[Either[ClientError, T]] = {
     future recover {
       case e: Throwable =>
         logger.error("A unexpected error occured:", e.getMessage)
         Left(ClientError("Error: " + e.getMessage, None))
     }
   }
-  private[client] def logFutureOption(future: Future[Option[ClientError]]): Future[Option[ClientError]] = {
+  private def logFutureOption(future: Future[Option[ClientError]]): Future[Option[ClientError]] = {
     future recover {
       case e: Throwable =>
         logger.error("A unexpected error occured", e)
@@ -132,7 +168,7 @@ private[scala] class ClientImpl(connection: ClientHandler, charSet: String = "UT
     }
   }
 
-  private[client] def mapToEither[T](response: HttpResponse)(implicit deserializer: Deserializer[T]): Future[Either[ClientError, Option[T]]] = {
+  private def mapToEither[T](response: HttpResponse)(implicit deserializer: Deserializer[T]): Future[Either[ClientError, Option[T]]] = {
     logger.debug("received [response={}]", response)
     response match {
       case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>

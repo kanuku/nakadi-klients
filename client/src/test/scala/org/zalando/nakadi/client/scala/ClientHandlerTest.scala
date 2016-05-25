@@ -14,7 +14,6 @@ import org.scalatest.mock.MockitoSugar
 class ClientHandlerTest extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
   private val conn = mock[Connection]
-  private val handler = new ClientHandlerImpl(conn)
   private val endpoint = "event-types"
 
   before {

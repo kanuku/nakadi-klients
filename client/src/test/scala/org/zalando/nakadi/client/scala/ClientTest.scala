@@ -28,10 +28,10 @@ import org.zalando.nakadi.client.utils.Uri
 class ClientTest extends WordSpec with Matchers  with MockitoSugar with BeforeAndAfter {
   import JacksonJsonMarshaller._
   import Uri._
-  private var handler: ClientHandler = mock[ClientHandler]
-  private val client: Client = new ClientImpl(handler)
+  private var connection: Connection = mock[Connection]
+  private val client: Client = new ClientImpl(connection)
   before {
-    reset(handler)
+    reset(connection)
   }
   "ClientImpl " should {
 
@@ -40,7 +40,7 @@ class ClientTest extends WordSpec with Matchers  with MockitoSugar with BeforeAn
       val entity = HttpEntity(ContentTypes.`application/json`, "abc")
       val response = new HttpResponse(StatusCodes.NotFound, headers, entity, HttpProtocols.`HTTP/1.1`)
       val futureResponse = Future.successful(response)
-      when(handler.get(URI_PARTITIONING_STRATEGIES)).thenReturn(futureResponse)
+//      when(connection.get(URI_PARTITIONING_STRATEGIES)).thenReturn(futureResponse)
       //    	val result=Await.result(client.partitionStrategies(),500.seconds)
       //    	result.isLeft shouldBe true
       //    	val Left(clientError) = result

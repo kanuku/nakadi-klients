@@ -86,7 +86,8 @@ object dependencies {
     "com.github.japgolly.scalajs-react" %%% "ext-scalaz71" % versions.client.scalajsReact,
     "com.github.japgolly.scalajs-react" %%% "ext-monocle" % versions.client.scalajsReact,
     "com.github.japgolly.scalacss" %%% "ext-react" % versions.client.scalaCSS,
-    "org.scala-js" %%% "scalajs-dom" % versions.client.scalaDom
+    "org.scala-js" %%% "scalajs-dom" % versions.client.scalaDom,
+    "org.zalando.laas" % "nakadi-clients" % "2.0-SNAPSHOT" withSources() withJavadoc()
   ))
 
   val jsDependencies = Def.setting(Seq(

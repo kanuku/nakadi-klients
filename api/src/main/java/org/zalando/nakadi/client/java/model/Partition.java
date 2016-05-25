@@ -1,14 +1,16 @@
 package org.zalando.nakadi.client.java.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 /**
  * Partition information. Can be helpful when trying to start a stream using an
  * unmanaged API. This information is not related to the state of the consumer
  * clients.
  */
 public class Partition {
-    private final Integer partition;
-    private final Integer oldestAvailableOffset;
-    private final Integer newestAvailableOffset;
+    private final String partition;
+    private final String oldestAvailableOffset;
+    private final String newestAvailableOffset;
 
     /**
      * Partition information. Can be helpful when trying to start a stream using
@@ -30,21 +32,22 @@ public class Partition {
      *            special name BEGIN, meaning a pointer to the offset of the
      *            oldest available event in the partition.
      */
-    public Partition(Integer partition, Integer oldestAvailableOffset, Integer newestAvailableOffset) {
+    @JsonCreator
+    public Partition(String partition, String oldestAvailableOffset, String newestAvailableOffset) {
         this.partition = partition;
         this.oldestAvailableOffset = oldestAvailableOffset;
         this.newestAvailableOffset = newestAvailableOffset;
     }
 
-    public Integer getPartition() {
+    public String getPartition() {
         return partition;
     }
 
-    public Integer getOldestAvailableOffset() {
+    public String getOldestAvailableOffset() {
         return oldestAvailableOffset;
     }
 
-    public Integer getNewestAvailableOffset() {
+    public String getNewestAvailableOffset() {
         return newestAvailableOffset;
     }
 

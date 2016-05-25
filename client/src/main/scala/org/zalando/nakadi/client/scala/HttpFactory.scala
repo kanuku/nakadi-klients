@@ -19,23 +19,6 @@ object HttpFactory {
    * Alias for a function that returns a string.
    */
   type TokenProvider = () => String
-  def withHeaders(params: Option[StreamParameters]): Seq[HttpHeader] = {
-    params match {
-      case Some(StreamParameters(cursor, _, _, _, _, _, flowId)) =>
-        withDefaultHeaders(cursor, flowId)
-      case None => Nil
-    }
-  }
-  def withQueryParams(params: Option[StreamParameters]): Seq[String] = {
-    params match {
-      case Some(StreamParameters(_, batchLimit, streamLimit, batchFlushTimeout, streamTimeout, streamKeepAliveLimit, _)) =>
-        val parameters = List(("batch_limit", batchLimit), ("stream_limit", streamLimit), //
-          ("batch_flush_timeout", batchFlushTimeout), ("stream_timeout", streamTimeout), //
-          ("stream_keep_alive_limit", streamKeepAliveLimit))
-        for { (key, optional) <- parameters; value <- optional } yield (key + "=" + value)
-      case None => Nil
-    }
-  }
 
   def withUrl(url: String, params: Option[StreamParameters]) = {
     val paramsList = withQueryParams(params)
@@ -48,9 +31,7 @@ object HttpFactory {
       case None        => additionalHeaders
       case Some(token) => additionalHeaders :+ headers.Authorization(OAuth2BearerToken(token()))
     }
-
     val paramsList = withQueryParams(params)
-
     HttpRequest(uri = url, method = httpMethod).withHeaders(allHeaders)
   }
 
@@ -63,18 +44,6 @@ object HttpFactory {
         headers.Accept(MediaRange(`application/json`)))
         .withEntity(ContentType(`application/json`), entity)
     }
-
-  }
-
-  def withDefaultHeaders(cursor: Option[Cursor], flowId: Option[String]): Seq[HttpHeader] = {
-    val nakadiCursor = cursor match {
-      case Some(value) if Option(value.partition).isDefined && Option(value.offset).isDefined =>
-        ("X-Nakadi-Cursors", Some("[{\"partition\":\"" + value.partition + "\", \"offset\": \"" + value.offset + "\"}]"))
-      case None =>
-        ("X-Nakadi-Cursors", None)
-    }
-    val parameters = List(nakadiCursor, ("X-Flow-Id", flowId))
-    for { (key, optional) <- parameters; value <- optional } yield RawHeader(key, value)
   }
 
   def withHttpRequest(url: String, cursor: Option[Cursor], flowId: Option[String], tokenProvider: Option[TokenProvider]): HttpRequest = {
@@ -85,6 +54,27 @@ object HttpFactory {
     }
 
     HttpRequest(uri = url, method = HttpMethods.GET).withHeaders(allHeaders)
+  }
+  private def withQueryParams(params: Option[StreamParameters]): Seq[String] = {
+    params match {
+      case Some(StreamParameters(_, batchLimit, streamLimit, batchFlushTimeout, streamTimeout, streamKeepAliveLimit, _)) =>
+        val parameters = List(("batch_limit", batchLimit), ("stream_limit", streamLimit), //
+          ("batch_flush_timeout", batchFlushTimeout), ("stream_timeout", streamTimeout), //
+          ("stream_keep_alive_limit", streamKeepAliveLimit))
+        for { (key, optional) <- parameters; value <- optional } yield (key + "=" + value)
+      case None => Nil
+    }
+  }
+
+  private def withDefaultHeaders(cursor: Option[Cursor], flowId: Option[String]): Seq[HttpHeader] = {
+    val nakadiCursor = cursor match {
+      case Some(value) if Option(value.partition).isDefined && Option(value.offset).isDefined =>
+        ("X-Nakadi-Cursors", Some("[{\"partition\":\"" + value.partition + "\", \"offset\": \"" + value.offset + "\"}]"))
+      case None =>
+        ("X-Nakadi-Cursors", None)
+    }
+    val parameters = List(nakadiCursor, ("X-Flow-Id", flowId))
+    for { (key, optional) <- parameters; value <- optional } yield RawHeader(key, value)
   }
 
 }

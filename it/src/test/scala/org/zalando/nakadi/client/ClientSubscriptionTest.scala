@@ -29,7 +29,7 @@ class ClientSubscriptionTest extends WordSpec with Matchers with ModelFactory {
       def onError(sourceUrl: String, error: Option[ClientError]): Unit = {
         println("YOOOOOOOOOOOOOO ")
       }
-      def onSubscribed(): Unit = ???
+      def onSubscribed(endpoint: String,cursor: Option[Cursor]):Unit = ???
       def onUnsubscribed(): Unit = ???
       def onReceive(sourceUrl: String, cursor: Cursor, event: Seq[MyEventExample]): Unit = ???
     }

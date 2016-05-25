@@ -32,17 +32,35 @@ import akka.http.scaladsl.model.HttpHeader
 import akka.http.scaladsl.model.HttpMethods
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
 
 /**
  * Handleer for delegating low-level http calls and listener subscriptions for the Java API.
  */
 trait ClientHandler {
-  import HttpFactory._
-  implicit val mat = connection.materializer()
 
   def logger(): Logger
-  def connection(): Connection
+  def connection: Connection
 
+  def deserialize4Java[T](response: HttpResponse, des: Deserializer[T]): Future[Optional[T]]
+
+  def get(endpoint: String): Future[HttpResponse]
+
+  def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
+  def get4Java[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
+  def post4Java[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
+
+  def subscribeJava[T <: JEvent](url: String, parameters: JStreamParameters, listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]])
+}
+
+class ClientHandlerImpl(val connection: Connection) extends ClientHandler {
+  val logger: Logger = Logger(LoggerFactory.getLogger(this.getClass))
+  import HttpFactory._
+  private implicit val mat = connection.materializer()
+
+  //TODO: Use constructor later make the tests simpler
+  private val subscriber = new SubscriptionHandlerImpl(connection)
+  
   def deserialize4Java[T](response: HttpResponse, des: Deserializer[T]): Future[Optional[T]] = response match {
     case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
 
@@ -57,7 +75,7 @@ trait ClientHandler {
 
   def get(endpoint: String): Future[HttpResponse] = {
     logger.info("Get - URL {}", endpoint)
-    connection().executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, connection().tokenProvider, None))
+    connection.executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, connection.tokenProvider, None))
   }
 
   def get4Java[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
@@ -102,19 +120,15 @@ trait ClientHandler {
       (Future {
         import ModelConverter._
         val params: Option[ScalaStreamParameters] = toScalaStreamParameters(parameters)
-        val scalaListener = toScalaListener(listener)
-        val handler: EventHandler = new EventHandlerImpl[T, EmptyScalaEvent](Option((des, listener)), None)
+        val eventHandler: EventHandler = new EventHandlerImpl[T, EmptyScalaEvent](Left((des, listener)))
         val finalUrl = withUrl(url, params)
-        connection().handleSubscription(url, getCursor(params), handler)
+        subscriber.subscribe(url, getCursor(params), eventHandler)
       })
     }
   private def getCursor(params: Option[ScalaStreamParameters]): Option[ScalaCursor] = params match {
     case Some(ScalaStreamParameters(cursor, batchLimit, streamLimit, batchFlushTimeout, streamTimeout, streamKeepAliveLimit, flowId)) => cursor
     case None => None
   }
-}
 
-class ClientHandlerImpl(val connection: Connection) extends ClientHandler {
-  def logger(): Logger = Logger(LoggerFactory.getLogger(this.getClass))
 }
 

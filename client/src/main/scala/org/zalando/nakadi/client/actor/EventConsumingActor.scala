@@ -9,7 +9,6 @@ import org.zalando.nakadi.client.scala.Listener
 import org.zalando.nakadi.client.scala.model.Cursor
 import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
-import EventPublishingActor.NextEvent
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
@@ -26,6 +25,7 @@ import org.zalando.nakadi.client.scala.ScalaResult
 import org.zalando.nakadi.client.scala.JavaResult
 import org.zalando.nakadi.client.scala.ErrorResult
 import org.zalando.nakadi.client.java.model.{ Event => JEvent }
+
 /**
  * This actor serves as Sink for the pipeline.<br>
  * 1. It receives the message and the cursor from the payload.
@@ -35,13 +35,18 @@ import org.zalando.nakadi.client.java.model.{ Event => JEvent }
  *
  */
 
+object EventConsumingActor {
+  case class Init(cursor:Option[Cursor])
+}
+
 class EventConsumingActor(url: String,
-                                             receivingActor: ActorRef, //
-                                             handler: EventHandler)
+                          receivingActor: ActorRef, //
+                          handler: EventHandler)
     extends Actor with ActorLogging with ActorSubscriber {
   import ModelConverter._
-  var currCursor: Cursor = null
-  var prevCursor: Cursor = null
+  import EventConsumingActor._
+
+  var initialCursor: Option[Cursor] = null
 
   override protected def requestStrategy: RequestStrategy = new RequestStrategy {
     override def requestDemand(remainingRequested: Int): Int = {
@@ -50,35 +55,31 @@ class EventConsumingActor(url: String,
   }
 
   override def receive: Receive = {
+    case Init(cursor) =>
+      log.debug("Initializing - handler {} - cursor - {}", cursor)
+      initialCursor = cursor
     case OnNext(msg: ByteString) =>
+      import util.Random
+      if (Random.nextFloat() > 0.9 && Random.nextBoolean() && Random.nextBoolean())
+        throw new IllegalStateException("OMG, not again!")
+
       val message = msg.utf8String
-      log.debug("[EventConsumer] Event - url {} - msg {}", url, message)
-      handleMsg(message)
+      log.debug("Event - cursor {} - url {} - msg {}", initialCursor, url, message)
+      handler.handleOnReceive(url, message)
     case OnError(err: Throwable) =>
-      log.error(err, "[EventConsumer] onError [preCursor {} currCursor {} url {}]", prevCursor, currCursor, url)
+      log.error("onError - cursor {} - url {} - error {}", initialCursor, url, err.getMessage)
       context.stop(self)
     case OnComplete =>
-      log.info("[EventConsumer] onComplete  [preCursor {} currCursor {} url {}]", prevCursor, currCursor, url)
+      log.info("onComplete - cursor {} - url {}", initialCursor, url)
       context.stop(self)
   }
 
-  def request4NextEvent(cursor: Cursor) = {
-    prevCursor = currCursor
-    currCursor = cursor
-    log.debug("[EventConsumer] NextEvent [preCursor {} currCursor {} url {}]", prevCursor, currCursor, url)
-    receivingActor ! NextEvent(Option(cursor))
-  }
+  override def postRestart(reason: Throwable) {
+    super.postRestart(reason)
+    log.info(s">>>>>>>>>>>>> <<<<<<<<<<<<<<<")
+    log.info(s">>>>>>>>>>>>> Restarted because of ${reason.getMessage}")
+    log.info(">>>>>>>>>>>>> Current cursor {} <<<<<<<<<<<<<<<", initialCursor)
 
-  def handleMsg(message: String) = {
-
-    handler.handle(url, message) match {
-      case Right(Some(cursor)) =>
-        request4NextEvent(cursor)
-      case Right(None) =>
-        log.error("Message lacks of a cursor [{}]", message)
-      case Left(ErrorResult(error)) =>
-        log.error("Handler could not handle message {}", error.getMessage)
-    }
   }
 }
 

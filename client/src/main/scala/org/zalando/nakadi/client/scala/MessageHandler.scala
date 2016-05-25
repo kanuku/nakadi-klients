@@ -18,104 +18,116 @@ import java.util.Optional
 import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging.Logger
 
-private object EventHandler {
-  def transformScala[S <: Event](message: String, des: Deserializer[EventStreamBatch[S]]): Either[ErrorResult, ScalaResult[S]] = Try(des.from(message)) match {
-    case Success(eventBatch) =>
-      eventBatch match {
-        case EventStreamBatch(cursor, events) => Right(ScalaResult(events, Some(cursor)))
-      }
-    case Failure(err) => Left(ErrorResult(err))
-  }
-  def transformJava[J <: JEvent](message: String, des: Deserializer[JEventStreamBatch[J]]): Either[ErrorResult, JavaResult[J]] = {
-    Try(des.from(message)) match {
-      case Success(eventBatch) =>
-        val events = if (eventBatch.getEvents != null && !eventBatch.getEvents.isEmpty()) Some(eventBatch.getEvents) else None
-        val sCursor = toScalaCursor(eventBatch.getCursor)
-        val jcursor = Option(eventBatch.getCursor)
-        Right(JavaResult(events, sCursor, jcursor))
-      case Failure(err) =>
-        Left(ErrorResult(err))
-    }
-  }
-}
+/**
+ * Internal Models for handling logic between Java and Scala
+ */
 
+/**
+ * Base result for Deserialization Attempt.
+ */
 trait Result
 
-case class JavaResult[J <: JEvent](
+private case class JavaResult[J <: JEvent](
   val javaEvents: Option[java.util.List[J]],
-  val scalaCursor: Option[Cursor],
-  val javaCursor: Option[JCursor]) extends Result
+  val scalaCursor: Cursor,
+  val javaCursor: JCursor) extends Result
 
-case class ScalaResult[S <: Event](
+private case class ScalaResult[S <: Event](
   scalaEvents: Option[Seq[S]] = None,
-  scalaCursor: Option[Cursor]) extends Result
+  scalaCursor: Cursor) extends Result
+
 case class ErrorResult(error: Throwable) extends Result
 
 trait EventHandler {
   def id(): String
-  def handle(url: String, msg: String): Either[ErrorResult, Option[Cursor]]
-  def handleError(url: String, msg: Option[String], exception: Throwable)
+  def handleOnReceive(url: String, msg: String): Either[ErrorResult, Cursor]
+  def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit
+  def handleOnError(url: String, msg: Option[String], exception: Throwable)
 }
 
-class EventHandlerImpl[J <: JEvent, S <: Event](java: Option[(Deserializer[JEventStreamBatch[J]], JListener[J])], scala: Option[(Deserializer[EventStreamBatch[S]], Listener[S])]) extends EventHandler {
+class EventHandlerImpl[J <: JEvent, S <: Event](
+    eitherOfListeners: Either[(Deserializer[JEventStreamBatch[J]], JListener[J]), (Deserializer[EventStreamBatch[S]], Listener[S])]) extends EventHandler {
   import EventHandler._
-  val log = Logger(LoggerFactory.getLogger(this.getClass))
-
+  private val log = Logger(LoggerFactory.getLogger(this.getClass))
   private def createException(msg: String) = new IllegalStateException(msg)
+
   lazy val id: String = {
-    (java, scala) match {
-      case (Some((_, listener)), _) => listener.getId
-      case (_, Some((_, listener))) => listener.id
-      case _                        => "COULD NOT BE DEFINED"
+
+    eitherOfListeners match {
+      //Validations
+      case Left((des, listener)) if (listener == null)  => throw new IllegalStateException("EventHandler created without a Listener/Deserializer")
+      case Right((des, listener)) if (listener == null) => throw new IllegalStateException("EventHandler created without a Listener/Deserializer")
+      //Real handling 
+      case Left((_, listener))                          => listener.getId
+      case Right((_, listener))                         => listener.id
     }
   }
-  def handle(url: String, msg: String): Either[ErrorResult, Option[Cursor]] = {
-    (java, scala) match {
-      case (Some((des, listener)), _) => // Java
+
+  def handleOnReceive(url: String, msg: String): Either[ErrorResult, Cursor] = {
+    eitherOfListeners match {
+      case Left((des, listener)) => // Java
         transformJava(msg, des).right.flatMap {
-          case JavaResult(Some(events), Some(sCursor), Some(jCursor)) =>
+          case JavaResult(Some(events), sCursor, jCursor) =>
             listener.onReceive(url, jCursor, events)
-            Right(Option(sCursor))
-          case JavaResult(None, Some(sCursor), Some(jCursor)) =>
-            Right(Option(sCursor))
+            Right(sCursor)
+          case JavaResult(None, sCursor, jCursor) =>
+            Right(sCursor)
           case _ =>
             val errorMsg = s"Could not handle JAVA Transformation url [$url] listener [${listener.getId}] msg [$msg]"
             log.error(errorMsg)
             listener.onError(errorMsg, Optional.empty())
             Left(ErrorResult(createException(errorMsg)))
         }
-      case (_, Some((des, listener))) => //Scala
+      case Right((des, listener)) => //Scala
         transformScala(msg, des).right.flatMap {
-          case ScalaResult(Some(events), Some(cursor)) =>
+          case ScalaResult(Some(events), cursor) =>
             listener.onReceive(url, cursor, events)
-            Right(Option(cursor))
-          case ScalaResult(None, Some(cursor)) =>
-            Right(Option(cursor))
+            Right(cursor)
+          case ScalaResult(None, cursor) =>
+            Right(cursor)
           case _ =>
             val errorMsg = s"Could not handle SCALA Transformation url [$url] listener [${listener.id}] msg [$msg]"
             listener.onError(errorMsg, None)
             log.error(errorMsg)
             Left(ErrorResult(createException(errorMsg)))
         }
-      case _ =>
-        val errorMsg = s"Could not find a listener and serialiation url [$url] msg [$msg]"
-        log.error(errorMsg)
-        Left(ErrorResult(createException(errorMsg)))
     }
   }
 
-  def handleError(url: String, msg: Option[String], exception: Throwable) = {
+  def handleOnError(url: String, msg: Option[String], exception: Throwable) = {
     val errorMsg = if (msg.isDefined) msg.get else exception.getMessage
     val clientError = Some(ClientError(errorMsg, exception = Some(exception)))
-    (java, scala) match {
-      case (Some((des, listener)), _) => // Java
+    eitherOfListeners match {
+      case Left((des, listener)) => // Java
         listener.onError(errorMsg, toJavaClientError(clientError))
-      case (_, Some((des, listener))) => //Scala
+      case Right((des, listener)) => //Scala
         listener.onError(errorMsg, clientError)
-      case _ =>
-        val errorMsg = s"Could not find a listener to pass the error, url [$url] msg [$msg]"
-        log.error(errorMsg)
     }
   }
+  def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit = eitherOfListeners match {
+    case Left((des, listener)) =>
+      val res: Optional[JCursor] = toJavaCursor(cursor)
+      listener.onSubscribed(endpoint, res) // Java
+    case Right((des, listener)) => listener.onSubscribed(endpoint, cursor)
+  }
 
+}
+
+private object EventHandler {
+  def transformScala[S <: Event](message: String, des: Deserializer[EventStreamBatch[S]]): Either[ErrorResult, ScalaResult[S]] = Try(des.from(message)) match {
+    case Success(EventStreamBatch(cursor, events)) => Right(ScalaResult(events, cursor))
+    case Failure(err)                              => Left(ErrorResult(err))
+  }
+
+  def transformJava[J <: JEvent](message: String, des: Deserializer[JEventStreamBatch[J]]): Either[ErrorResult, JavaResult[J]] = {
+    Try(des.from(message)) match {
+      case Success(eventBatch) =>
+        val events = if (eventBatch.getEvents != null && !eventBatch.getEvents.isEmpty()) Some(eventBatch.getEvents) else None
+        val Some(sCursor: Cursor) = toScalaCursor(eventBatch.getCursor)
+        val jcursor: JCursor = eventBatch.getCursor
+        Right(JavaResult(events, sCursor, jcursor))
+      case Failure(err) =>
+        Left(ErrorResult(err))
+    }
+  }
 }
