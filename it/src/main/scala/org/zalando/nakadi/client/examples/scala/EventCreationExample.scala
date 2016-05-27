@@ -44,7 +44,7 @@ object EventCreationExample extends App {
   //See the API for more information on the EventType model
   //https://github.com/zalando/nakadi/blob/nakadi-jvm/api/nakadi-event-bus-api.yaml#L1240
   //  val eventTypeName = "Example-unique-million-messages"
-  val eventTypeName = "Example-unique-million-messages"
+  val eventTypeName = "Example-1"
 //  val eventTypeName = "Example-unique-hundred-messages-3"
 
   val owner = "team-laas"
@@ -68,14 +68,14 @@ object EventCreationExample extends App {
   //You need to import the default Serializer if you don't sepecify your own!
   import JacksonJsonMarshaller._
 
-  client.createEventType(eventType)
+//  client.createEventType(eventType)
   // 4. Publish the EventType
 
   var counter = 0
-  for (n <- 1 to 1000) {
+  for (n <- 1 to 1) {
     val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
     var events = ListBuffer[MeetingsEvent]()
-    for (a <- 1 to 1000) {
+    for (a <- 1 to 1) {
       counter += 1
       events += MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton" + counter)
     }

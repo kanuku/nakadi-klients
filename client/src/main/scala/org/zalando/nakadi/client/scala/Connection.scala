@@ -9,11 +9,11 @@ import scala.concurrent.Future
 import scala.util.Try
 
 import org.slf4j.LoggerFactory
-import org.zalando.nakadi.client.java.{ ClientHandler => JClientHandler }
-import org.zalando.nakadi.client.java.{ ClientHandlerImpl => JClientHandlerImpl }
+import org.zalando.nakadi.client.java.JavaClientHandler
+import org.zalando.nakadi.client.java.JavaClientHandlerImpl
 import org.zalando.nakadi.client.java.model.{ Event => JEvent }
 import org.zalando.nakadi.client.scala.model.Event
-
+import org.zalando.nakadi.client.Serializer
 import com.typesafe.scalalogging.Logger
 
 import HttpFactory.TokenProvider
@@ -32,6 +32,8 @@ import akka.stream.scaladsl.Source
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+import akka.http.scaladsl.model.{ HttpHeader, HttpMethod, HttpMethods, HttpResponse, MediaRange }
+import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
 
 sealed trait EmptyJavaEvent extends JEvent
 sealed trait EmptyScalaEvent extends Event
@@ -41,7 +43,10 @@ trait Connection {
   import HttpFactory.TokenProvider
   def tokenProvider(): Option[TokenProvider]
   def executeCall(request: HttpRequest): Future[HttpResponse]
-
+  def get(endpoint: String): Future[HttpResponse]
+  def delete(endpoint: String): Future[HttpResponse]
+  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
+  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
   def requestFlow(): Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]]
   def materializer(): ActorMaterializer
   def actorSystem(): ActorSystem
@@ -70,16 +75,14 @@ object Connection {
     case _ => None
   }
 
-  /**
-   * Creates a new Client Handler
-   */
   def newClient(host: String, port: Int, tokenProvider: Option[() => String], securedConnection: Boolean, verifySSlCertificate: Boolean): Client = {
     val connection = new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate)
-    new ClientImpl(connection)
+    new ClientImpl(connection, new SubscriptionHandlerImpl(connection))
   }
 
-  def newClientHandler4Java(host: String, port: Int, tokenProvider: Option[() => String], securedConnection: Boolean, verifySSlCertificate: Boolean): JClientHandler = {
-    new JClientHandlerImpl(new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate))
+  def newClientHandler4Java(host: String, port: Int, tokenProvider: Option[() => String], securedConnection: Boolean, verifySSlCertificate: Boolean): JavaClientHandler = {
+    val connection = new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate)
+    new JavaClientHandlerImpl(connection, new SubscriptionHandlerImpl(connection))
   }
 }
 
@@ -110,6 +113,27 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     case None =>
       logger.warn("Disabled HTTPS, switching to HTTP only!")
       http.outgoingConnection(host, port)
+  }
+
+  def get(endpoint: String): Future[HttpResponse] = {
+    logger.info("Get - URL {}", endpoint)
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider, None))
+  }
+  def delete(endpoint: String): Future[HttpResponse] = {
+    logger.info("Delete: {}", endpoint)
+    executeCall(withHttpRequest(endpoint, HttpMethods.DELETE, Nil, tokenProvider, None))
+  }
+
+  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
+    logger.info("Get: {}", endpoint)
+    executeCall(withHttpRequest(endpoint, HttpMethods.GET, Nil, tokenProvider, None))
+  }
+
+  def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
+    val entity = serializer.to(model)
+    logger.info("Posting to endpoint {}", endpoint)
+    logger.debug("Data to post {}", entity)
+    executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST, tokenProvider))
   }
 
   def executeCall(request: HttpRequest): Future[HttpResponse] = {

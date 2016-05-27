@@ -32,8 +32,9 @@ trait SubscriptionHandler {
   /**
    * Handles the subscription for an eventHandler.
    */
-  def subscribe(endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler)
-  def createPipeline(cursor:Option[Cursor], subscriber: Subscriber[ByteString], url: String, eventHandler: EventHandler)
+  def subscribe(eventTypeName: String, endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler)
+  def unsubscribe(eventTypeName: String,partition:String, listenerId: String)
+  def createPipeline(cursor: Option[Cursor], subscriber: Subscriber[ByteString], url: String, eventHandler: EventHandler)
 }
 
 class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHandler {
@@ -48,12 +49,15 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
   private val EVENT_DELIMITER = "\n"
 
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
- 
-  def subscribe(endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler) = {
-    supervisingActor ! Subscribe(endpoint, cursor, eventHandler)
+
+  def subscribe(eventTypeName: String, endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler) = {
+    supervisingActor ! Subscribe(eventTypeName,endpoint, cursor, eventHandler)
+  }
+  def unsubscribe(eventTypeName: String,partition:String, listenerId: String)= {
+    supervisingActor ! Unsubscribe(eventTypeName,partition, listenerId)
   }
 
-  def createPipeline(cursor:Option[Cursor], subscriber: Subscriber[ByteString], url: String, eventHandler: EventHandler) = {
+  def createPipeline(cursor: Option[Cursor], subscriber: Subscriber[ByteString], url: String, eventHandler: EventHandler) = {
     //Setup a flow for the request
     val requestFlow = Flow[Option[Cursor]].via(requestCreator(url))
       .via(connection.requestFlow())
@@ -61,7 +65,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
       .via(requestRenderer)
 
     //create the pipeline
-    val result = Source(List(cursor)) 
+    val result = Source(List(cursor))
       .via(requestFlow)
       .runForeach(_.runWith(Sink.fromSubscriber(subscriber)))
 
@@ -73,7 +77,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
         logger.error("Received an Exception timeout, restarting the client {}", exception.getMessage)
         eventHandler.handleOnError(url, None, exception)
       case e =>
-        logger.error("################# " + e)
+        logger.error("Exception not handled" + e)
     }
   }
 

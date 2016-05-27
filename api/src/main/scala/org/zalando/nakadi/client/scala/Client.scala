@@ -9,7 +9,7 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 
 case class ClientError(msg: String, status: Option[Integer] = None, exception: Option[Throwable] = None)
 
- trait Client {
+trait Client {
 
   /**
    * Retrieve monitoring metrics
@@ -174,9 +174,10 @@ case class ClientError(msg: String, status: Option[Integer] = None, exception: O
    * Removes the subscription of a listener, to stop streaming events from a partition.
    *
    * @param eventTypeName - Name of the EventType.
+   * @param partition  The partition assigned to this listener.
    * @param listener - Listener to unsubscribe from the streaming events.
    */
-  def unsubscribe[T <: Event](eventTypeName: String, listener: Listener[T]): Future[Option[ClientError]]
+  def unsubscribe[T <: Event](eventTypeName: String, partition:String, listener: Listener[T]): Future[Option[ClientError]]
 
 }
 

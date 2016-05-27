@@ -24,12 +24,15 @@ import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.ContentTypes
 import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.utils.Uri
+import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
+import org.zalando.nakadi.client.handler.SubscriptionHandler
 
-class ClientTest extends WordSpec with Matchers  with MockitoSugar with BeforeAndAfter {
+class ClientTest extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter {
   import JacksonJsonMarshaller._
   import Uri._
   private var connection: Connection = mock[Connection]
-  private val client: Client = new ClientImpl(connection)
+  private var subscriber: SubscriptionHandler = mock[SubscriptionHandler]
+  private val client: Client = new ClientImpl(connection, subscriber)
   before {
     reset(connection)
   }
@@ -40,7 +43,7 @@ class ClientTest extends WordSpec with Matchers  with MockitoSugar with BeforeAn
       val entity = HttpEntity(ContentTypes.`application/json`, "abc")
       val response = new HttpResponse(StatusCodes.NotFound, headers, entity, HttpProtocols.`HTTP/1.1`)
       val futureResponse = Future.successful(response)
-//      when(connection.get(URI_PARTITIONING_STRATEGIES)).thenReturn(futureResponse)
+      //      when(connection.get(URI_PARTITIONING_STRATEGIES)).thenReturn(futureResponse)
       //    	val result=Await.result(client.partitionStrategies(),500.seconds)
       //    	result.isLeft shouldBe true
       //    	val Left(clientError) = result

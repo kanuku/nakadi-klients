@@ -155,8 +155,9 @@ public interface Client {
     /**
      * Removes the subscription of a listener, to stop streaming events from a partition.
      * @param eventTypeName The unique name (id) of the EventType target 
+     * @param partition  The partition assigned to this listener. 
      * @param listener Listener to pass the event to when it is received.
      * @return Void in case of success
      */
-    <T extends Event> void unsubscribe(String eventTypeName, Listener<T> listener);
+    <T extends Event> void unsubscribe(String eventTypeName,String partition, Listener<T> listener);
 }

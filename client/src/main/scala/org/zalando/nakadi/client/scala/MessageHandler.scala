@@ -40,9 +40,9 @@ case class ErrorResult(error: Throwable) extends Result
 
 trait EventHandler {
   def id(): String
-  def handleOnReceive(url: String, msg: String): Either[ErrorResult, Cursor]
+  def handleOnReceive(eventTypeName: String, msg: String): Either[ErrorResult, Cursor]
   def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit
-  def handleOnError(url: String, msg: Option[String], exception: Throwable)
+  def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable)
 }
 
 class EventHandlerImpl[J <: JEvent, S <: Event](
@@ -63,17 +63,17 @@ class EventHandlerImpl[J <: JEvent, S <: Event](
     }
   }
 
-  def handleOnReceive(url: String, msg: String): Either[ErrorResult, Cursor] = {
+  def handleOnReceive(eventTypeName: String, msg: String): Either[ErrorResult, Cursor] = {
     eitherOfListeners match {
       case Left((des, listener)) => // Java
         transformJava(msg, des).right.flatMap {
           case JavaResult(Some(events), sCursor, jCursor) =>
-            listener.onReceive(url, jCursor, events)
+            listener.onReceive(eventTypeName, jCursor, events)
             Right(sCursor)
           case JavaResult(None, sCursor, jCursor) =>
             Right(sCursor)
           case _ =>
-            val errorMsg = s"Could not handle JAVA Transformation url [$url] listener [${listener.getId}] msg [$msg]"
+            val errorMsg = s"Could not handle JAVA Transformation url [$eventTypeName] listener [${listener.getId}] msg [$msg]"
             log.error(errorMsg)
             listener.onError(errorMsg, Optional.empty())
             Left(ErrorResult(createException(errorMsg)))
@@ -81,12 +81,12 @@ class EventHandlerImpl[J <: JEvent, S <: Event](
       case Right((des, listener)) => //Scala
         transformScala(msg, des).right.flatMap {
           case ScalaResult(Some(events), cursor) =>
-            listener.onReceive(url, cursor, events)
+            listener.onReceive(eventTypeName, cursor, events)
             Right(cursor)
           case ScalaResult(None, cursor) =>
             Right(cursor)
           case _ =>
-            val errorMsg = s"Could not handle SCALA Transformation url [$url] listener [${listener.id}] msg [$msg]"
+            val errorMsg = s"Could not handle SCALA Transformation url [$eventTypeName] listener [${listener.id}] msg [$msg]"
             listener.onError(errorMsg, None)
             log.error(errorMsg)
             Left(ErrorResult(createException(errorMsg)))
@@ -94,7 +94,7 @@ class EventHandlerImpl[J <: JEvent, S <: Event](
     }
   }
 
-  def handleOnError(url: String, msg: Option[String], exception: Throwable) = {
+  def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable) = {
     val errorMsg = if (msg.isDefined) msg.get else exception.getMessage
     val clientError = Some(ClientError(errorMsg, exception = Some(exception)))
     eitherOfListeners match {

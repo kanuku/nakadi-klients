@@ -36,11 +36,10 @@ import org.zalando.nakadi.client.java.model.{ Event => JEvent }
  */
 
 object EventConsumingActor {
-  case class Init(cursor:Option[Cursor])
+  case class Shutdown(handler: EventHandler)
 }
 
-class EventConsumingActor(url: String,
-                          receivingActor: ActorRef, //
+class EventConsumingActor(eventType: String,
                           handler: EventHandler)
     extends Actor with ActorLogging with ActorSubscriber {
   import ModelConverter._
@@ -55,23 +54,24 @@ class EventConsumingActor(url: String,
   }
 
   override def receive: Receive = {
-    case Init(cursor) =>
-      log.debug("Initializing - handler {} - cursor - {}", cursor)
-      initialCursor = cursor
     case OnNext(msg: ByteString) =>
       import util.Random
-      if (Random.nextFloat() > 0.9 && Random.nextBoolean() && Random.nextBoolean())
-        throw new IllegalStateException("OMG, not again!")
-
+//      if (Random.nextFloat() > 0.9 && Random.nextBoolean() && Random.nextBoolean())
+//        throw new IllegalStateException("OMG, not again!")
       val message = msg.utf8String
-      log.debug("Event - cursor {} - url {} - msg {}", initialCursor, url, message)
-      handler.handleOnReceive(url, message)
+      log.debug("Event - cursor {} - eventType {} - msg {}", initialCursor, eventType, message)
+      handler.handleOnReceive(eventType, message)
     case OnError(err: Throwable) =>
-      log.error("onError - cursor {} - url {} - error {}", initialCursor, url, err.getMessage)
+      log.error("onError - cursor {} - eventType {} - error {}", initialCursor, eventType, err.getMessage)
       context.stop(self)
     case OnComplete =>
-      log.info("onComplete - cursor {} - url {}", initialCursor, url)
+      log.info("onComplete - cursor {} - eventType {}", initialCursor, eventType)
       context.stop(self)
+    case Shutdown(shutdownHandler: EventHandler) =>
+      log.info("Shutting down eventType listener-id {} -> {}", handler.id(), shutdownHandler.id())
+      context.stop(self)
+    case a =>
+      log.error("Could not handle message: {}",a)
   }
 
   override def postRestart(reason: Throwable) {

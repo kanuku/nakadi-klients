@@ -23,7 +23,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 public class ClientImpl implements Client {
-    private final ClientHandler handler;
+    private final JavaClientHandler handler;
 
     // Deserializers
     private final Deserializer<Metrics> metricsDeserializer = SerializationUtils.metricsDeserializer();
@@ -39,30 +39,30 @@ public class ClientImpl implements Client {
     private final Serializer<EventType> eventTypeSerializer = SerializationUtils.defaultSerializer();
     private final Deserializer<EventType> eventTypeDeserializer = SerializationUtils.eventTypeDeserializer();
 
-    public ClientImpl(ClientHandler handler) {
+    public ClientImpl(JavaClientHandler handler) {
         this.handler = handler;
     }
 
     @Override
     public Future<Optional<Metrics>> getMetrics() {
 
-        return handler.get4Java(Uri.URI_METRICS(), metricsDeserializer);
+        return handler.get(Uri.URI_METRICS(), metricsDeserializer);
     }
 
     @Override
     public Future<Optional<List<EventType>>> getEventTypes() {
 
-        return handler.get4Java(Uri.URI_EVENT_TYPES(), seqOfEventTypeDeserializer);
+        return handler.get(Uri.URI_EVENT_TYPES(), seqOfEventTypeDeserializer);
     }
 
     @Override
     public Future<Void> createEventType(EventType eventType) {
-        return handler.post4Java(Uri.URI_EVENT_TYPES(), eventType, eventTypeSerializer);
+        return handler.post(Uri.URI_EVENT_TYPES(), eventType, eventTypeSerializer);
     }
 
     @Override
     public Future<Optional<EventType>> getEventType(String eventTypeName) {
-        return handler.get4Java(Uri.getEventTypeByName(eventTypeName), eventTypeDeserializer);
+        return handler.get(Uri.getEventTypeByName(eventTypeName), eventTypeDeserializer);
     }
 
     @Override
@@ -87,7 +87,7 @@ public class ClientImpl implements Client {
 
     @Override
     public <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events, Serializer<List<T>> serializer) {
-        return handler.post4Java(Uri.getEventStreamingUri(eventTypeName), events, serializer);
+        return handler.post(Uri.getEventStreamingUri(eventTypeName), events, serializer);
     }
 
     @Override
@@ -97,23 +97,23 @@ public class ClientImpl implements Client {
 
     @Override
     public Future<Optional<List<Partition>>> getPartitions(String eventTypeName) {
-        return handler.get4Java(Uri.getPartitions(eventTypeName), seqOfPartitionDeserializer);
+        return handler.get(Uri.getPartitions(eventTypeName), seqOfPartitionDeserializer);
     }
 
     @Override
     public Future<Optional<List<EventValidationStrategy>>> getValidationStrategies() {
-        return handler.get4Java(Uri.URI_VALIDATION_STRATEGIES(), seqOfEventValidationStrategy);
+        return handler.get(Uri.URI_VALIDATION_STRATEGIES(), seqOfEventValidationStrategy);
     }
 
     @Override
     public Future<Optional<List<EventEnrichmentStrategy>>> getEnrichmentStrategies() {
-        return handler.get4Java(Uri.URI_ENRICHMENT_STRATEGIES(), seqOfEventEnrichmentStrategy);
+        return handler.get(Uri.URI_ENRICHMENT_STRATEGIES(), seqOfEventEnrichmentStrategy);
     }
 
     @Override
     public Future<Optional<List<PartitionStrategy>>> getPartitioningStrategies() {
 
-        return handler.get4Java(Uri.URI_PARTITIONING_STRATEGIES(), seqOfPartitionStrategy);
+        return handler.get(Uri.URI_PARTITIONING_STRATEGIES(), seqOfPartitionStrategy);
     }
 
     @Override
@@ -123,18 +123,18 @@ public class ClientImpl implements Client {
 
     @Override
     public <T extends Event> void subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<EventStreamBatch<T>> deserializer) {
-        handler.subscribeJava(Uri.getEventStreamingUri(eventTypeName), parameters, listener, deserializer);
+        handler.subscribe(eventTypeName,Uri.getEventStreamingUri(eventTypeName), parameters, listener, deserializer);
     }
 
     @Override
     public <T extends Event> void subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener,
             TypeReference<EventStreamBatch<T>> typeRef) {
-        handler.subscribeJava(Uri.getEventStreamingUri(eventTypeName), parameters, listener, SerializationUtils.withCustomDeserializer(typeRef));
+        handler.subscribe(eventTypeName,Uri.getEventStreamingUri(eventTypeName), parameters, listener, SerializationUtils.withCustomDeserializer(typeRef));
     }
 
     @Override
-    public <T extends Event> void unsubscribe(String eventTypeName, Listener<T> listener) {
-        throw new NotImplementedException();
+    public <T extends Event> void unsubscribe(String eventTypeName, String partition, Listener<T> listener) {
+        handler.unsubscribe(eventTypeName,partition, listener);
     }
 
 }

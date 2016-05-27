@@ -10,6 +10,8 @@ EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
 EclipseKeys.withSource := true
 
+private val commonSettings = net.virtualvoid.sbt.graph.DependencyGraphSettings.graphSettings
+
 def whereToPublishTo(isItSnapshot:Boolean) = {
   val nexus = "https://maven.zalando.net/"
   if (isItSnapshot)
@@ -37,41 +39,40 @@ lazy val root = project.in(file("."))
   .aggregate(api, client)
 
 lazy val api = withDefaults(
-    "nakadi-clients-api",
+    "nakadi-klients-api",
     project.in(file("api"))
-    ,true
   ).settings(libraryDependencies ++= apiDeps)
 
 lazy val client = withDefaults(
-    "nakadi-clients",
+    "nakadi-klients",
     project.in(file("client")).dependsOn(api)
-    ,true
   ).settings(libraryDependencies ++= clientDeps)
 
 
   lazy val it = withDefaults(
-      "nakadi-integration-test",
+      "nakadi-klients-integration-test",
       project.in(file("it")).dependsOn(api, client)
     ).settings(libraryDependencies ++= clientDeps)
 
 
     lazy val e2e = withDefaults(
-        "nakadi-end-2-end-test",
+        "nakadi-klients-end-2-end-test",
         project.in(file("e2e")).dependsOn(api, client, it)
       ).settings(libraryDependencies ++= clientDeps)
 
 
-  def withDefaults(projectName:String, project:sbt.Project, publish:Boolean = false)={
+  def withDefaults(projectName:String, project:sbt.Project)={
     project.settings(
         name := projectName,
-        organization := "org.zalando.laas",
-        version := "2.0.0-pre-alpha",
+        organization := "org.zalando.nakadi.client",
+        version := "2.0.0-pre-alpha.2",
         crossPaths := false,
         scalaVersion := "2.11.7",
         publishTo := whereToPublishTo(isSnapshot.value),
         resolvers += Resolver.mavenLocal,
         resolvers += "Maven Central Server" at "http://repo1.maven.org/maven2",
-        scalacOptions ++= defaultOptions)
+        scalacOptions ++= defaultOptions,
+        publishArtifact in (Test, packageBin) := false)
         .configs(Configs.all: _*)
         /*.settings(
           publishArtifact in (Compile, packageDoc) := true //To Publish or Not to Publish scala doc jar

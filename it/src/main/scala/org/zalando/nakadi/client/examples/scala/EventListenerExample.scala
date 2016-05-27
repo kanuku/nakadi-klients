@@ -60,7 +60,7 @@ object EventListenerExample extends App {
 
   val parameters = new StreamParameters(
     cursor = Some(cursor) //
-    , batchLimit = Some(1) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
+    , batchLimit = Some(100) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
     //    , streamLimit = Some(2) // Maximum number of `Event`s to stream (over all partitions being streamed in this
     //connection).
     //    , batchFlushTimeout = Some(5) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
@@ -76,7 +76,13 @@ object EventListenerExample extends App {
   import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller._
 
   //  val eventTypeName = "Event-example-with-0-messages"
-  val eventTypeName = "Example-unique-million-messages"
+  val eventTypeName = "Example-1"
   val result = client.subscribe(eventTypeName, parameters, listener)
+  
+  Thread.sleep(5000)
+  
+  client.unsubscribe(eventTypeName,"0", listener)
+  
+  client.subscribe(eventTypeName, parameters, listener)
 
 }

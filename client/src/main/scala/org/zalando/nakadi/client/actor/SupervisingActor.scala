@@ -38,8 +38,8 @@ import org.reactivestreams.Subscriber
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.java.{ ClientHandler => JClientHandler }
-import org.zalando.nakadi.client.java.{ ClientHandlerImpl => JClientHandlerImpl }
+import org.zalando.nakadi.client.java.{ JavaClientHandler => JClientHandler }
+import org.zalando.nakadi.client.java.{ JavaClientHandlerImpl => JClientHandlerImpl }
 import org.zalando.nakadi.client.java.model.{ Cursor => JCursor }
 import org.zalando.nakadi.client.java.model.{ Event => JEvent }
 import org.zalando.nakadi.client.scala.model.Cursor
@@ -79,44 +79,60 @@ import org.zalando.nakadi.client.scala.HttpFactory
 
 object SupervisingActor {
   sealed trait Subscription
-  case class Subscribe(endpoint: String, cursor: Option[Cursor], handler: EventHandler) extends Subscription
-  case class Unsubscribe(handler: EventHandler) extends Subscription
+  case class Subscribe(eventyTypeName: String, endpoint: String, cursor: Option[Cursor], handler: EventHandler) extends Subscription
+  case class Unsubscribe(eventTypeName: String, partition:String, eventHandlerId: String) extends Subscription
 
 }
 
 class SupervisingActor(val connection: Connection, val subscriptionHandler: SubscriptionHandler) extends Actor with ActorLogging {
   import SupervisingActor._
   import EventConsumingActor._
+  type SubscriptionKey = (String,String) //EventTypeName,PartitionId
   type SubscriptionEntry = (EventHandler, ActorRef)
-  //Listener ID + Susbscription
-  private var handlerMap: Map[String, SubscriptionEntry] = Map()
-  private var registrationCounter: AtomicLong = new AtomicLong(0);
+  private var subscriptions: Map[SubscriptionKey, SubscriptionEntry] = Map()   //SubscriptionKey , SubscriptionEntry
 
   def receive: Receive = {
     case subscrition: Subscribe =>
       log.info("New subscription {}", subscrition)
       subscribe(subscrition)
-    case Unsubscribe(handler) =>
+    case unsubscription: Unsubscribe =>
+      log.info("Number of subscriptions {}", subscriptions.size)
+      unsubscribe(unsubscription)
   }
 
   def subscribe(subscribe: Subscribe) = {
-    registrationCounter.incrementAndGet()
-    val Subscribe(endpoint, cursor, eventHandler) = subscribe
+    val Subscribe(eventTypeName, endpoint, cursor, eventHandler) = subscribe
+    log.info("Subscription nr {} for eventType {} and listener {}", (subscriptions.size + 1), eventTypeName, eventHandler.id())
+
     //Create the Consumer
-    val consumingActor = connection.actorSystem.actorOf(Props(classOf[EventConsumingActor], endpoint, null, eventHandler), "EventConsumingActor-" + registrationCounter.get)
+    val consumingActor = context.actorOf(Props(classOf[EventConsumingActor], endpoint, eventHandler), "EventConsumingActor-" + subscriptions.size)
     val consumer = ActorSubscriber[ByteString](consumingActor)
+
+    // Notify listener it is subscribed
+    eventHandler.handleOnSubscribed(endpoint, cursor)
 
     //Create the pipeline
     subscriptionHandler.createPipeline(cursor, consumer, endpoint, eventHandler)
     val subscription = (eventHandler, consumingActor)
+    val Some(Cursor(partition,_))=cursor
+    val key :SubscriptionKey = (eventTypeName,partition)
     val entry: SubscriptionEntry = (eventHandler, consumingActor)
-    handlerMap = handlerMap + ((eventHandler.id(), entry))
-
-    // Notify listener it is subscribed
-    eventHandler.handleOnSubscribed(endpoint, cursor)
+    subscriptions = subscriptions + ((key, entry))
   }
 
-  def unsubscribe() = {
+  def unsubscribe(unsubscription: Unsubscribe) = {
+    val Unsubscribe(eventTypeName, partition, eventHandlerId) = unsubscription
+    val key :SubscriptionKey = (eventTypeName,partition)
+    log.info("Unsubscribe({}) for eventType {} and listener {}",subscriptions, eventTypeName, eventHandlerId)
+    subscriptions.get(key) match {
+      case Some(subscription) =>
+        val (handler,actor)= subscription
+        log.info("Sending shutdown message to actor: {}", actor)
+        actor ! Shutdown(handler)
+
+      case None =>
+        log.warning("Listener not found for {}", unsubscription)
+    }
 
   }
 
