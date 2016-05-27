@@ -35,15 +35,15 @@ import org.zalando.nakadi.client.java.model.{ Event => JEvent }
  *
  */
 
-object EventConsumingActor {
+object ConsumingActor {
   case class Shutdown(handler: EventHandler)
 }
 
-class EventConsumingActor(eventType: String,
+class ConsumingActor(eventType: String,
                           handler: EventHandler)
     extends Actor with ActorLogging with ActorSubscriber {
   import ModelConverter._
-  import EventConsumingActor._
+  import ConsumingActor._
 
   var initialCursor: Option[Cursor] = null
 

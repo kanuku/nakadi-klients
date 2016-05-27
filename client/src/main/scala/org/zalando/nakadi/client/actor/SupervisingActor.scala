@@ -86,7 +86,7 @@ object SupervisingActor {
 
 class SupervisingActor(val connection: Connection, val subscriptionHandler: SubscriptionHandler) extends Actor with ActorLogging {
   import SupervisingActor._
-  import EventConsumingActor._
+  import ConsumingActor._
   type SubscriptionKey = (String,String) //EventTypeName,PartitionId
   type SubscriptionEntry = (EventHandler, ActorRef)
   private var subscriptions: Map[SubscriptionKey, SubscriptionEntry] = Map()   //SubscriptionKey , SubscriptionEntry
@@ -105,7 +105,7 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
     log.info("Subscription nr {} for eventType {} and listener {}", (subscriptions.size + 1), eventTypeName, eventHandler.id())
 
     //Create the Consumer
-    val consumingActor = context.actorOf(Props(classOf[EventConsumingActor], endpoint, eventHandler), "EventConsumingActor-" + subscriptions.size)
+    val consumingActor = context.actorOf(Props(classOf[ConsumingActor], endpoint, eventHandler), "EventConsumingActor-" + subscriptions.size)
     val consumer = ActorSubscriber[ByteString](consumingActor)
 
     // Notify listener it is subscribed
