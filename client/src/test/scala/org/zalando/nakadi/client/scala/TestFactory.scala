@@ -4,7 +4,6 @@ import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
-import org.joda.time.DateTime
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.Serializer
@@ -12,6 +11,7 @@ import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
+import java.util.Calendar
 
 
 case class EventActions(client: Client) {
@@ -60,7 +60,7 @@ trait ModelFactory {
   def createEventMetadata(): EventMetadata = {
     val length = 5
     val eid = java.util.UUID.randomUUID.toString
-    val occurredAt = new DateTime().toString()
+    val occurredAt = Calendar.getInstance().toString()
     new EventMetadata(eid, None, occurredAt, None, Nil, None, None)
   }
 }

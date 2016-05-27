@@ -54,7 +54,6 @@ class KlientIntegrationTest extends WordSpec with Matchers  with ModelFactory {
       executeCall(client.deleteEventType(eventType.name)) shouldBe None
     }
     "Create the event itself" in {
-      import spray.json._
       //Matches the one defined in the schema of
 
       case class EventExample(orderNumber: String, metadata: Option[EventMetadata]) extends Event

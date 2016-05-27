@@ -16,7 +16,6 @@ import org.scalatest.WordSpec
 import org.scalatest.mock.MockitoSugar
 import akka.http.scaladsl.model.HttpResponse
 import akka.stream.Materializer
-import spray.json.JsonFormat
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.HttpProtocol
 import akka.http.scaladsl.model.HttpProtocols

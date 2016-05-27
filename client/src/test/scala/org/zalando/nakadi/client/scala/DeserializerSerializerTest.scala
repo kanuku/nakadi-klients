@@ -9,7 +9,7 @@ import org.zalando.nakadi.client.utils.AkkaConfig
 import org.zalando.nakadi.client.utils.TestJsonEntity
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
-import spray.json.JsonFormat
+/*import spray.json.JsonFormat
 import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 
 class DeserializerSerializerTest extends WordSpec with Matchers  with AkkaConfig {
@@ -27,8 +27,8 @@ class DeserializerSerializerTest extends WordSpec with Matchers  with AkkaConfig
   }
 
   def checkDeserializationProcessSerialization[T](key: String, input: String)(implicit m: JsonFormat[T] ) {
-    import spray.json._
-    val json = input.parseJson
+//    import spray.json._
+//    val json = input.parseJson
     println(">>>>>>> IN " + json.compactPrint)
     val scalaModel = json.convertTo[T]
     val jsonResult = scalaModel.toJson
@@ -38,4 +38,4 @@ class DeserializerSerializerTest extends WordSpec with Matchers  with AkkaConfig
     assert(jsonResult == json, s"Failed to marshall $key")
   }
 
-}
+}*/
