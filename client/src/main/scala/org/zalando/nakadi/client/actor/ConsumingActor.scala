@@ -55,7 +55,7 @@ class ConsumingActor(eventType: String,
 
   override def receive: Receive = {
     case OnNext(msg: ByteString) =>
-      import util.Random
+//      import util.Random
 //      if (Random.nextFloat() > 0.9 && Random.nextBoolean() && Random.nextBoolean())
 //        throw new IllegalStateException("OMG, not again!")
       val message = msg.utf8String
