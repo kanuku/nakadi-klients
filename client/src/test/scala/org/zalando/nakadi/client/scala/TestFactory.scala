@@ -15,23 +15,23 @@ import java.util.Calendar
 
 
 case class EventActions(client: Client) {
-  def create[T <: Event](name: String, event: Seq[T])(implicit ser: Serializer[Seq[T]]) = {
+  def create[T <: Event](name: String, event: Seq[T])  = {
     client.publishEvents[T](name, event)
   }
 }
 
 case class EventTypesActions(client: Client) {
   import JacksonJsonMarshaller._
-  def create(event: EventType)(implicit ser: Serializer[EventType]) = {
+  def create(event: EventType) = {
     executeCall(client.createEventType(event))
   }
-  def update(event: EventType)(implicit ser: Serializer[EventType]) = {
+  def update(event: EventType)  = {
     executeCall(client.updateEventType(event.name, event))
   }
-  def get(name: String)(implicit ser: Deserializer[Option[EventType]]) = {
+  def get(name: String)  = {
     executeCall(client.getEventType(name))
   }
-  def getAll()(implicit ser: Deserializer[Option[Seq[EventType]]]) = {
+  def getAll() = {
     executeCall(client.getEventTypes())
   }
   def delete(name: String) = {

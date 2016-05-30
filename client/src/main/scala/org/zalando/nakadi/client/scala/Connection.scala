@@ -131,8 +131,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
     val entity = serializer.to(model)
-    logger.info("Posting to endpoint {}", endpoint)
-    logger.debug("Data to post {}", entity)
+    logger.info("POST URL:{} - DATA:{}", endpoint, entity)
     executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST, tokenProvider))
   }
 
