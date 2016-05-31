@@ -5,7 +5,7 @@ import scala.Option;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum SchemaType {
-	JSON("json_schema");
+	JSON("JSON_SCHEMA");
 
 	private final String schema;
 
