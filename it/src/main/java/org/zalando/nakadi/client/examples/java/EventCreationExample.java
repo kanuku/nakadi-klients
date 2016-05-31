@@ -83,7 +83,7 @@ public class EventCreationExample {
 		 * their own partitions 4. A unique identifier for Subscribing
 		 * 
 		 */
-		String eventTypeName = "MeetingsEvent-example-E";
+		String eventTypeName = "Example-1";
 
 		/**
 		 * Create client

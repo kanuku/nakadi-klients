@@ -25,6 +25,8 @@ import org.zalando.nakadi.client.scala.ScalaResult
 import org.zalando.nakadi.client.scala.JavaResult
 import org.zalando.nakadi.client.scala.ErrorResult
 import org.zalando.nakadi.client.java.model.{ Event => JEvent }
+import SupervisingActor._
+import akka.actor.Terminated
 
 /**
  * This actor serves as Sink for the pipeline.<br>
@@ -36,16 +38,15 @@ import org.zalando.nakadi.client.java.model.{ Event => JEvent }
  */
 
 object ConsumingActor {
-  case class Shutdown(handler: EventHandler)
 }
 
-class ConsumingActor(eventType: String,
-                          handler: EventHandler)
+class ConsumingActor(subscription: SubscriptionKey,
+                     handler: EventHandler)
     extends Actor with ActorLogging with ActorSubscriber {
   import ModelConverter._
   import ConsumingActor._
 
-  var initialCursor: Option[Cursor] = null
+  var lastCursor: Option[Cursor] = null
 
   override protected def requestStrategy: RequestStrategy = new RequestStrategy {
     override def requestDemand(remainingRequested: Int): Int = {
@@ -55,31 +56,39 @@ class ConsumingActor(eventType: String,
 
   override def receive: Receive = {
     case OnNext(msg: ByteString) =>
-//      import util.Random
-//      if (Random.nextFloat() > 0.9 && Random.nextBoolean() && Random.nextBoolean())
-//        throw new IllegalStateException("OMG, not again!")
       val message = msg.utf8String
-      log.debug("Event - cursor {} - eventType {} - msg {}", initialCursor, eventType, message)
-      handler.handleOnReceive(eventType, message)
+      log.debug("Event - cursor {} - {} - msg {}", lastCursor, subscription, message)
+      import util.Random
+      if (Random.nextFloat() > 0.2 && Random.nextBoolean() && Random.nextBoolean())
+        throw new IllegalStateException("FAIIIIIL!")
+      handler.handleOnReceive(subscription.toString(), message) match {
+        case Right(cursor) =>
+          lastCursor = Some(cursor)
+          context.parent ! OffsetMsg(cursor, subscription)
+        case Left(error) => log.error(error.error.getMessage)
+      }
     case OnError(err: Throwable) =>
-      log.error("onError - cursor {} - eventType {} - error {}", initialCursor, eventType, err.getMessage)
+      log.error("onError - cursor {} - {} - error {}", lastCursor, subscription, err.getMessage)
       context.stop(self)
     case OnComplete =>
-      log.info("onComplete - cursor {} - eventType {}", initialCursor, eventType)
+      log.info("onComplete - cursor {} - {}", lastCursor, subscription)
       context.stop(self)
-    case Shutdown(shutdownHandler: EventHandler) =>
-      log.info("Shutting down eventType listener-id {} -> {}", handler.id(), shutdownHandler.id())
-      context.stop(self)
+    case Terminated =>
+      log.info("Received Terminated msg - subscription {} with listener-id {} ", subscription, handler.id())
     case a =>
-      log.error("Could not handle message: {}",a)
+      log.error("Could not handle message: {}", a)
   }
 
   override def postRestart(reason: Throwable) {
     super.postRestart(reason)
     log.info(s">>>>>>>>>>>>> <<<<<<<<<<<<<<<")
     log.info(s">>>>>>>>>>>>> Restarted because of ${reason.getMessage}")
-    log.info(">>>>>>>>>>>>> Current cursor {} <<<<<<<<<<<<<<<", initialCursor)
+    log.info(">>>>>>>>>>>>> Current cursor {} <<<<<<<<<<<<<<<", lastCursor)
 
+  }
+
+  override def postStop() {
+    log.info("Shutting down subscription {} with listener-id {} ", subscription, handler.id())
   }
 }
 

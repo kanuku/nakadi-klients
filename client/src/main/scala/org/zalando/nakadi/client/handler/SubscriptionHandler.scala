@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import org.reactivestreams.Subscriber
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.actor.SupervisingActor
-import org.zalando.nakadi.client.actor.SupervisingActor.Subscribe
+import org.zalando.nakadi.client.actor.SupervisingActor.SubscribeMsg
 import org.zalando.nakadi.client.scala.Connection
 import org.zalando.nakadi.client.scala.EventHandler
 import org.zalando.nakadi.client.scala.HttpFactory
@@ -51,10 +51,10 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
   def subscribe(eventTypeName: String, endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler) = {
-    supervisingActor ! Subscribe(eventTypeName,endpoint, cursor, eventHandler)
+    supervisingActor ! SubscribeMsg(eventTypeName,endpoint, cursor, eventHandler)
   }
   def unsubscribe(eventTypeName: String,partition:String, listenerId: String)= {
-    supervisingActor ! Unsubscribe(eventTypeName,partition, listenerId)
+    supervisingActor ! UnsubscribeMsg(eventTypeName,partition, listenerId)
   }
 
   def createPipeline(cursor: Option[Cursor], subscriber: Subscriber[ByteString], url: String, eventHandler: EventHandler) = {

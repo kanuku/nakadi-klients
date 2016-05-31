@@ -1,139 +1,120 @@
 package org.zalando.nakadi.client.actor
 
-import akka.actor.ActorLogging
-import akka.actor.Actor
-import scala.concurrent.duration._
-import akka.actor.OneForOneStrategy
-import akka.actor.SupervisorStrategy
-import akka.actor.ActorKilledException
-import akka.actor.ActorInitializationException
-import akka.actor.SupervisorStrategy._
-import akka.actor.AllForOneStrategy
-import akka.actor.ActorRef
-import org.zalando.nakadi.client.scala.EventHandler
 import org.zalando.nakadi.client.handler.SubscriptionHandler
 import org.zalando.nakadi.client.scala.Connection
-import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
-import akka.actor.ActorLogging
-import akka.actor.Actor
-import scala.concurrent.duration._
-import akka.actor.OneForOneStrategy
-import akka.actor.SupervisorStrategy
-import akka.actor.ActorKilledException
-import akka.actor.ActorInitializationException
-import akka.actor.SupervisorStrategy._
-import akka.actor.AllForOneStrategy
-import akka.actor.ActorRef
 import org.zalando.nakadi.client.scala.EventHandler
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import java.util.concurrent.TimeoutException
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.util.Try
-
-import org.reactivestreams.Publisher
-import org.reactivestreams.Subscriber
-import org.slf4j.LoggerFactory
-import org.zalando.nakadi.client.Deserializer
-import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.java.{ JavaClientHandler => JClientHandler }
-import org.zalando.nakadi.client.java.{ JavaClientHandlerImpl => JClientHandlerImpl }
-import org.zalando.nakadi.client.java.model.{ Cursor => JCursor }
-import org.zalando.nakadi.client.java.model.{ Event => JEvent }
 import org.zalando.nakadi.client.scala.model.Cursor
-import org.zalando.nakadi.client.scala.model.Event
 
-import com.typesafe.scalalogging.Logger
-
-import akka.NotUsed
+import SupervisingActor.SubscriptionEntry
+import SupervisingActor.SubscriptionKey
 import akka.actor.Actor
+import akka.actor.ActorInitializationException
+import akka.actor.ActorKilledException
+import akka.actor.ActorLogging
 import akka.actor.ActorRef
-import akka.actor.ActorSystem
+import akka.actor.OneForOneStrategy
+import akka.actor.PoisonPill
 import akka.actor.Props
+import akka.actor.SupervisorStrategy
+import akka.actor.SupervisorStrategy.Decider
+import akka.actor.SupervisorStrategy.Restart
+import akka.actor.SupervisorStrategy._
 import akka.actor.Terminated
 import akka.actor.actorRef2Scala
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.Http.HostConnectionPool
-import akka.http.scaladsl.HttpsConnectionContext
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpResponse
-import akka.stream.ActorMaterializer
-import akka.stream.ActorMaterializerSettings
-import akka.stream.OverflowStrategy
-import akka.stream.actor.ActorPublisher
 import akka.stream.actor.ActorSubscriber
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.Framing
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
-import akka.http.scaladsl.model.EntityStreamException
-import java.util.concurrent.atomic.AtomicLong
-import org.zalando.nakadi.client.scala.Connection
-import org.zalando.nakadi.client.scala.HttpFactory
+import org.zalando.nakadi.client.actor.utils.SupervisorHelper
 
 object SupervisingActor {
-  sealed trait Subscription
-  case class Subscribe(eventyTypeName: String, endpoint: String, cursor: Option[Cursor], handler: EventHandler) extends Subscription
-  case class Unsubscribe(eventTypeName: String, partition:String, eventHandlerId: String) extends Subscription
-
+  case class SubscribeMsg(eventTypeName: String, endpoint: String, cursor: Option[Cursor], handler: EventHandler) {
+    override def toString(): String = cursor match {
+      case Some(Cursor(partition, offset)) => "SubscriptionKey(eventTypeName:" + eventTypeName + " - partition:" + partition + ")"
+      case None                            => "SubscriptionKey(eventTypeName:" + eventTypeName + ")"
+    };
+  }
+  case class UnsubscribeMsg(eventTypeName: String, partition: String, eventHandlerId: String)
+  case class OffsetMsg(cursor: Cursor, subKey: SubscriptionKey)
+  case class SubscriptionKey(eventTypeName: String, partition: String) {
+    override def toString(): String = s"SubscriptionKey(eventTypeName:$eventTypeName - Partition:$partition)";
+  }
+  case class SubscriptionEntry(subuscription: SubscribeMsg, actor: ActorRef)
 }
 
-class SupervisingActor(val connection: Connection, val subscriptionHandler: SubscriptionHandler) extends Actor with ActorLogging {
+class SupervisingActor(val connection: Connection, val subscriptionHandler: SubscriptionHandler) extends Actor with ActorLogging with SupervisorHelper {
   import SupervisingActor._
   import ConsumingActor._
-  type SubscriptionKey = (String,String) //EventTypeName,PartitionId
-  type SubscriptionEntry = (EventHandler, ActorRef)
-  private var subscriptions: Map[SubscriptionKey, SubscriptionEntry] = Map()   //SubscriptionKey , SubscriptionEntry
+  val subscriptions: SubscriptionHolder = new SubscriptionHolderImpl()
 
-  def receive: Receive = {
-    case subscrition: Subscribe =>
-      log.info("New subscription {}", subscrition)
-      subscribe(subscrition)
-    case unsubscription: Unsubscribe =>
-      log.info("Number of subscriptions {}", subscriptions.size)
-      unsubscribe(unsubscription)
+  override val supervisorStrategy: SupervisorStrategy = {
+    def defaultDecider: Decider = {
+      case _: ActorInitializationException ⇒ Stop
+      case _: ActorKilledException         ⇒ Stop
+      case _: IllegalStateException        ⇒ Stop
+      case _: Exception                    ⇒ Stop
+      case _: Throwable                    ⇒ Stop
+    }
+    OneForOneStrategy()(defaultDecider)
   }
 
-  def subscribe(subscribe: Subscribe) = {
-    val Subscribe(eventTypeName, endpoint, cursor, eventHandler) = subscribe
+  def receive: Receive = {
+    case OffsetMsg(cursor, subKey) =>
+      log.info("Received cursor {} - subKey {}", cursor, subKey)
+      subscriptions.addCursor(subKey, cursor)
+    case subscrition: SubscribeMsg =>
+      log.info("New subscription {}", subscrition)
+      subscribe(subscrition)
+    case unsubscription: UnsubscribeMsg =>
+      log.info("Number of subscriptions {}", subscriptions.size)
+      unsubscribe(unsubscription)
+    case Terminated(terminatedActor) =>
+      log.info(s"ConsumingActor terminated {}", terminatedActor.path.name)
+      subscriptions.entryByActor(terminatedActor) match {
+        case Some(SubscriptionEntry(SubscribeMsg(eventTypeName, endpoint, Some(Cursor(partition, offset)), handler), actor: ActorRef)) =>
+          val unsubscription = UnsubscribeMsg(eventTypeName, partition, handler.id())
+          unsubscribe(unsubscription)
+          val cursor = subscriptions.cursorByActor(terminatedActor)
+          val subscription = SubscribeMsg(eventTypeName, endpoint, cursor, handler)
+          subscribe(subscription)
+        case None =>
+          log.warning("Did not find any SubscriptionKey for {}", terminatedActor.path.toString())
+        case e =>
+          log.warning("None exhaustive match! {}", e)
+      }
+  }
+
+  def subscribe(subscribe: SubscribeMsg) = {
+    val SubscribeMsg(eventTypeName, endpoint, cursor, eventHandler) = subscribe
     log.info("Subscription nr {} for eventType {} and listener {}", (subscriptions.size + 1), eventTypeName, eventHandler.id())
 
+    val Some(Cursor(partition, _)) = cursor
+    val subKey: SubscriptionKey = SubscriptionKey(eventTypeName, partition)
+
     //Create the Consumer
-    val consumingActor = context.actorOf(Props(classOf[ConsumingActor], endpoint, eventHandler), "EventConsumingActor-" + subscriptions.size)
+    val consumingActor = context.actorOf(Props(classOf[ConsumingActor], subKey, eventHandler), "EventConsumingActor-" + subscriptions.size)
     val consumer = ActorSubscriber[ByteString](consumingActor)
+    context.watch(consumingActor) //If the streaming is ending!!
+    val subEntry: SubscriptionEntry = SubscriptionEntry(subscribe, consumingActor)
 
     // Notify listener it is subscribed
     eventHandler.handleOnSubscribed(endpoint, cursor)
 
     //Create the pipeline
     subscriptionHandler.createPipeline(cursor, consumer, endpoint, eventHandler)
-    val subscription = (eventHandler, consumingActor)
-    val Some(Cursor(partition,_))=cursor
-    val key :SubscriptionKey = (eventTypeName,partition)
-    val entry: SubscriptionEntry = (eventHandler, consumingActor)
-    subscriptions = subscriptions + ((key, entry))
+    subscriptions.addSubscription(subKey, consumingActor, subEntry)
   }
 
-  def unsubscribe(unsubscription: Unsubscribe) = {
-    val Unsubscribe(eventTypeName, partition, eventHandlerId) = unsubscription
-    val key :SubscriptionKey = (eventTypeName,partition)
-    log.info("Unsubscribe({}) for eventType {} and listener {}",subscriptions, eventTypeName, eventHandlerId)
-    subscriptions.get(key) match {
-      case Some(subscription) =>
-        val (handler,actor)= subscription
-        log.info("Sending shutdown message to actor: {}", actor)
-        actor ! Shutdown(handler)
-
+  def unsubscribe(unsubscription: UnsubscribeMsg) = {
+    val UnsubscribeMsg(eventTypeName, partition, eventHandlerId) = unsubscription
+    val key: SubscriptionKey = SubscriptionKey(eventTypeName, partition)
+    log.info("Unsubscribe({})  ", unsubscription)
+    subscriptions.entry(key) match {
+      case Some(SubscriptionEntry(handler, actor)) =>
+        log.info("Unsubscribing Listener : {} from actor: {}", handler, actor)
+        actor ! PoisonPill
+        subscriptions.unsubscribe(key)
       case None =>
         log.warning("Listener not found for {}", unsubscription)
     }
-
   }
 
 }
