@@ -76,10 +76,10 @@ object EventListenerExample extends App {
   import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller._
 
   //  val eventTypeName = "Event-example-with-0-messages"
-  val eventTypeName = "Example-2"
+  val eventTypeName = "Example-1"
   val result = client.subscribe(eventTypeName, parameters, listener)
 
-  Thread.sleep(3000)
+//  Thread.sleep(3000)
   //  client.stop()
   //  client.unsubscribe(eventTypeName,"0", listener)
   //  client.subscribe(eventTypeName, parameters, listener)

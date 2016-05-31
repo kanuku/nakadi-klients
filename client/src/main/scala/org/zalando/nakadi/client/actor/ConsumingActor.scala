@@ -59,7 +59,7 @@ class ConsumingActor(subscription: SubscriptionKey,
       val message = msg.utf8String
       log.debug("Event - cursor {} - {} - msg {}", lastCursor, subscription, message)
       import util.Random
-      if (Random.nextFloat() > 0.2 && Random.nextBoolean() && Random.nextBoolean())
+      if (Random.nextFloat() > 0.9 && Random.nextBoolean() && Random.nextBoolean())
         throw new IllegalStateException("FAIIIIIL!")
       handler.handleOnReceive(subscription.toString(), message) match {
         case Right(cursor) =>
