@@ -5,11 +5,11 @@ import scala.collection.JavaConversions._
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import com.fasterxml.jackson.core.`type`.TypeReference
 
-// Updated untill commit 7839be3  
+// Updated untill commit 7839be3
 // Compare
 
 
-// Updated untill commit 7839be3  
+// Updated untill commit 7839be3
 // Compare
 
 /**
@@ -26,7 +26,7 @@ import com.fasterxml.jackson.core.`type`.TypeReference
  * @param title
  */
 trait Event {
-  
+
 }
 /**
  * @param partition Id of the partition pointed to by this cursor.
@@ -300,6 +300,6 @@ class BatchItemStepType extends TypeReference[BatchItemStep.type]
 
 case object SchemaType extends Enumeration {
   type SchemaType = Value
-  val JSON = Value("json_schema")
+  val JSON = Value("JSON_SCHEMA")
 }
 class SchemaTypeType extends TypeReference[SchemaType.type]
