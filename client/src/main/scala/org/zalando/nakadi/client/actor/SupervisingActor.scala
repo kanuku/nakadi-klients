@@ -23,14 +23,11 @@ import akka.actor.Terminated
 import akka.actor.actorRef2Scala
 import akka.stream.actor.ActorSubscriber
 import akka.util.ByteString
-import org.zalando.nakadi.client.actor.utils.SupervisorHelper
 
 object SupervisingActor {
   case class SubscribeMsg(eventTypeName: String, endpoint: String, cursor: Option[Cursor], handler: EventHandler) {
-    override def toString(): String = cursor match {
-      case Some(Cursor(partition, offset)) => "SubscriptionKey(eventTypeName:" + eventTypeName + " - partition:" + partition + ")"
-      case None                            => "SubscriptionKey(eventTypeName:" + eventTypeName + ")"
-    };
+    override def toString(): String = 
+      s"SubscriptionKey(eventTypeName: $eventTypeName - endpoint: $endpoint - cursor: $cursor - ${handler.id})"
   }
   case class UnsubscribeMsg(eventTypeName: String, partition: String, eventHandlerId: String)
   case class OffsetMsg(cursor: Cursor, subKey: SubscriptionKey)
@@ -40,7 +37,7 @@ object SupervisingActor {
   case class SubscriptionEntry(subuscription: SubscribeMsg, actor: ActorRef)
 }
 
-class SupervisingActor(val connection: Connection, val subscriptionHandler: SubscriptionHandler) extends Actor with ActorLogging with SupervisorHelper {
+class SupervisingActor(val connection: Connection, val subscriptionHandler: SubscriptionHandler) extends Actor with ActorLogging {
   import SupervisingActor._
   import ConsumingActor._
   val subscriptions: SubscriptionHolder = new SubscriptionHolderImpl()
@@ -64,7 +61,7 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
       log.info("New subscription {}", subscrition)
       subscribe(subscrition)
     case unsubscription: UnsubscribeMsg =>
-      log.info("Number of subscriptions {}", subscriptions.size)
+      log.info("Number of subscriptions {}", subscriptions.activeSize)
       unsubscribe(unsubscription)
     case Terminated(terminatedActor) =>
       log.info(s"ConsumingActor terminated {}", terminatedActor.path.name)
@@ -83,24 +80,29 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
   }
 
   def subscribe(subscribe: SubscribeMsg) = {
-    val SubscribeMsg(eventTypeName, endpoint, cursor, eventHandler) = subscribe
-    log.info("Subscription nr {} for eventType {} and listener {}", (subscriptions.size + 1), eventTypeName, eventHandler.id())
+    val SubscribeMsg(eventTypeName, endpoint, optCursor, eventHandler) = subscribe
+    log.info("Subscription nr {} - cursor {} - eventType {} - listener {}", (subscriptions.activeSize + 1), optCursor,eventTypeName, eventHandler.id())
 
-    val Some(Cursor(partition, _)) = cursor
+    val Some(cursor) = optCursor
+    val Cursor(partition, _) = cursor
     val subKey: SubscriptionKey = SubscriptionKey(eventTypeName, partition)
 
     //Create the Consumer
-    val consumingActor = context.actorOf(Props(classOf[ConsumingActor], subKey, eventHandler), "EventConsumingActor-" + subscriptions.size)
-    val consumer = ActorSubscriber[ByteString](consumingActor)
+    val consumingActor = context.actorOf(Props(classOf[ConsumingActor], subKey, eventHandler), "EventConsumingActor-" + subscriptions.activeSize)
+    
     context.watch(consumingActor) //If the streaming is ending!!
+    
     val subEntry: SubscriptionEntry = SubscriptionEntry(subscribe, consumingActor)
 
     // Notify listener it is subscribed
-    eventHandler.handleOnSubscribed(endpoint, cursor)
-
+    eventHandler.handleOnSubscribed(endpoint, Option(cursor))
+    
+    
+    
     //Create the pipeline
-    subscriptionHandler.createPipeline(cursor, consumer, endpoint, eventHandler)
+    subscriptionHandler.createPipeline(Option(cursor), consumingActor, endpoint, eventHandler)
     subscriptions.addSubscription(subKey, consumingActor, subEntry)
+    subscriptions.addCursor(subKey, cursor)
   }
 
   def unsubscribe(unsubscription: UnsubscribeMsg) = {

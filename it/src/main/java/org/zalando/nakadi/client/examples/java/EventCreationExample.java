@@ -83,7 +83,7 @@ public class EventCreationExample {
 		 * their own partitions 4. A unique identifier for Subscribing
 		 * 
 		 */
-		String eventTypeName = "Example-1";
+		String eventTypeName = "Example-"+System.currentTimeMillis();
 
 		/**
 		 * Create client
@@ -130,6 +130,7 @@ public class EventCreationExample {
 		
 		result = client.publishEvents(eventTypeName, Arrays.asList(event3), SerializationUtils.defaultSerializer());
 		result.get();
+		client.stop();
 
 	}
 }

@@ -34,6 +34,7 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import akka.http.scaladsl.model.{ HttpHeader, HttpMethod, HttpMethods, HttpResponse, MediaRange }
 import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
+import akka.stream.Supervision
 
 sealed trait EmptyJavaEvent extends JEvent
 sealed trait EmptyScalaEvent extends Event
@@ -48,6 +49,7 @@ trait Connection {
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse]
   def requestFlow(): Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]]
+  def materializer(decider: Supervision.Decider): ActorMaterializer
   def materializer(): ActorMaterializer
   def actorSystem(): ActorSystem
 }
@@ -56,7 +58,7 @@ trait Connection {
  * Companion object with factory methods.
  */
 object Connection {
-  val RECEIVE_BUFFER_SIZE = 40960
+  val RECEIVE_BUFFER_SIZE = 10240
   val EVENT_DELIMITER = "\n"
   /**
    * Creates a new SSL context for usage with connections based on the HTTPS protocol.
@@ -98,11 +100,12 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   type StepResult[T] = (T, Option[String])
 
   implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
-  implicit val materializer = ActorMaterializer(
-    ActorMaterializerSettings(actorSystem)
-      .withInputBuffer(
-        initialSize = 8,
-        maxSize = 16))
+  def materializer(decider: Supervision.Decider): ActorMaterializer = {
+   ActorMaterializer( ActorMaterializerSettings(actorSystem)
+      .withSupervisionStrategy(decider))
+  }
+  def materializer() = ActorMaterializer(
+    ActorMaterializerSettings(actorSystem))
   private implicit val http = Http(actorSystem)
   private val actors: Map[String, Actor] = Map()
 
@@ -139,7 +142,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
     val response: Future[HttpResponse] =
       Source.single(request)
         .via(requestFlow).
-        runWith(Sink.head)
+        runWith(Sink.head)(materializer())
     logError(response)
     response
   }

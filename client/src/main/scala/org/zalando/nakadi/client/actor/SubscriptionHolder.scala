@@ -14,7 +14,7 @@ trait SubscriptionHolder {
   def entryByActor(actor: ActorRef): Option[SubscriptionEntry]
   def cursorByActor(actor: ActorRef): Option[Cursor]
   def unsubscribe(key: SubscriptionKey): Unit
-  def size: Int
+  def activeSize: Int
 }
 
 class SubscriptionHolderImpl extends SubscriptionHolder {
@@ -22,6 +22,7 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
   private var subscriptions: Map[SubscriptionKey, SubscriptionEntry] = Map() //EventTypeName+Partition
   private var cursors: Map[SubscriptionKey, Cursor] = Map()
   private var actors: Map[String, SubscriptionKey] = Map()
+  private var subscriptionCounter = 0
   private val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
   def addCursor(key: SubscriptionKey, cursor: Cursor): Unit = {
@@ -31,10 +32,11 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
   def addSubscription(key: SubscriptionKey, key2: ActorRef, entry: SubscriptionEntry) = {
     subscriptions = subscriptions + ((key, entry))
     actors = actors + ((key2.path.toString(), key))
+    subscriptionCounter+=1
   }
-  
-  def unsubscribe(key: SubscriptionKey): Unit ={
-    
+
+  def unsubscribe(key: SubscriptionKey): Unit = {
+
   }
 
   def entry(key: SubscriptionKey): Option[SubscriptionEntry] = {
@@ -44,8 +46,12 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
   def entryByActor(actor: ActorRef): Option[SubscriptionEntry] =
     actors.get(actor.path.toString()).flatMap(x => subscriptions.get(x))
 
-  def size: Int = {
+  def activeSize: Int = {
     subscriptions.size
+  }
+
+  def count(): Int = {
+    subscriptionCounter
   }
 
   def addActor(actor: ActorRef, key: SubscriptionKey): Unit = {

@@ -44,7 +44,7 @@ object EventCreationExample extends App {
   //See the API for more information on the EventType model
   //https://github.com/zalando/nakadi/blob/nakadi-jvm/api/nakadi-event-bus-api.yaml#L1240
   //  val eventTypeName = "Example-unique-million-messages"
-  val eventTypeName = "Example-2"
+  val eventTypeName = "Example-2000"
 //  val eventTypeName = "Example-unique-hundred-messages-3"
 
   val owner = "team-laas"
@@ -73,7 +73,7 @@ object EventCreationExample extends App {
   // 4. Publish the EventType
 
   var counter = 0
-  for (n <- 1 to 1) {
+  for (n <- 1 to 10000) {
     val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
     var events = ListBuffer[MeetingsEvent]()
     for (a <- 1 to 100) {

@@ -6,10 +6,10 @@ import java.util.function.Supplier
 object ClientFactory {
   import sys.process._
   import scala.language.postfixOps
-  def host(): String = "nakadi-sandbox.aruha-test.zalan.do"
+  def host(): String = "nakadi.test.fernando.io"
   def localHost(): String = "localhost"
   def localPort(): Integer = 8080
-  def OAuth2Token(): Option[() => String] = Option(() => "63e78acc-3fae-46d6-b8c5-1c213d99ba7d")
+  def OAuth2Token(): Option[() => String] = Option(() => "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
   def port(): Integer = 443
   def client(): Client = Connection.newClient(host, port, OAuth2Token(), true, false)
 
@@ -19,21 +19,31 @@ object ClientFactory {
   def getScalaClient() = builder().build()
 
   private def builder() = {
-//    useRemote()
+//	  useTest()
+//    useStaging()
     useLocal()
   }
   private def useLocal() = {
     new ClientBuilder() //
-      .withHost(ClientFactory.localHost()) //
-      .withPort(ClientFactory.localPort()) //
+      .withHost("localhost") //
+      .withPort(8080) //
       .withSecuredConnection(false) // s
       .withVerifiedSslCertificate(false) // s
   }
-  private def useRemote() = {
+  private def useTest() = {
     ClientBuilder()
-      .withHost(ClientFactory.host())
+      .withHost("nakadi-sandbox.aruha-test.zalan.do")
+      .withPort(443)
       .withSecuredConnection(true) //s
       .withVerifiedSslCertificate(false) //s
       .withTokenProvider(ClientFactory.OAuth2Token())
+  }
+  private def useStaging() = {
+	  ClientBuilder()
+	  .withHost("nakadi-staging.aruha-test.zalan.do")
+	  .withPort(443)
+	  .withSecuredConnection(true) //s
+	  .withVerifiedSslCertificate(false) //s
+	  .withTokenProvider(ClientFactory.OAuth2Token())
   }
 }

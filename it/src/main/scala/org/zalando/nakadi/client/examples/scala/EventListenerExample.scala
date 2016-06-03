@@ -20,7 +20,7 @@ class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
   private var callerCount: AtomicLong = new AtomicLong(0);
 
   def onError(sourceUrl: String, error: Option[ClientError]): Unit = {
-    println("Error %s %s %s".format(sourceUrl, error))
+    println("Error %s %s".format(sourceUrl, error))
   }
 
   def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MeetingsEvent]): Unit = {
@@ -56,16 +56,16 @@ object EventListenerExample extends App {
    * Create the Parameters with the cursor.
    */
 
-  val cursor = Cursor("0", "BEGIN")
+  val cursor = Cursor("0", "0")
 
   val parameters = new StreamParameters(
     cursor = Some(cursor) //
-    , batchLimit = Some(1) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
+    , batchLimit = Some(250) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
     //    , streamLimit = Some(2) // Maximum number of `Event`s to stream (over all partitions being streamed in this
     //connection).
-    //    , batchFlushTimeout = Some(5) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
+        , batchFlushTimeout = Some(30) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
     //        ,streamKeepAliveLimit=Some(4)
-    //    , streamTimeout = Some(30)
+        , streamTimeout = Some(30)
     )
 
   /**
@@ -76,7 +76,7 @@ object EventListenerExample extends App {
   import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller._
 
   //  val eventTypeName = "Event-example-with-0-messages"
-  val eventTypeName = "Example-1"
+  val eventTypeName = "Example-2000"
   val result = client.subscribe(eventTypeName, parameters, listener)
 
 //  Thread.sleep(3000)
