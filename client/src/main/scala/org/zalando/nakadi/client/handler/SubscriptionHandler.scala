@@ -1,8 +1,9 @@
 package org.zalando.nakadi.client.handler
 
-import java.util.concurrent.TimeoutException
-
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationInt
+import scala.util.Failure
+import scala.util.Success
 
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.actor.SupervisingActor
@@ -20,7 +21,6 @@ import akka.actor.ActorRef
 import akka.actor.PoisonPill
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import akka.http.scaladsl.model.EntityStreamException
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.HttpResponse
 import akka.stream.ActorAttributes
@@ -32,10 +32,6 @@ import akka.stream.scaladsl.Framing
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import akka.stream.StreamTcpException
-import akka.stream.StreamTcpException
-import scala.util.Success
-import scala.util._
 
 trait SubscriptionHandler {
   /**
@@ -88,19 +84,22 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
 
     result.onComplete {
       case Success(requestSource) ⇒
-        logger.info("@@@@@@@@@@ YAY @@@@@@@@@@@@@")
+        logger.info("Connection established with success!")
       case Failure(e) ⇒
         val msg = "An exception occurred: " + e.getMessage
         eventHandler.handleOnError(url, Some(msg), e)
         logger.error(msg + e)
+        materializer.scheduleOnce(5.seconds, { stopActor(consumingActor) })
         Thread.sleep(10000)
         stopActor(consumingActor)
     }
   }
 
   private def stopActor(actor: ActorRef) = {
-    logger.info("Stopping actor {} with a PoisonPill", actor.path.toString())
-    actor ! PoisonPill
+    new Runnable {
+    	logger.info("Stopping the actor {}.", actor.path.toString())
+      def run = actor ! PoisonPill 
+    }
   }
 
   private def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =

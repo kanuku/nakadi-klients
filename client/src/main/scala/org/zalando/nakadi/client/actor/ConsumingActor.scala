@@ -74,19 +74,9 @@ class ConsumingActor(subscription: SubscriptionKey,
       log.info("Received Terminated msg - subscription {} with listener-id {} ", subscription, handler.id())
     case a =>
       log.error("Could not handle message: {}", a)
+      context.stop(self)
   }
 
-  override def postRestart(reason: Throwable) {
-    super.postRestart(reason)
-    log.info(s">>>>>>>>>>>>> <<<<<<<<<<<<<<<")
-    log.info(s">>>>>>>>>>>>> Restarted because of ${reason.getMessage}")
-    log.info(">>>>>>>>>>>>> Current cursor {} <<<<<<<<<<<<<<<", lastCursor)
-
-  }
-
-  override def postStop() {
-    log.info("Shutting down subscription {} with listener-id {} ", subscription, handler.id())
-  }
 }
 
  
