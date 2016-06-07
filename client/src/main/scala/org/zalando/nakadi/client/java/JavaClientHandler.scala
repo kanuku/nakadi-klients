@@ -35,6 +35,7 @@ import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
 import org.zalando.nakadi.client.handler.SubscriptionHandler
+import org.zalando.nakadi.client.utils.GeneralConversions
 
 /**
  * Handler for mapping(Java<->Scala) and handling http calls and listener subscriptions for the Java API.
@@ -45,13 +46,14 @@ trait JavaClientHandler {
   def get[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
   def subscribe[T <: JEvent](eventTypeName: String, endpoint: String, parameters: JStreamParameters, listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]])
-  def unsubscribe[T <: JEvent](eventTypeName: String,partition:String, listener: JListener[T])
+  def unsubscribe[T <: JEvent](eventTypeName: String, partition:  Optional[String], listener: JListener[T])
 
 }
 
 class JavaClientHandlerImpl(val connection: Connection, subscriber: SubscriptionHandler) extends JavaClientHandler {
   val logger: Logger = Logger(LoggerFactory.getLogger(this.getClass))
   import HttpFactory._
+  import GeneralConversions._
   private implicit val mat = connection.materializer()
 
   //TODO: Use constructor later make the tests simpler
@@ -117,8 +119,8 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
       })
     }
 
-  def unsubscribe[T <: JEvent](eventTypeName: String,partition:String, listener: JListener[T]) = {
-    subscriber.unsubscribe(eventTypeName,partition, listener.getId)
+  def unsubscribe[T <: JEvent](eventTypeName: String, partition: Optional[String], listener: JListener[T]) = {
+    subscriber.unsubscribe(eventTypeName, toOption(partition), listener.getId)
   }
   private def getCursor(params: Option[ScalaStreamParameters]): Option[ScalaCursor] = params match {
     case Some(ScalaStreamParameters(cursor, batchLimit, streamLimit, batchFlushTimeout, streamTimeout, streamKeepAliveLimit, flowId)) => cursor

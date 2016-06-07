@@ -177,7 +177,7 @@ trait Client {
    * @param partition  The partition assigned to this listener.
    * @param listener - Listener to unsubscribe from the streaming events.
    */
-  def unsubscribe[T <: Event](eventTypeName: String, partition:String, listener: Listener[T]): Future[Option[ClientError]]
+  def unsubscribe[T <: Event](eventTypeName: String, partition: Option[String], listener: Listener[T]): Future[Option[ClientError]]
 
 }
 

@@ -28,4 +28,11 @@ object Dependencies {
 			"org.mockito" 								 % "mockito-core" 											% "1.10.19" % "test"
 		)
 	}
+
+	val itDeps = clientDeps ++ {
+		Seq(
+			"org.zalando.stups"                 % "tokens"                  						% "0.9.9",
+			"org.apache.httpcomponents"         % "httpclient"               						% "4.5.2"
+		)
+	}
 }

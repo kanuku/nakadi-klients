@@ -6,9 +6,12 @@ import akka.actor.ActorRef
 import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging.Logger
 
+/**
+ * Class that keeps track of the subscriptions
+ */
 trait SubscriptionHolder {
   import SupervisingActor._
-  def addCursor(key: SubscriptionKey, cursor: Cursor): Unit
+  def addCursor(key: SubscriptionKey, cursor: Option[Cursor]): Unit
   def addSubscription(key: SubscriptionKey, key2: ActorRef, entry: SubscriptionEntry): Unit
   def entry(key: SubscriptionKey): Option[SubscriptionEntry]
   def entryByActor(actor: ActorRef): Option[SubscriptionEntry]
@@ -20,12 +23,12 @@ trait SubscriptionHolder {
 class SubscriptionHolderImpl extends SubscriptionHolder {
   import SupervisingActor._
   private var subscriptions: Map[SubscriptionKey, SubscriptionEntry] = Map() //EventTypeName+Partition
-  private var cursors: Map[SubscriptionKey, Cursor] = Map()
+  private var cursors: Map[SubscriptionKey,  Option[Cursor]] = Map()
   private var actors: Map[String, SubscriptionKey] = Map()
-  private var subscriptionCounter = 0
+  private var subscriptionCounter = 1
   private val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
-  def addCursor(key: SubscriptionKey, cursor: Cursor): Unit = {
+  def addCursor(key: SubscriptionKey, cursor:  Option[Cursor]): Unit = {
     cursors = cursors + ((key, cursor))
   }
 
@@ -63,7 +66,7 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
   }
 
   def cursorByActor(actor: ActorRef): Option[Cursor] = {
-    actors.get(actor.path.toString()).flatMap(x => cursors.get(x))
+    actors.get(actor.path.toString()).flatMap(x => cursors.get(x).flatMap(a => a ))
   }
 
 }

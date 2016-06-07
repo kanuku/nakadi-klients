@@ -159,5 +159,5 @@ public interface Client {
      * @param listener Listener to pass the event to when it is received.
      * @return Void in case of success
      */
-    <T extends Event> void unsubscribe(String eventTypeName,String partition, Listener<T> listener);
+    <T extends Event> void unsubscribe(String eventTypeName,Optional<String> partition, Listener<T> listener);
 }

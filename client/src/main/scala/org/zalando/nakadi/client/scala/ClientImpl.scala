@@ -1,27 +1,34 @@
 package org.zalando.nakadi.client.scala
 
-import scala.{ Left, Right }
+import scala.Left
+import scala.Right
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration.DurationInt
-import org.slf4j.LoggerFactory
-import com.typesafe.scalalogging.Logger
-import akka.actor.Terminated
-import akka.http.scaladsl.model.{ HttpHeader, HttpMethod, HttpMethods, HttpResponse, MediaRange }
-import akka.http.scaladsl.model.MediaTypes.`application/json`
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.{ Accept, RawHeader }
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import scala.concurrent.duration.DurationInt
+
+import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.scala.model._
-import org.zalando.nakadi.client.utils.Uri
-import com.fasterxml.jackson.core.`type`.TypeReference
-import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
 import org.zalando.nakadi.client.handler.SubscriptionHandler
+import org.zalando.nakadi.client.scala.model.Event
+import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
+import org.zalando.nakadi.client.scala.model.EventStreamBatch
+import org.zalando.nakadi.client.scala.model.EventType
+import org.zalando.nakadi.client.scala.model.EventValidationStrategy
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.Metrics
+import org.zalando.nakadi.client.scala.model.Partition
+import org.zalando.nakadi.client.scala.model.PartitionStrategy
+import org.zalando.nakadi.client.utils.Uri
+
+import com.fasterxml.jackson.core.`type`.TypeReference
+import com.typesafe.scalalogging.Logger
+
+import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.unmarshalling.Unmarshal
 
 class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSet: String = "UTF-8") extends Client {
   import Uri._
@@ -115,7 +122,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         Future.successful(None)
     }
 
-  def unsubscribe[T <: Event](eventTypeName: String, partition: String, listener: Listener[T]): Future[Option[ClientError]] = {
+  def unsubscribe[T <: Event](eventTypeName: String, partition: Option[String], listener: Listener[T]): Future[Option[ClientError]] = {
     subscriber.unsubscribe(eventTypeName, partition, listener.id)
     Future.successful(None)
   }

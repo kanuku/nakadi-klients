@@ -55,7 +55,7 @@ object ModelConverter {
   }
   def toJavaCursor(in: Option[Cursor]): Optional[JCursor] = in match {
     case Some(Cursor(partition, offset)) => Optional.of(new JCursor(partition, offset))
-    case None                            => null
+    case None                            => Optional.empty()
   }
 
   

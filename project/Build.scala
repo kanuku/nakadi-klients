@@ -51,7 +51,7 @@ lazy val client = withDefaults(
   lazy val it = withDefaults(
       "nakadi-klients-integration-test",
       project.in(file("it")).dependsOn(api, client)
-    ).settings(libraryDependencies ++= clientDeps)
+    ).settings(libraryDependencies ++= itDeps)
 
   def withDefaults(projectName:String, project:sbt.Project)={
     project.settings(

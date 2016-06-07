@@ -133,8 +133,8 @@ public class ClientImpl implements Client {
     }
 
     @Override
-    public <T extends Event> void unsubscribe(String eventTypeName, String partition, Listener<T> listener) {
-        handler.unsubscribe(eventTypeName,partition, listener);
+    public <T extends Event> void unsubscribe(String eventTypeName, Optional<String> partition, Listener<T> listener) {
+        handler.unsubscribe(eventTypeName, partition, listener);
     }
 
 }
