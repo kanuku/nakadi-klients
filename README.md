@@ -1,6 +1,12 @@
 Nakadi Klients
 ==============
 
+## VERY IMPORTANT NOTE!
+There are 2 versions of Nakadi-klients:
+* `1.**` - Is based on **an old version of nakadi API** which never becase production ready. **This version is discontinued and not supported anymore!!**
+* `>= 2.0.0` - Based on the new Nakadi API, which **is still under development** and not production ready. 
+
+
 Implementation of a non blocking client accessing the low level API of the [Nakadi event bus](https://github.com/zalando/nakadi). Internally, it uses [Akka](http://akka.io/) and [Akka Http](http://doc.akka.io/docs/akka-stream-and-http-experimental/2.0.2/scala/http/) to implement its communication tasks.
 
 Please note that the client provides a Scala as well as a Java interface.
