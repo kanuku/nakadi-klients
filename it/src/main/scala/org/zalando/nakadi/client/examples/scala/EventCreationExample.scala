@@ -68,15 +68,15 @@ object EventCreationExample extends App {
   //You need to import the default Serializer if you don't sepecify your own!
   import JacksonJsonMarshaller._
 
-//  client.createEventType(eventType)
-  Thread.sleep(1000)
+  client.createEventType(eventType)
+  Thread.sleep(3000)
   // 4. Publish the EventType
 
   var counter = 0
   for (n <- 1 to 10000) {
     val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
     var events = ListBuffer[MeetingsEvent]()
-    for (a <- 1 to 100) {
+    for (a <- 1 to 200) {
       counter += 1
       events += MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton" + counter)
     }

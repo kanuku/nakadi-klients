@@ -31,7 +31,7 @@ public class EventListenerExample {
 		Listener<MeetingsEvent> listener = new EventCounterListener("Java-Test");
 
 		StreamParameters params = new StreamParameters(Optional.of(new Cursor(
-				"0", "BEGIN")), Optional.empty(),// batchLimit,
+				"0", "BEGIN")), Optional.of(200),// batchLimit,
 				Optional.empty(),// streamLimit,
 				Optional.empty(),// batchFlushTimeout,
 				Optional.empty(),// streamTimeout,
@@ -41,7 +41,7 @@ public class EventListenerExample {
 
 
 		// String eventTypeName = "Example-unique-hundred-messages-3";
-		String eventTypeName = "Example-unique-million-messages";
+		String eventTypeName = "Example-2000";
 		TypeReference<EventStreamBatch<MeetingsEvent>> typeRef = new TypeReference<EventStreamBatch<MeetingsEvent>>() {
 		};
 
