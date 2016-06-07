@@ -1,8 +1,8 @@
 
 ## VERY IMPORTANT NOTE!
 There are 2 versions of Nakadi-klients:
-* `1.**` - Is based on **an old version of nakadi API** which never becase production ready. **This version is discontinued and not supported anymore!!**
-* `>= 2.0.0` - Based on the new Nakadi API, which **is still under development** and not production ready. 
+* `version: 1.**` - Is based on **an old version of nakadi API** which never becase production ready. **This version is discontinued and not supported anymore!!**
+* `version: 2.**` - Based on the new Nakadi API, which **is still under development** and not production ready. 
 
 Nakadi Klients
 ==============
