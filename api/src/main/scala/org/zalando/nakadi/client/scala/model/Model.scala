@@ -5,7 +5,7 @@ import scala.collection.JavaConversions._
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import com.fasterxml.jackson.core.`type`.TypeReference
 
-// Updated untill commit 57cace
+// Updated untill commit 57cace5
 
  
 

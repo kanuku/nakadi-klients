@@ -68,7 +68,7 @@ object JacksonJsonMarshaller {
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
-    .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+    .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
     .addHandler(new DeserializationProblemHandler() {
       override def handleUnknownProperty(ctxt: DeserializationContext,
                                          jp: JsonParser, deserializer: JsonDeserializer[_],

@@ -11,11 +11,11 @@ import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala.model.Event
+import org.slf4j.LoggerFactory
 
-class EventIntegrationTest(generator: EventGenerator, client: Client) extends WordSpec with Matchers {
-
+class EventIntegrationHelper(generator: EventGenerator, client: Client) extends WordSpec with Matchers {
+  private val log = LoggerFactory.getLogger(this.getClass)
   val actions = ClientActions(client)
-  //fixed Variables that should not be generated twice
   val eventType = generator.eventType
 
   def createEventType(): EventType = {
@@ -27,9 +27,10 @@ class EventIntegrationTest(generator: EventGenerator, client: Client) extends Wo
 
   def publishEvents(nrOfEvents: Int): Seq[Event] = {
     val events = for {
-      a <- 0 to nrOfEvents
+      a <- 1 to nrOfEvents
     } yield generator.newEvent()
     failIfClientError(actions.publish(eventType.name, events))
+    log.info(s"EVENTS published: $events")
     events
   }
 

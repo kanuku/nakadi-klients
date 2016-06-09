@@ -11,41 +11,56 @@ import org.zalando.nakadi.client.scala.model.EventTypeSchema
 import org.zalando.nakadi.client.scala.model.SchemaType
 
 trait EventGenerator {
+
+  //#################################################
+  //            ABSTRACT METHODS 
+  //##################################################
+
+  /**
+   * Should generate an eventTypeName once,
+   * this value should be cached(calculated only once)
+   * because it will be called often.
+   */
+  def eventTypeId: String
+
   /**
    * Should generate an uniqueId that can be used for uniqueness of the Event,
-   * this function MUST HAVE side effects.
    */
   def newId(): String
 
   /**
    * Should generate an new Event.
-   * This function MUST HAVE side effects.
    */
   def newEvent(): Event
-
-  /**
-   * Returns the EventType.
-   */
-  def eventType: EventType = new EventType(name, //
-    owner, //
-    category, //
-    validationStrategies, //
-    enrichmentStrategies, //
-    partitionStrategy, //
-    schemaType, //
-    dataKeyFields, //
-    partitionKeyFields, //
-    statistics)
 
   /**
    * Returns the EventTypeName.
    */
 
-  def name: String
+  def eventTypeName: String
   /**
    * Returns the schema definition of the Event.
    */
   def schemaDefinition: String
+
+  /**
+   * Returns the EventType.
+   */
+  def eventType: EventType =
+    new EventType(eventTypeName, //
+      owner, //
+      category, //
+      validationStrategies, //
+      enrichmentStrategies, //
+      partitionStrategy, //
+      schemaType, //
+      dataKeyFields, //
+      partitionKeyFields, //
+      statistics)
+
+  //####################################################################
+  //            METHODS WITH DEFAULTS
+  //####################################################################
 
   /**
    * Returns the owningApplication value. Default  = "Nakadi-klients(integration-test-suite)"

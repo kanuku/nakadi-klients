@@ -12,7 +12,6 @@ case class ClientActions(client: Client) {
     executeCall(client.publishEvents[T](name, event))
   }
 
-  import JacksonJsonMarshaller._
   def createEventType(event: EventType) = {
     executeCall(client.createEventType(event))
   }
