@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * See GET /registry/validation-strategies for a list of available rules.
  */
 public enum EventValidationStrategy {
-	NONE("None");
+	SCHEMA_VALIDATION("schema-validation");
 	private final String strategy;
 
 	private EventValidationStrategy(String strategy) {

@@ -7,14 +7,27 @@ import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.scala.EventTypesActions
 import org.zalando.nakadi.client.scala.EventActions
 import org.zalando.nakadi.client.scala.ModelFactory
+import org.zalando.nakadi.client.scala.test.factory.EventGenerator
+import scala.util.Random
 
-class EventTypeTest extends WordSpec with Matchers with ModelFactory{
+class EventTypeTest extends WordSpec with Matchers with ModelFactory {
+
+  val generator = new EventGenerator {
+    def uniqueEventId: String = Random.alphanumeric
+    def newEvent(): Event = new MySimpleEvent(uniqueEventId)
+    def eventType: EventType =     new EventType(name, //
+      owningApplication, //
+      EventTypeCategory.UNDEFINED, None, Nil, //
+      Some(PartitionStrategy.RANDOM), Option(eventTypeSchema), //
+      None, Option(paritionKeyFields), None)
+  }
+
   import ClientFactory._
-import JacksonJsonMarshaller._
+  import JacksonJsonMarshaller._
   val eventAction = new EventActions(client)
   val eventTypeAction = new EventTypesActions(client)
   "POST/PUT/GET/DELETE single EventType " in {
-    val eventTypeName="test-client-integration-event-1936085527-148383828851369665"
+    val eventTypeName = "test-client-integration-event-1936085527-148383828851369665"
     //Create event 
     val eventType = createEventType(eventTypeName)
     val creationResult = eventTypeAction.create(eventType)
@@ -23,12 +36,12 @@ import JacksonJsonMarshaller._
     //Check the created EventType
     checkEventTypeExists(eventType)
 
-    case class MyEventExample(orderNumber: String)extends Event
+    case class MyEventExample(orderNumber: String) extends Event
     implicit def problemTR: TypeReference[MyEventExample] = new TypeReference[MyEventExample] {}
     val events = for {
       a <- 0 to 12
-    } yield MyEventExample("order-"+a)
-//    eventAction.create("test-client-integration-event-1936085527-148383828851369665",  List(MyEventExample("test-1")))
+    } yield MyEventExample("order-" + a)
+    //    eventAction.create("test-client-integration-event-1936085527-148383828851369665",  List(MyEventExample("test-1")))
     eventAction.publish("test-client-integration-event-1936085527-148383828851369665", events)
 
     //TODO: Enable this when PUT is supported.
@@ -49,8 +62,8 @@ import JacksonJsonMarshaller._
   }
 
   "POST/GET/DELETE multiple EventTypes " in {
-val eventTypeName1="test-client-integration-event-1936085527-1"
-val eventTypeName2="test-client-integration-event-1936085527-2"
+    val eventTypeName1 = "test-client-integration-event-1936085527-1"
+    val eventTypeName2 = "test-client-integration-event-1936085527-2"
     //Create 2 EventTypes
     val eventType1 = createEventType(eventTypeName1)
     val eventType2 = createEventType(eventTypeName2)
@@ -85,7 +98,7 @@ val eventTypeName2="test-client-integration-event-1936085527-2"
 
   //TODO: Enable when implemented
   "UpdateEventTypes" in {
-    val eventTypeName1="test-client-integration-event-1936085527-3"
+    val eventTypeName1 = "test-client-integration-event-1936085527-3"
     //Create 2 EventTypes
     val eventType = createEventType(eventTypeName1)
 

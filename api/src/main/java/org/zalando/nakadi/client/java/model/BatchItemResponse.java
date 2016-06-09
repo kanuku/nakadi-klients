@@ -3,6 +3,9 @@ package org.zalando.nakadi.client.java.model;
 import org.zalando.nakadi.client.java.enumerator.BatchItemPublishingStatus;
 import org.zalando.nakadi.client.java.enumerator.BatchItemStep;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * A status corresponding to one individual Event's publishing attempt.
  *
@@ -41,9 +44,12 @@ public class BatchItemResponse {
 	 *            Items that are not SUBMITTED should have a description.
 	 *
 	 */
-	public BatchItemResponse(String eid,
-			BatchItemPublishingStatus publishingStatus, BatchItemStep step,
-			String detail) {
+	@JsonCreator
+	public BatchItemResponse(
+			@JsonProperty("eid") String eid,
+			@JsonProperty("publishing_status") BatchItemPublishingStatus publishingStatus,
+			@JsonProperty("step") BatchItemStep step,
+			@JsonProperty("detail") String detail) {
 		this.eid = eid;
 		this.publishingStatus = publishingStatus;
 		this.step = step;

@@ -1,6 +1,7 @@
 package org.zalando.nakadi.client.java.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Partition information. Can be helpful when trying to start a stream using an
@@ -33,7 +34,10 @@ public class Partition {
      *            oldest available event in the partition.
      */
     @JsonCreator
-    public Partition(String partition, String oldestAvailableOffset, String newestAvailableOffset) {
+    public Partition(
+    		@JsonProperty("partition") String partition, 
+    		@JsonProperty("oldest_available_offset")String oldestAvailableOffset, 
+    		@JsonProperty("newest_available_offset")String newestAvailableOffset) {
         this.partition = partition;
         this.oldestAvailableOffset = oldestAvailableOffset;
         this.newestAvailableOffset = newestAvailableOffset;

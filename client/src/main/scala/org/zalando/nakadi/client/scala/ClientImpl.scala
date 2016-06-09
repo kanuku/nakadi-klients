@@ -159,14 +159,15 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
             Future.successful(Left(ClientError(msg, Some(status.intValue()))))
         }
       case HttpResponse(StatusCodes.NotFound, headers, entity, protocol) =>
-        Future.successful(Right(None))
+        val msg = "Not found!"
+        Future.successful(Left(ClientError(msg, Some(StatusCodes.NotFound.intValue))))
       case HttpResponse(status, headers, entity, protocol) if (status.isRedirection()) =>
         val msg = "Not implemented: http-status (" + status.intValue() + "}) and reason:" + status.reason()
         logger.info(msg)
         Future.successful(Left(ClientError(msg, Some(status.intValue()))))
-      case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
+      case HttpResponse(status, headers, entity, protocol) =>
         Unmarshal(entity).to[String].map { body =>
-          val msg = "An error occurred, http-status: %s (%s) Message: %s".format(status.intValue(), status.reason(), body)
+          val msg = "Service return http-status: %s (%s) Message: %s".format(status.intValue(), status.reason(), body)
           logger.warn(msg)
           Left(ClientError(msg, Some(status.intValue())))
         }
@@ -176,18 +177,22 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   private[client] def mapToOption[T](response: HttpResponse): Future[Option[ClientError]] = {
     response.status match {
       case status if (status.isSuccess()) =>
-        logger.debug("Success. http-status: %s".format(status.intValue()))
+        logger.info(s"Success. http-status: ${status.intValue()}")
+        response.entity.toStrict(10.second).map { body =>
+          logger.debug("Success - http-status: %s, body:[%s]".format(status.intValue().toString(), body.data.decodeString(charSet)))
+        }
         Future.successful(None)
       case status if (status.isRedirection()) =>
-        val msg = "Redirection - http-status: %s, reason[%s]".format(status.intValue().toString(), status.reason())
+        val msg = s"Redirection - http-status: ${status.intValue()}, reason[${status.reason()}]"
         logger.info(msg)
         response.entity.toStrict(10.second).map { body =>
-          logger.debug("Redirection - http-status: %s, reason[%s], body:[%s]".format(status.intValue().toString(), status.reason(), body.data.decodeString(charSet)))
+          logger.debug(s"Redirection - http-status: ${status.intValue().toString()}, reason[${status.reason()}], body:[${body.data.decodeString(charSet)}]")
         }
         Future.successful(Option(ClientError(msg, Some(status.intValue()))))
       case status if (status.isFailure()) =>
+        logger.warn(s"Failure. http-status: ${status.intValue()}")
         response.entity.toStrict(10.second).map { body =>
-          val msg = "Failure - http-status: %s, reason[%s], body:[%s]".format(status.intValue().toString(), status.reason(), body.data.decodeString(charSet))
+          val msg = s"Failure - http-status: ${status.intValue()}, reason[${status.reason()}], body:[${body.data.decodeString(charSet)}]"
           logger.warn(msg)
           Option(ClientError(msg, Some(status.intValue())))
         }

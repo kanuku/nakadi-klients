@@ -10,14 +10,18 @@ object TestScalaEntity {
   val partition = new Partition("0", "132", "4423")
   val cursor = new Cursor("0", "120")
   val eventTypeSchema = new EventTypeSchema(SchemaType.JSON, "schema")
-  val eventValidationStrategy = EventValidationStrategy.NONE
+  val eventValidationStrategy = EventValidationStrategy.SCHEMA_VALIDATION
   val partitionResolutionStrategy = PartitionStrategy.HASH
   val eventEnrichmentStrategy = EventEnrichmentStrategy.METADATA
 
   //Complex objects
-  val eventTypeStatistics = new EventTypeStatistics(Option(9281002), Option(19283), Option(21), Option(312))
-  val eventType = new EventType("name", "owner", EventTypeCategory.BUSINESS, Option(List(EventValidationStrategy.NONE)), List(EventEnrichmentStrategy.METADATA), Some(partitionResolutionStrategy), Option(eventTypeSchema), Option(List("dataKeyFields")), Option(List("partitioningKeyFields")), Option(eventTypeStatistics))
-  val eventMetadata = new EventMetadata("eid", Option(eventType), "occurredAt", Option("receivedAt"), List("parentEids"), Option("flowId"), Option("partition"))
+  val eventTypeStatistics = new EventTypeStatistics(9281002, 19283, 21, 312)
+  val eventType = new EventType("name", "owner", 
+      EventTypeCategory.BUSINESS, List(EventValidationStrategy.SCHEMA_VALIDATION)
+      , List(EventEnrichmentStrategy.METADATA), Some(partitionResolutionStrategy), 
+      eventTypeSchema, 
+      List("dataKeyFields"), List("partitioningKeyFields"), Option(eventTypeStatistics))
+  val eventMetadata = new EventMetadata("eid", Option(eventType.name), "occurredAt", Option("receivedAt"), List("parentEids"), Option("flowId"), Option("partition"))
   case class MyEvent(name: String, metadata: Option[EventMetadata]) extends Event
   val myEvent = new MyEvent("test", Some(eventMetadata))
   val eventStreamBatch = new EventStreamBatch[MyEvent](cursor, Option(List(myEvent)))

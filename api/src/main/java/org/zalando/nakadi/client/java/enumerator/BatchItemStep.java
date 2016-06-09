@@ -13,14 +13,14 @@ import scala.Option;
  * only in the case of aborting the publishing during the validation of another (previous) Event. <br>
  * - VALIDATING, ENRICHING, PARTITIONING and PUBLISHING indicate all the corresponding steps of the
  * publishing process. <br> <br>
- * Values = NONE("NONE"), VALIDATING("VALIDATING"), ENRICHING("ENRICHING"), PARTITIONING("PARTITIONING"), PUBLISHING("PUBLISHING")
+ * Values = NONE("none"), VALIDATING("validating"), ENRICHING("enriching"), PARTITIONING("partitioning"), PUBLISHING("publishing")
  */
 public enum BatchItemStep {
-	NONE("NONE"), //
-	VALIDATING("VALIDATING"), //
-	ENRICHING("ENRICHING"), //
-	PARTITIONING("PARTITIONING"), //
-	PUBLISHING("PUBLISHING");
+	NONE("none"), //
+	VALIDATING("validating"), //
+	ENRICHING("enriching"), //
+	PARTITIONING("partitioning"), //
+	PUBLISHING("publishing");
 	private final String step;
 
 	private BatchItemStep(String step) {

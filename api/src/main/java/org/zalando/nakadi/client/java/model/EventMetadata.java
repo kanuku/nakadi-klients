@@ -2,6 +2,9 @@ package org.zalando.nakadi.client.java.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Metadata for this Event. Contains commons fields for both Business and
  * DataChange Events. Most are enriched by Nakadi upon reception, but they in
@@ -9,7 +12,7 @@ import java.util.List;
  */
 public class EventMetadata {
     private final String eid;
-    private final EventType eventType;
+    private final String eventTypeName;
     private final String occurredAt;
     private final String receivedAt;
     private final List<String> parentEids;
@@ -27,7 +30,7 @@ public class EventMetadata {
      *            and this SHOULD be guaranteed to be unique from the
      *            perspective of the producer. Consumers MIGHT use this value to
      *            assert uniqueness of reception of the Event.
-     * @param eventType
+     * @param eventTypeName
      *            The EventType of this Event. This is enriched by Nakadi on
      *            reception of the Event based on the endpoint where the
      *            Producer sent the Event to. If provided MUST match the
@@ -51,11 +54,18 @@ public class EventMetadata {
      *            logic. Should be mainly enriched by the Consumer.
      *
      */
-    public EventMetadata(String eid, EventType eventType, String occurredAt, String receivedAt,
-            List<String> parentEids, String flowId, String partition) {
+    @JsonCreator
+    public EventMetadata(
+    		@JsonProperty("eid") String eid, 
+    		@JsonProperty("event_type")String eventTypeName, 
+    		@JsonProperty("occurred_at")String occurredAt, 
+    		@JsonProperty("received_at")String receivedAt,
+    		@JsonProperty("parent_eids")List<String> parentEids,
+    		@JsonProperty("flow_id")String flowId,
+    		@JsonProperty("partition")String partition) {
         super();
         this.eid = eid;
-        this.eventType = eventType;
+        this.eventTypeName = eventTypeName;
         this.occurredAt = occurredAt;
         this.receivedAt = receivedAt;
         this.parentEids = parentEids;
@@ -67,8 +77,8 @@ public class EventMetadata {
         return eid;
     }
 
-    public EventType getEventType() {
-        return eventType;
+    public String getEventTypeName() {
+        return eventTypeName;
     }
 
     public String getOccurredAt() {

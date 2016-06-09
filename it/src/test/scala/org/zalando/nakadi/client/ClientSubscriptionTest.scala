@@ -14,8 +14,6 @@ import org.zalando.nakadi.client.scala.ClientError
 class ClientSubscriptionTest extends WordSpec with Matchers with ModelFactory {
   import ClientFactory._
   import JacksonJsonMarshaller._
-  case class MyEventExample(orderNumber: String) extends Event
-  implicit def myEventExampleTR: TypeReference[EventStreamBatch[MyEventExample]] = new TypeReference[EventStreamBatch[MyEventExample]] {}
   val eventAction = new EventActions(client)
   val eventTypeAction = new EventTypesActions(client)
   "POST/PUT/GET/DELETE single EventType " in {
@@ -50,7 +48,7 @@ class ClientSubscriptionTest extends WordSpec with Matchers with ModelFactory {
       a <- 0 to 4005
     } yield MyEventExample("order-" + a)
     //    eventAction.create("test-client-integration-event-1936085527-148383828851369665",  List(MyEventExample("test-1")))
-    eventAction.create("test-client-integration-event-1936085527-148383828851369665", events)
+    eventAction.publish("test-client-integration-event-1936085527-148383828851369665", events)
   }
 
 }

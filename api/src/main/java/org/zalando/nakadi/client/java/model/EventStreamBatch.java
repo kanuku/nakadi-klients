@@ -43,11 +43,8 @@ public class EventStreamBatch<T extends Event> {
 
     @JsonCreator
     public EventStreamBatch(
-            @JsonProperty("cursor")
-            Cursor cursor,
-            
-            @JsonProperty("events")
-            List<T> events
+            @JsonProperty("cursor") Cursor cursor,
+            @JsonProperty("events") List<T> events
             ) {
         super();
         this.cursor = cursor;

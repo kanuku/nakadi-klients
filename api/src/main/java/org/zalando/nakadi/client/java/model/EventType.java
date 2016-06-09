@@ -109,14 +109,13 @@ public class EventType {
 			@JsonProperty("name") String name,
 			@JsonProperty("owning_application") String owningApplication,
 			@JsonProperty("category") EventTypeCategory category,
-
 			@JsonProperty("validation_strategies") List<EventValidationStrategy> validationStrategies,
 			@JsonProperty("enrichment_strategies") List<EventEnrichmentStrategy> enrichmentStrategies,
 			@JsonProperty("partition_strategy") PartitionStrategy partitionStrategy,
 			@JsonProperty("schema") EventTypeSchema schema,
 			@JsonProperty("data_key_fields") List<String> dataKeyFields,
 			@JsonProperty("partition_key_fields") List<String> partitionKeyFields,
-			@JsonProperty("statistics") EventTypeStatistics statistics) {
+			@JsonProperty("default_statistics") EventTypeStatistics statistics) {
 		this.name = name;
 		this.owningApplication = owningApplication;
 		this.category = category;

@@ -13,9 +13,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * <br>
  */
 public enum BatchItemPublishingStatus {
-	SUBMITTED("SUBMITTED"), //
-	FAILED("FAILED"), //
-	ABORTED("ABORTED");
+	SUBMITTED("submitted"), //
+	FAILED("failed"), //
+	ABORTED("aborted");
 	private final String status;
 
 	private BatchItemPublishingStatus(String status) {
