@@ -14,7 +14,7 @@ import JacksonJsonMarshaller._
   val eventAction = new EventActions(client)
   val eventTypeAction = new EventTypesActions(client)
   "POST/PUT/GET/DELETE single EventType " in {
-    val eventTypeName="test-client-integration-event-1936085527-148383828851369665"
+    val eventTypeName="test-client-integration-event-"
     //Create event 
     val eventType = createEventType(eventTypeName)
     val creationResult = eventTypeAction.create(eventType)
@@ -29,7 +29,7 @@ import JacksonJsonMarshaller._
       a <- 0 to 12
     } yield MyEventExample("order-"+a)
 //    eventAction.create("test-client-integration-event-1936085527-148383828851369665",  List(MyEventExample("test-1")))
-    eventAction.publish("test-client-integration-event-1936085527-148383828851369665", events)
+    eventAction.publish(eventTypeName, events)
 
     //TODO: Enable this when PUT is supported.
     //    Update the event
