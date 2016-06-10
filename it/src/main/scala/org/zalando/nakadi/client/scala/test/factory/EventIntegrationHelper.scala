@@ -24,6 +24,8 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client) extends 
   }
 
   def deleteEventType() = failIfClientError(actions.deleteEventType(eventType.name))
+  
+  
 
   def publishEvents(nrOfEvents: Int): Seq[Event] = {
     val events = for {

@@ -17,7 +17,6 @@ class SimpleEventTest extends WordSpec with Matchers {
   import MySimpleEvent._
 
   val client = ClientFactory.getScalaClient()
-  
   val eventGenerator = new DefaultMySimpleEventGenerator() {
     def eventTypeId = "SimpleEventIntegrationTest"
   }
@@ -33,7 +32,6 @@ class SimpleEventTest extends WordSpec with Matchers {
     val events = it.publishEvents(nrOfEvents)
 
     client.subscribe(eventGenerator.eventTypeName, StreamParameters(cursor = cursor), listener)
-
     val receivedEvents = listener.waitToReceive(nrOfEvents)
 
     receivedEvents.size shouldBe events.size
