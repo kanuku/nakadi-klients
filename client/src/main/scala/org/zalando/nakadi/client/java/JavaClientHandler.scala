@@ -36,6 +36,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
 import org.zalando.nakadi.client.handler.SubscriptionHandler
 import org.zalando.nakadi.client.utils.GeneralConversions
+import akka.http.scaladsl.model.StatusCodes
 
 /**
  * Handler for mapping(Java<->Scala) and handling http calls and listener subscriptions for the Java API.
@@ -65,7 +66,8 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
         case Success(result) => result.map(Optional.of(_))
         case Failure(error)  => throw new RuntimeException(error.getMessage)
       }
-
+    case HttpResponse(StatusCodes.NotFound, headers, entity, protocol) =>
+      Future.successful(Optional.empty())
     case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
       throw new RuntimeException(status.reason())
 
