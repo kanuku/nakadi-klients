@@ -293,6 +293,6 @@ class BatchItemStepType extends TypeReference[BatchItemStep.type]
 
 case object SchemaType extends Enumeration {
   type SchemaType = Value
-  val JSON = Value("JSON_SCHEMA")
+  val JSON = Value("json_schema")
 }
 class SchemaTypeType extends TypeReference[SchemaType.type]

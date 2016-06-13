@@ -27,7 +27,6 @@ case class EventActions(client: Client)extends TestUtil {
 }
 
 case class EventTypesActions(client: Client)extends TestUtil {
-  import JacksonJsonMarshaller._
   def create(event: EventType) = {
     executeCall(client.createEventType(event))
   }

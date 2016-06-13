@@ -51,19 +51,19 @@ object EventCreationExample extends App {
   val category = EventTypeCategory.UNDEFINED // We want just to pass data without through Nakadi, simple schema-validation is enough!
   val validationStrategies = Nil // Validation strategies are not defined yet!
   val enrichmentStrategies = Nil
-  val partitionStrategy = PartitionStrategy.RANDOM
+  val partitionStrategy = Some(PartitionStrategy.RANDOM)
   val dataKeyFields = Nil
-  def paritionKeyFields() = List("date", "topic")
+  val paritionKeyFields = List("date", "topic")
 
   val eventType = new EventType(eventTypeName,
     owner,
     category,
     validationStrategies,
     enrichmentStrategies,
-    Some(partitionStrategy),
+    partitionStrategy,
     eventTypeSchema,
     dataKeyFields,
-    paritionKeyFields(),
+    paritionKeyFields,
     None)
 
   //You need to import the default Serializer if you don't sepecify your own!

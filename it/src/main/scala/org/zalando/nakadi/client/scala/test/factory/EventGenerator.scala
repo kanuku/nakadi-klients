@@ -79,7 +79,7 @@ trait EventGenerator {
   /**
    * Returns the enrichmentStrategies value. Default = Nil
    */
-  def enrichmentStrategies: Seq[EventEnrichmentStrategy.Value] = Nil
+  def enrichmentStrategies: Seq[EventEnrichmentStrategy.Value] =Nil
 
   /**
    * Returns the partitionStrategy value. Default = Random
@@ -97,7 +97,7 @@ trait EventGenerator {
   def dataKeyFields: Seq[String] = Nil
 
   /**
-   * Returns the partitionKeyFields value. Default = Nil
+   * Returns the partitionKeyFields value. Default =Nil
    */
   def partitionKeyFields: Seq[String] = Nil
 
@@ -106,4 +106,6 @@ trait EventGenerator {
    */
   def statistics: Option[EventTypeStatistics] = None
 
+  
+  
 }

@@ -12,6 +12,9 @@ import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala.model.Event
 import org.slf4j.LoggerFactory
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.Future
 
 class EventIntegrationHelper(generator: EventGenerator, client: Client) extends WordSpec with Matchers {
   private val log = LoggerFactory.getLogger(this.getClass)
@@ -19,13 +22,18 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client) extends 
   val eventType = generator.eventType
 
   def createEventType(): EventType = {
-    failIfClientError(actions.createEventType(eventType))
+    failIfClientError(executeCall(client.createEventType(eventType)))
     eventType
   }
 
+  def getEventType(eventTypeName: String = eventType.name): Option[EventType] = executeCall(client.getEventType(eventType.name)) match {
+    case Left(clientError) =>
+      failIfClientError(Option(clientError))
+      None
+    case Right(result) => result
+  }
+
   def deleteEventType() = failIfClientError(actions.deleteEventType(eventType.name))
-  
-  
 
   def publishEvents(nrOfEvents: Int): Seq[Event] = {
     val events = for {
@@ -41,6 +49,10 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client) extends 
     case Some(clientError) =>
       fail("Failed with clientError " + clientError)
     case _ =>
+  }
+
+  def executeCall[T](call: => Future[T]): T = {
+    Await.result(call, 10.second)
   }
 
 }

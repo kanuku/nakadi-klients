@@ -134,15 +134,16 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   private def logFutureEither[A, T](future: Future[Either[ClientError, T]]): Future[Either[ClientError, T]] = {
     future recover {
       case e: Throwable =>
-        logger.error("A unexpected error occured:", e.getMessage)
-        Left(ClientError("Error: " + e.getMessage, None))
+        val msg = s"A unexpected error occured: ${e.getMessage}"
+        logger.error(msg)
+        Left(ClientError(msg, None))
     }
   }
   private def logFutureOption(future: Future[Option[ClientError]]): Future[Option[ClientError]] = {
     future recover {
       case e: Throwable =>
-        logger.error("A unexpected error occured", e)
-        Option(ClientError("Error: " + e.getMessage, None))
+        val msg = s"A unexpected error occured: ${e.getMessage}"
+        Option(ClientError(msg, None))
     }
   }
 
@@ -151,7 +152,11 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
     response match {
       case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
         try {
-          Unmarshal(entity).to[String].map(body => Right(Some(deserializer.from(body))))
+          Unmarshal(entity).to[String].map {
+            body =>
+              logger.debug(s"Payload: $body")
+              Right(Some(deserializer.from(body)))
+          }
         } catch {
           case e: Throwable =>
             val msg = "Failed to deserialise the content with error: %s".format(e.getMessage)
@@ -159,8 +164,8 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
             Future.successful(Left(ClientError(msg, Some(status.intValue()))))
         }
       case HttpResponse(StatusCodes.NotFound, headers, entity, protocol) =>
-        val msg = "Not found!"
-        Future.successful(Left(ClientError(msg, Some(StatusCodes.NotFound.intValue))))
+        logger.info(s"Received: httpStatus - Not found ${StatusCodes.NotFound}")
+        Future.successful(Right(None))
       case HttpResponse(status, headers, entity, protocol) if (status.isRedirection()) =>
         val msg = "Not implemented: http-status (" + status.intValue() + "}) and reason:" + status.reason()
         logger.info(msg)

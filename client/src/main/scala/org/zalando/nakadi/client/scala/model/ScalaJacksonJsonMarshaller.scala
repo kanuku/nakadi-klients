@@ -17,6 +17,10 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.typesafe.scalalogging.Logger
+import com.fasterxml.jackson.module.scala.IteratorModule
+import com.fasterxml.jackson.module.scala.OptionModule
+import com.fasterxml.jackson.module.scala.SeqModule
+import com.fasterxml.jackson.module.scala.MapModule
 
 object JacksonJsonMarshaller {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
@@ -63,9 +67,19 @@ object JacksonJsonMarshaller {
     def from(from: String): T = defaultObjectMapper.readValue[T](from, expectedType)
   }
 
-  lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper() //
+  
+  lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper(){
+    private val module = new OptionModule
+    with MapModule
+    with SeqModule
+    with IteratorModule
+
+  this.registerModule(module)
+
+  } //
     .registerModule(new DefaultScalaModule)
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    .configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true)
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
     .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
