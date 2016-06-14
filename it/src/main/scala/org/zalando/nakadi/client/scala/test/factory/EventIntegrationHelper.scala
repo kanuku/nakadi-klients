@@ -21,37 +21,49 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client) extends 
   val actions = ClientActions(client)
   val eventType = generator.eventType
 
-  def createEventType(): EventType = {
-    failIfClientError(executeCall(client.createEventType(eventType)))
-    eventType
+  def createEventType(): Boolean = {
+    wasItsuccessfull(executeCall(client.createEventType(eventType)))
   }
 
-  def getEventType(eventTypeName: String = eventType.name): Option[EventType] = executeCall(client.getEventType(eventType.name)) match {
+  def getEventType(eventTypeName: String = eventType.name): Option[EventType] = executeCall(client.getEventType(eventTypeName)) match {
     case Left(clientError) =>
-      failIfClientError(Option(clientError))
+      wasItsuccessfull(Option(clientError))
       None
     case Right(result) => result
   }
 
-  def deleteEventType() = failIfClientError(actions.deleteEventType(eventType.name))
+  def deleteEventType() = wasItsuccessfull(actions.deleteEventType(eventType.name))
 
   def publishEvents(nrOfEvents: Int): Seq[Event] = {
     val events = for {
       a <- 1 to nrOfEvents
     } yield generator.newEvent()
-    failIfClientError(actions.publish(eventType.name, events))
+    wasItsuccessfull(actions.publish(eventType.name, events))
     log.info(s"EVENTS published: $events")
     events
   }
 
-  //Private methods
-  private def failIfClientError(in: Option[ClientError]) = in match {
-    case Some(clientError) =>
-      fail("Failed with clientError " + clientError)
-    case _ =>
+  def updateEventType(eType: EventType): Boolean = {
+    wasItsuccessfull(executeCall(client.updateEventType(eventType.name, eType)))
   }
 
-  def executeCall[T](call: => Future[T]): T = {
+  def eventTypeExist(eventTypeName: String = eventType.name): Boolean = {
+    getEventType(eventTypeName) match {
+      case None    => false
+      case Some(_) => true
+    }
+  }
+
+  //Private methods
+  private def wasItsuccessfull(in: Option[ClientError]): Boolean = in match {
+    case Some(clientError) =>
+      log.error("ClientError: {}", clientError)
+      false
+    case None =>
+      true
+  }
+
+  private def executeCall[T](call: => Future[T]): T = {
     Await.result(call, 10.second)
   }
 

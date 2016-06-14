@@ -86,7 +86,7 @@ class JavaClientTest extends WordSpec with Matchers with BeforeAndAfter with Moc
 
       when(subscriptionHandler.subscribe(anyString, anyString, any[Option[SCursor]], any[EventHandler])).thenReturn(None)
 
-      client.subscribe[Event](eventTypeName, parameters, listener, deserialzer) shouldBe None
+      client.subscribe[Event](eventTypeName, parameters, listener, deserialzer) shouldBe Optional.empty()
 
       val eventTypeNameCap = ArgumentCaptor.forClass(classOf[String])
       val endpointCap = ArgumentCaptor.forClass(classOf[String])

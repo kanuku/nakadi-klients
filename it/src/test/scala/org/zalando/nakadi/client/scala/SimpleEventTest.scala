@@ -4,9 +4,11 @@ import org.scalatest.Matchers
 import org.scalatest.WordSpec
 import org.zalando.nakadi.client.scala.model.Cursor
 import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.PartitionStrategyType
 import org.zalando.nakadi.client.scala.test.factory.EventIntegrationHelper
 import org.zalando.nakadi.client.scala.test.factory.events.MySimpleEvent
 import org.zalando.nakadi.client.scala.test.factory.events.SimpleEventListener
+import org.zalando.nakadi.client.scala.model.PartitionStrategy
 
 class SimpleEventTest extends WordSpec with Matchers {
 
@@ -50,9 +52,13 @@ class SimpleEventTest extends WordSpec with Matchers {
       def eventTypeId = s"SimpleEventIntegrationTest-Validate-Created-Events-$nrOfEvents"
     }
     val it = new EventIntegrationHelper(eventGenerator, client)
-    it.createEventType()
+
+    it.createEventType() shouldBe true
+
     val optionalOfCreatedEventType = it.getEventType()
+
     optionalOfCreatedEventType.isDefined shouldBe true
+
     val Some(eventType) = optionalOfCreatedEventType
     eventType.category shouldBe it.eventType.category
     eventType.dataKeyFields shouldBe null
@@ -64,6 +70,45 @@ class SimpleEventTest extends WordSpec with Matchers {
     eventType.validationStrategies shouldBe null
     eventType.enrichmentStrategies shouldBe it.eventType.enrichmentStrategies
     eventType.partitionKeyFields shouldBe it.eventType.partitionKeyFields
+  }
+
+  "Update existing EventType" in {
+
+    val eventGenerator = new DefaultMySimpleEventGenerator() {
+      def eventTypeId = s"SimpleEventIntegrationTest-Update-Existing-EventType"
+    }
+    val it = new EventIntegrationHelper(eventGenerator, client)
+    it.createEventType() shouldBe true
+
+    //Generator with changes only in the schema
+    val schema = """{ "properties": { "order_number": { "type": "string" }, "id": { "type": "string" } } }"""
+
+    val eventType2Update = new DefaultMySimpleEventGenerator() {
+      def eventTypeId = s"SimpleEventIntegrationTest-Update-Existing-EventType"
+//      override def schemaDefinition: String = schema
+            override def dataKeyFields = List("order_number") //Does not work
+//      override def partitionKeyFields = List("order_number")
+//      override def partitionStrategy = Some(PartitionStrategy.HASH)
+    }.eventType
+
+    /*
+    it.updateEventType(eventType2Update) shouldBe true
+    val optionalOfCreatedEventType = it.getEventType()
+
+    optionalOfCreatedEventType.isDefined shouldBe true
+
+    val Some(eventType) = optionalOfCreatedEventType
+    eventType.category shouldBe eventType2Update.category
+    eventType.dataKeyFields shouldBe null //TODO this is not correct!!
+    eventType.name shouldBe it.eventType.name
+    eventType.owningApplication shouldBe eventType2Update.owningApplication
+    eventType.partitionStrategy shouldBe eventType2Update.partitionStrategy
+    eventType.schema shouldBe schema
+    eventType.statistics shouldBe eventType2Update.statistics
+    eventType.validationStrategies shouldBe null
+    eventType.enrichmentStrategies shouldBe eventType2Update.enrichmentStrategies
+    eventType.partitionKeyFields shouldBe eventType2Update.partitionKeyFields
+    */
   }
 
 }
