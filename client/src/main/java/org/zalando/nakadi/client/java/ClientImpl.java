@@ -122,14 +122,14 @@ public class ClientImpl implements Client {
     }
 
     @Override
-    public <T extends Event> void subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<EventStreamBatch<T>> deserializer) {
-        handler.subscribe(eventTypeName,Uri.getEventStreamingUri(eventTypeName), parameters, listener, deserializer);
+    public <T extends Event> Optional<ClientError> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<EventStreamBatch<T>> deserializer) {
+      return  handler.subscribe(eventTypeName,Uri.getEventStreamingUri(eventTypeName), parameters, listener, deserializer);
     }
 
     @Override
-    public <T extends Event> void subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener,
+    public <T extends Event>  Optional<ClientError>  subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener,
             TypeReference<EventStreamBatch<T>> typeRef) {
-        handler.subscribe(eventTypeName,Uri.getEventStreamingUri(eventTypeName), parameters, listener, SerializationUtils.withCustomDeserializer(typeRef));
+        return handler.subscribe(eventTypeName,Uri.getEventStreamingUri(eventTypeName), parameters, listener, SerializationUtils.withCustomDeserializer(typeRef));
     }
 
     @Override

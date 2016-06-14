@@ -46,8 +46,8 @@ trait JavaClientHandler {
   def get[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
   def get[T](endpoint: String, headers: Seq[HttpHeader], des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
-  def subscribe[T <: JEvent](eventTypeName: String, endpoint: String, parameters: JStreamParameters, listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]])
-  def unsubscribe[T <: JEvent](eventTypeName: String, partition:  Optional[String], listener: JListener[T])
+  def subscribe[T <: JEvent](eventTypeName: String, endpoint: String, parameters: JStreamParameters, listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]]): Optional[ClientError]
+  def unsubscribe[T <: JEvent](eventTypeName: String, partition: Optional[String], listener: JListener[T])
 
 }
 
@@ -110,16 +110,14 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
       }
   }
 
-  def subscribe[T <: JEvent](eventTypeName: String, endpoint: String, parameters: JStreamParameters, listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]]) =
-    FutureConversions.fromFuture2FutureVoid {
-      (Future {
-        import ModelConverter._
-        val params: Option[ScalaStreamParameters] = toScalaStreamParameters(parameters)
-        val eventHandler: EventHandler = new EventHandlerImpl[T, EmptyScalaEvent](Left((des, listener)))
-        val finalUrl = withUrl(endpoint, params)
-        subscriber.subscribe(eventTypeName, endpoint, getCursor(params), eventHandler)
-      })
-    }
+  def subscribe[T <: JEvent](eventTypeName: String, endpoint: String, parameters: JStreamParameters, listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]]) = {
+    import ModelConverter._
+    val params: Option[ScalaStreamParameters] = toScalaStreamParameters(parameters)
+    val eventHandler: EventHandler = new EventHandlerImpl[T, EmptyScalaEvent](Left((des, listener)))
+    val finalUrl = withUrl(endpoint, params)
+    val res = subscriber.subscribe(eventTypeName, finalUrl, getCursor(params), eventHandler)
+    toJavaClientError(res)
+  }
 
   def unsubscribe[T <: JEvent](eventTypeName: String, partition: Optional[String], listener: JListener[T]) = {
     subscriber.unsubscribe(eventTypeName, toOption(partition), listener.getId)

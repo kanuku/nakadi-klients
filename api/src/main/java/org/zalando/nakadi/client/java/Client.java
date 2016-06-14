@@ -141,17 +141,17 @@ public interface Client {
      * @param eventTypeName The unique name (id) of the EventType target 
      * @param parameters Parameters for customizing the details of the streaming.
      * @param listener Listener to pass the event to when it is received.
-     * @return Void in case of success
+     * @return ClientError in case of failure and Empty Optional in case of success.
      */
-    <T extends Event> void subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<EventStreamBatch<T>> deserializer);
+    <T extends Event> Optional<ClientError> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<EventStreamBatch<T>> deserializer);
     /**
      * Registers the subscription of a listener to start streaming events from a partition in non-blocking fashion.
      * @param eventTypeName The unique name (id) of the EventType target 
      * @param parameters Parameters for customizing the details of the streaming.
      * @param typeRef TypeReference for unmarshalling with the Jackson ObjectMapper.
-     * @return Void in case of success
+     * @return ClientError in case of failure and Empty Optional in case of success.
      */
-    <T extends Event> void subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, TypeReference<EventStreamBatch<T>> typeRef);
+    <T extends Event> Optional<ClientError> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, TypeReference<EventStreamBatch<T>> typeRef);
     /**
      * Removes the subscription of a listener, to stop streaming events from a partition.
      * @param eventTypeName The unique name (id) of the EventType target 

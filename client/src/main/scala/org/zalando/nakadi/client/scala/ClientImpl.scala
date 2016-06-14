@@ -98,20 +98,20 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
     None
   }
 
-  def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T], typeRef: TypeReference[EventStreamBatch[T]]): Future[Option[ClientError]] = {
+  def subscribe[T <: Event](eventTypeName: String, parameters: StreamParameters, listener: Listener[T], typeRef: TypeReference[EventStreamBatch[T]]): Option[ClientError] = {
     subscribe(eventTypeName, parameters, listener)(deserializer(typeRef))
 
   }
-  def subscribe[T <: Event](eventTypeName: String, params: StreamParameters, listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]): Future[Option[ClientError]] =
+  def subscribe[T <: Event](eventTypeName: String, params: StreamParameters, listener: Listener[T])(implicit des: Deserializer[EventStreamBatch[T]]): Option[ClientError] =
     (eventTypeName, params, listener) match {
 
       case (_, _, listener) if listener == null =>
         logger.info("listener is null")
-        Future.successful(Option(ClientError("Listener may not be empty(null)!", None)))
+        Some(ClientError("Listener may not be empty(null)!", None))
 
       case (eventType, _, _) if Option(eventType).isEmpty || eventType == "" =>
         logger.info("eventType is null")
-        Future.successful(Option(ClientError("Eventype may not be empty(null)!", None)))
+        Some(ClientError("Eventype may not be empty(null)!", None))
 
       case (eventType, StreamParameters(cursor, _, _, _, _, _, _), listener) if Option(eventType).isDefined =>
         val url = URI_EVENTS_OF_EVENT_TYPE.format(eventType)
@@ -119,7 +119,6 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         val finalUrl = withUrl(url, Some(params))
         val eventHandler: EventHandler = new EventHandlerImpl[EmptyJavaEvent, T](Right((des, listener)))
         subscriber.subscribe(eventTypeName, finalUrl, cursor, eventHandler)
-        Future.successful(None)
     }
 
   def unsubscribe[T <: Event](eventTypeName: String, partition: Option[String], listener: Listener[T]): Future[Option[ClientError]] = {
