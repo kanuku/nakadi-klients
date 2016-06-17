@@ -33,7 +33,8 @@ object Dependencies {
 		Seq(
 			"org.zalando.stups"                 % "tokens"                  						% "0.9.9",
 			"org.apache.httpcomponents"         % "httpclient"               						% "4.5.2",
-			"org.scalatest"                     %% "scalatest"               						% "2.2.6"
+			"org.scalatest"                     %% "scalatest"               						% "2.2.6",
+			"commons-lang" 											% "commons-lang" 												% "2.6"
 		)
 	}
 }
