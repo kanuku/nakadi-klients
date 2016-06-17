@@ -26,6 +26,8 @@ class SimpleEventTest extends WordSpec with Matchers {
       def eventTypeId = s"SimpleEventIntegrationTest-Handle-404-Graciously"
     }
     val it = new EventIntegrationHelper(eventGenerator, client)
+    it.createEventType() shouldBe true
+    
     it.getEventType("non-existing-event-type-name") match {
       case Some(_) => fail("Should not fail, because eventType was not created yet!!")
       case None    =>
@@ -38,7 +40,7 @@ class SimpleEventTest extends WordSpec with Matchers {
     }
     val it = new EventIntegrationHelper(eventGenerator, client)
     val cursor = Some(Cursor("0", "BEGIN"))
-    it.createEventType()
+    it.createEventType() shouldBe true
     val events = it.publishEvents(nrOfEvents)
     client.subscribe(eventGenerator.eventTypeName, StreamParameters(cursor = cursor), listener)
     val receivedEvents = listener.waitToReceive(nrOfEvents)

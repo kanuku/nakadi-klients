@@ -16,35 +16,35 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.Future
 
+import com.typesafe.scalalogging.Logger
 class EventIntegrationHelper(generator: EventGenerator, client: Client) extends WordSpec with Matchers {
-  private val log = LoggerFactory.getLogger(this.getClass)
-  val actions = ClientActions(client)
+  private val log = Logger(LoggerFactory.getLogger(this.getClass))
   val eventType = generator.eventType
 
   def createEventType(): Boolean = {
-    wasItsuccessfull(executeCall(client.createEventType(eventType)))
+    wasItsuccessfull(executeCall(client.createEventType(eventType)),"createEventType")
   }
 
   def getEventType(eventTypeName: String = eventType.name): Option[EventType] = executeCall(client.getEventType(eventTypeName)) match {
     case Left(clientError) =>
-      wasItsuccessfull(Option(clientError))
+      wasItsuccessfull(Option(clientError),"getEventType")
       None
     case Right(result) => result
   }
 
-  def deleteEventType() = wasItsuccessfull(actions.deleteEventType(eventType.name))
+  def deleteEventType() = wasItsuccessfull(executeCall(client.deleteEventType(eventType.name)),"deleteEventType")
 
   def publishEvents(nrOfEvents: Int): Seq[Event] = {
     val events = for {
       a <- 1 to nrOfEvents
     } yield generator.newEvent()
-    wasItsuccessfull(actions.publish(eventType.name, events))
+    wasItsuccessfull(executeCall(client.publishEvents(eventType.name, events)),"publishEvents")
     log.info(s"EVENTS published: $events")
     events
   }
 
   def updateEventType(eType: EventType): Boolean = {
-    wasItsuccessfull(executeCall(client.updateEventType(eventType.name, eType)))
+    wasItsuccessfull(executeCall(client.updateEventType(eventType.name, eType)),"updateEventType")
   }
 
   def eventTypeExist(eventTypeName: String = eventType.name): Boolean = {
@@ -55,9 +55,9 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client) extends 
   }
 
   //Private methods
-  private def wasItsuccessfull(in: Option[ClientError]): Boolean = in match {
+  private def wasItsuccessfull(in: Option[ClientError], msg: String): Boolean = in match {
     case Some(clientError) =>
-      log.error("ClientError: {}", clientError)
+      log.error("{} => ClientError: {}", generator.eventTypeId+"-"+msg, clientError)
       false
     case None =>
       true

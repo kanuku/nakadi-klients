@@ -1,9 +1,10 @@
-package org.zalando.nakadi.client.java.test.factory.events;
+package org.zalando.nakadi.client.java.test.factory;
 
 import org.zalando.nakadi.client.java.model.Event;
 
 public class MySimpleEvent implements Event {
 
+	
 	private String orderNumber;
 
 	public MySimpleEvent(String orderNumber) {

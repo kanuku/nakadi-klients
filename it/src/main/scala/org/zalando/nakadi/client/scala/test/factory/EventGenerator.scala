@@ -29,7 +29,7 @@ trait EventGenerator {
   def newId(): String
 
   /**
-   * Should generate an new Event.
+   * Should generate an new Event. 
    */
   def newEvent(): Event
 

@@ -18,8 +18,8 @@ object ClientFactory {
 
   private def builder() = {
 //	  useTest()
-    useStaging()
-//    useLocal()
+//    useStaging()
+    useLocal()
   }
   private def useLocal() = {
     new ClientBuilder() //
