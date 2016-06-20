@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
 
-	val akkaVersion = "2.4.4"
+	val akkaVersion = "2.4.7"
 	val jacksonVersion = "2.7.3"
 	val apiDeps = {
 		Seq(

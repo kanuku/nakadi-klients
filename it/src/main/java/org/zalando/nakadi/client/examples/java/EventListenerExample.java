@@ -31,10 +31,9 @@ public class EventListenerExample {
 		Listener<MeetingsEvent> listener = new EventCounterListener("Java-Test");
 
 		StreamParameters params = new StreamParameters(
-//				Optional.of(new Cursor("0", "BEGIN")),
-				Optional.empty(),
+				Optional.of(new Cursor("0", "BEGIN")),
 				Optional.of(100),// batchLimit,
-				Optional.empty(),// streamLimit,
+				Optional.of(200),// streamLimit,
 				Optional.empty(),// batchFlushTimeout,
 				Optional.empty(),// streamTimeout,
 				Optional.empty(),// streamKeepAliveLimit,

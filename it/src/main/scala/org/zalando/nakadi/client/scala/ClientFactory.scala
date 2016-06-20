@@ -9,7 +9,7 @@ object ClientFactory {
   def host(): String = "nakadi.test.fernando.io"
   def localHost(): String = "localhost"
   def localPort(): Integer = 8080
-  def OAuth2Token(): Option[() => String] = Option(() => "1c1d7814-c31e-40b8-bbca-f340c6909b63")
+  def OAuth2Token(): Option[() => String] = Option(() => "5ff42811-3b0c-4a33-9836-d1adec4db94f")
   def port(): Integer = 443
   def getJavaClient() =
     builder().buildJavaClient();
@@ -18,8 +18,8 @@ object ClientFactory {
 
   private def builder() = {
 //	  useTest()
-//    useStaging()
-    useLocal()
+    useStaging()
+//    useLocal()
   }
   private def useLocal() = {
     new ClientBuilder() //

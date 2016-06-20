@@ -21,7 +21,6 @@ import org.zalando.nakadi.client.java.{ Listener => JListener }
 import org.zalando.nakadi.client.scala.Connection
 import org.zalando.nakadi.client.scala.EmptyScalaEvent
 import org.zalando.nakadi.client.scala.EventHandler
-import org.zalando.nakadi.client.scala.EventHandlerImpl
 import org.zalando.nakadi.client.scala.HttpFactory
 import org.zalando.nakadi.client.scala.{ StreamParameters => ScalaStreamParameters }
 import org.zalando.nakadi.client.utils.FutureConversions
@@ -37,6 +36,8 @@ import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
 import org.zalando.nakadi.client.handler.SubscriptionHandler
 import org.zalando.nakadi.client.utils.GeneralConversions
 import akka.http.scaladsl.model.StatusCodes
+import org.zalando.nakadi.client.scala.ScalaEventHandlerImpl
+import org.zalando.nakadi.client.scala.JavaEventHandlerImpl
 
 /**
  * Handler for mapping(Java<->Scala) and handling http calls and listener subscriptions for the Java API.
@@ -113,7 +114,7 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
   def subscribe[T <: JEvent](eventTypeName: String, endpoint: String, parameters: JStreamParameters, listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]]) = {
     import ModelConverter._
     val params: Option[ScalaStreamParameters] = toScalaStreamParameters(parameters)
-    val eventHandler: EventHandler = new EventHandlerImpl[T, EmptyScalaEvent](Left((des, listener)))
+    val eventHandler: EventHandler = new JavaEventHandlerImpl(des, listener)
     val finalUrl = withUrl(endpoint, params)
     val res = subscriber.subscribe(eventTypeName, finalUrl, getCursor(params), eventHandler)
     toJavaClientError(res)

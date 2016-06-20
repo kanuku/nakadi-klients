@@ -10,9 +10,9 @@ public interface Listener<T extends Event> {
 	
 	String getId();
 
-	void onReceive(String eventType, Cursor cursor, List<T> events);
+	void onReceive(String endpoint, Cursor cursor, List<T> events);
 
-	void onSubscribed(String eventType, Optional<Cursor> cursor);
+	void onSubscribed(String endpoint, Optional<Cursor> cursor);
 
-	void onError(String eventType, Optional<ClientError> error);
+	void onError(String endpoint, Optional<ClientError> error);
 }
