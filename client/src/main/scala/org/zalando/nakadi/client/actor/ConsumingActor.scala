@@ -21,8 +21,6 @@ import akka.stream.actor._
 import akka.util.ByteString
 import org.zalando.nakadi.client.utils.ModelConverter
 import org.zalando.nakadi.client.scala.EventHandler
-import org.zalando.nakadi.client.scala.ScalaResult
-import org.zalando.nakadi.client.scala.JavaResult
 import org.zalando.nakadi.client.scala.ErrorResult
 import org.zalando.nakadi.client.java.model.{ Event => JEvent }
 import SupervisingActor._
@@ -68,8 +66,9 @@ class ConsumingActor(subscription: SubscriptionKey,
       log.error("onError - cursor {} - {} - error {}", lastCursor, subscription, err.getMessage)
       context.stop(self)
     case OnComplete =>
+      //  When using stream_limit, the server stops the connection.
       log.info("onComplete - cursor {} - {}", lastCursor, subscription)
-      context.stop(self)
+      context.parent ! UnsubscribeMsg 
     case Terminated =>
       log.info("Received Terminated msg - subscription {} with listener-id {} ", subscription, handler.id())
     case a =>
