@@ -17,27 +17,14 @@ import java.util.{ List => JList }
 import java.util.Optional
 import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging.Logger
+import jdk.nashorn.internal.runtime.regexp.joni.constants.Arguments
+import com.google.common.base.Preconditions._
+
+case class ErrorResult(error: Throwable)
 
 /**
- * Internal Models for handling logic between Java and Scala
+ * EventHandlers should handle the logic of deserializing the messages and acting op on this attempt.
  */
-
-/**
- * Base result for Deserialization Attempt.
- */
-trait Result
-
-private case class JavaResult[J <: JEvent](
-  val javaEvents: Option[java.util.List[J]],
-  val scalaCursor: Cursor,
-  val javaCursor: JCursor) extends Result
-
-private case class ScalaResult[S <: Event](
-  scalaEvents: Option[Seq[S]] = None,
-  scalaCursor: Cursor) extends Result
-
-case class ErrorResult(error: Throwable) extends Result
-
 trait EventHandler {
   def id(): String
   def handleOnReceive(eventTypeName: String, msg: String): Either[ErrorResult, Cursor]
@@ -45,89 +32,75 @@ trait EventHandler {
   def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable)
 }
 
-class EventHandlerImpl[J <: JEvent, S <: Event](
-    eitherOfListeners: Either[(Deserializer[JEventStreamBatch[J]], JListener[J]), (Deserializer[EventStreamBatch[S]], Listener[S])]) extends EventHandler {
-  import EventHandler._
+class ScalaEventHandlerImpl[S <: Event](des: Deserializer[EventStreamBatch[S]], listener: Listener[S]) extends EventHandler {
   private val log = Logger(LoggerFactory.getLogger(this.getClass))
   private def createException(msg: String) = new IllegalStateException(msg)
+  checkArgument(listener != null, "Listener must not be null", null)
+  checkArgument(des != null, "Deserializer must not be null", null)
 
-  lazy val id: String = {
-
-    eitherOfListeners match {
-      //Validations
-      case Left((des, listener)) if (listener == null)  => throw new IllegalStateException("EventHandler created without a Listener/Deserializer")
-      case Right((des, listener)) if (listener == null) => throw new IllegalStateException("EventHandler created without a Listener/Deserializer")
-      //Real handling 
-      case Left((_, listener))                          => listener.getId
-      case Right((_, listener))                         => listener.id
-    }
-  }
+  def id: String = listener.id
 
   def handleOnReceive(eventTypeName: String, msg: String): Either[ErrorResult, Cursor] = {
-    eitherOfListeners match {
-      case Left((des, listener)) => // Java
-        transformJava(msg, des).right.flatMap {
-          case JavaResult(Some(events), sCursor, jCursor) =>
-            listener.onReceive(eventTypeName, jCursor, events)
-            Right(sCursor)
-          case JavaResult(None, sCursor, jCursor) =>
-            Right(sCursor)
-          case _ =>
-            val errorMsg = s"Could not handle JAVA Transformation url [$eventTypeName] listener [${listener.getId}] msg [$msg]"
-            log.error(errorMsg)
-            listener.onError(errorMsg, Optional.empty())
-            Left(ErrorResult(createException(errorMsg)))
-        }
-      case Right((des, listener)) => //Scala
-        transformScala(msg, des).right.flatMap {
-          case ScalaResult(Some(events), cursor) =>
-            listener.onReceive(eventTypeName, cursor, events)
-            Right(cursor)
-          case ScalaResult(None, cursor) =>
-            Right(cursor)
-          case _ =>
-            val errorMsg = s"Could not handle SCALA Transformation url [$eventTypeName] listener [${listener.id}] msg [$msg]"
-            listener.onError(errorMsg, None)
-            log.error(errorMsg)
-            Left(ErrorResult(createException(errorMsg)))
-        }
+    Try(des.from(msg)) match {
+      case Success(EventStreamBatch(cursor, None))      => Right(cursor)
+      case Success(EventStreamBatch(cursor, Some(Nil))) => Right(cursor)
+      case Success(EventStreamBatch(cursor, Some(events))) =>
+        listener.onReceive(eventTypeName, cursor, events)
+        Right(cursor)
+      case Failure(err) =>
+        val errorMsg = s"Could not deserialize[Scala] url [$eventTypeName] listener [${listener.id}] msg [$msg] error[${err.getMessage}]"
+        log.error(errorMsg)
+        listener.onError(errorMsg, None)
+        Left(ErrorResult(createException(errorMsg)))
+
+    }
+
+  }
+
+  def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable) = {
+    val errorMsg = if (msg.isDefined) msg.get else exception.getMessage
+    val clientError = Some(ClientError(errorMsg, exception = Some(exception)))
+    listener.onError(errorMsg, clientError)
+  }
+  def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit = listener.onSubscribed(endpoint, cursor)
+
+}
+class JavaEventHandlerImpl[J <: JEvent](des: Deserializer[JEventStreamBatch[J]], listener: JListener[J]) extends EventHandler {
+  private val log = Logger(LoggerFactory.getLogger(this.getClass))
+  private def createException(msg: String) = new IllegalStateException(msg)
+  checkArgument(listener != null, "Listener must not be null", null)
+  checkArgument(des != null, "Deserializer must not be null", null)
+
+  def id: String = listener.getId
+
+  def handleOnReceive(eventTypeName: String, msg: String): Either[ErrorResult, Cursor] = {
+    Try(des.from(msg)) match {
+      case Success(eventBatch) if (eventBatch.getEvents != null && !eventBatch.getEvents.isEmpty()) =>
+        val Some(sCursor: Cursor) = toScalaCursor(eventBatch.getCursor)
+        val jcursor: JCursor = eventBatch.getCursor
+        listener.onReceive(eventTypeName, jcursor, eventBatch.getEvents)
+        Right(sCursor)
+      case Success(eventBatch) =>
+        val Some(sCursor: Cursor) = toScalaCursor(eventBatch.getCursor)
+        Right(sCursor)
+      case Failure(err) =>
+        Left(ErrorResult(err))
+        val errorMsg = s"Could not deserialize[Java] url [$eventTypeName] listener [${listener.getId}] msg [$msg] error[${err.getMessage}]"
+        log.error(errorMsg)
+        listener.onError(errorMsg, Optional.empty())
+        Left(ErrorResult(createException(errorMsg)))
     }
   }
 
   def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable) = {
     val errorMsg = if (msg.isDefined) msg.get else exception.getMessage
     val clientError = Some(ClientError(errorMsg, exception = Some(exception)))
-    eitherOfListeners match {
-      case Left((des, listener)) => // Java
-        listener.onError(errorMsg, toJavaClientError(clientError))
-      case Right((des, listener)) => //Scala
-        listener.onError(errorMsg, clientError)
-    }
+    listener.onError(errorMsg, toJavaClientError(clientError))
   }
-  def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit = eitherOfListeners match {
-    case Left((des, listener)) =>
-      val res: Optional[JCursor] = toJavaCursor(cursor)
-      listener.onSubscribed(endpoint, res) // Java
-    case Right((des, listener)) => listener.onSubscribed(endpoint, cursor)
+  def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit = {
+    val res: Optional[JCursor] = toJavaCursor(cursor)
+    listener.onSubscribed(endpoint, res)
   }
 
 }
 
-private object EventHandler {
-  def transformScala[S <: Event](message: String, des: Deserializer[EventStreamBatch[S]]): Either[ErrorResult, ScalaResult[S]] = Try(des.from(message)) match {
-    case Success(EventStreamBatch(cursor, events)) => Right(ScalaResult(events, cursor))
-    case Failure(err)                              => Left(ErrorResult(err))
-  }
-
-  def transformJava[J <: JEvent](message: String, des: Deserializer[JEventStreamBatch[J]]): Either[ErrorResult, JavaResult[J]] = {
-    Try(des.from(message)) match {
-      case Success(eventBatch) =>
-        val events = if (eventBatch.getEvents != null && !eventBatch.getEvents.isEmpty()) Some(eventBatch.getEvents) else None
-        val Some(sCursor: Cursor) = toScalaCursor(eventBatch.getCursor)
-        val jcursor: JCursor = eventBatch.getCursor
-        Right(JavaResult(events, sCursor, jcursor))
-      case Failure(err) =>
-        Left(ErrorResult(err))
-    }
-  }
-}

@@ -117,7 +117,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         val url = URI_EVENTS_OF_EVENT_TYPE.format(eventType)
         logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} - url {}", listener.id, cursor, params, eventType, url)
         val finalUrl = withUrl(url, Some(params))
-        val eventHandler: EventHandler = new EventHandlerImpl[EmptyJavaEvent, T](Right((des, listener)))
+        val eventHandler: EventHandler = new ScalaEventHandlerImpl(des, listener)
         subscriber.subscribe(eventTypeName, finalUrl, cursor, eventHandler)
     }
 

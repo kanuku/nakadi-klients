@@ -59,13 +59,13 @@ object EventListenerExample extends App {
   val cursor = Cursor("0", "0")
 
   val parameters = new StreamParameters(
-    cursor = None//Some(cursor) //
+    cursor = Some(cursor) //
     , batchLimit = Some(250) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
-    //    , streamLimit = Some(2) // Maximum number of `Event`s to stream (over all partitions being streamed in this
+        , streamLimit = Some(500) // Maximum number of `Event`s to stream (over all partitions being streamed in this
     //connection).
         , batchFlushTimeout = Some(5) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
     //        ,streamKeepAliveLimit=Some(4)
-        , streamTimeout = Some(30)
+        , streamTimeout = Some(7)
     )
 
   /**

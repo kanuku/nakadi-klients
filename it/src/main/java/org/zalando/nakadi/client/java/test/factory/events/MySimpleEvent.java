@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.java.test.factory;
+package org.zalando.nakadi.client.java.test.factory.events;
 
 import org.zalando.nakadi.client.java.model.Event;
 
