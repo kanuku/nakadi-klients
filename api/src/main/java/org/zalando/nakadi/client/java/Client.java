@@ -134,7 +134,7 @@ public interface Client {
      * Shuts down the communication system of the client
      * @return Void in case of success
      */
-    Future<Void> stop();
+    void stop();
     
     /**
      * Registers the subscription of a listener to start streaming events from a partition in non-blocking fashion.

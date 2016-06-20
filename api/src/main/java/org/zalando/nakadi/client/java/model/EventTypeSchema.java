@@ -34,4 +34,11 @@ public class EventTypeSchema {
         return schema;
     }
 
+    @Override
+    public String toString() {
+        return "EventTypeSchema [type=" + type + ", schema=" + schema + "]";
+    }
+    
+    
+
 }
