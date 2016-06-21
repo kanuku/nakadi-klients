@@ -12,7 +12,7 @@ import org.zalando.nakadi.client.java.model.EventTypeSchema;
 import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 
 /**
- * Abstracts the necessary methods that can be generated for tests.
+ * Abstracts the necessary values that can be generated for tests.
  */
 public interface EventGenerator {
 

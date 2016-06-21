@@ -28,10 +28,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 public class SimpleEventTest {
 
-    private EventGeneratorBuilder builder = new MySimpleEventGenerator();
     private Client client = ClientFactory.getJavaClient();;
     private Integer nrOfEvents = 45;
-    private SimpleEventListener listener = new SimpleEventListener();
+
     private TypeReference<EventStreamBatch<MySimpleEvent>> typeRef = new TypeReference<EventStreamBatch<MySimpleEvent>>() {
     };
 
@@ -42,7 +41,7 @@ public class SimpleEventTest {
 
     @Test
     public void handle404Graciously() throws InterruptedException, ExecutionException {
-        EventGenerator gen = builder//
+        EventGenerator gen = new MySimpleEventGenerator()//
                 .withEventTypeId("SimpleEventTest-handle404Graciously")//
                 .build();
         EventIntegrationHelper it = new EventIntegrationHelper(gen, client);
@@ -54,7 +53,9 @@ public class SimpleEventTest {
 
     @Test
     public void validatePublishedNrOfEvents() throws InterruptedException {
-        EventGenerator gen = builder.withEventTypeId("SimpleEventTest-validatePublishedNrOfEvents").build();
+        SimpleEventListener listener = new SimpleEventListener();
+        EventGenerator gen = new MySimpleEventGenerator()//
+                .withEventTypeId("SimpleEventTest-validatePublishedNrOfEvents").build();
         EventIntegrationHelper it = new EventIntegrationHelper(gen, client);
         assertTrue("EventType should be created", it.createEventType());
         Thread.sleep(1000);// Creation can take time.
@@ -80,9 +81,11 @@ public class SimpleEventTest {
         assertEquals("Created & Received events differ in number", createdEvents.size(), receivedEvents.size());
     }
 
+
     @Test
     public void validateCreatedEventType() throws InterruptedException {
-        EventGenerator gen = builder.withEventTypeId("SimpleEventTest-validateCreatedEventType").build();
+        EventGenerator gen = new MySimpleEventGenerator()//
+                .withEventTypeId("SimpleEventTest-validateCreatedEventType").build();
         EventIntegrationHelper it = new EventIntegrationHelper(gen, client);
         assertTrue("EventType should be created", it.createEventType());
         Thread.sleep(1000);// Creation can take time.
@@ -105,22 +108,24 @@ public class SimpleEventTest {
 
     @Test
     public void validateNrOfPartition() throws InterruptedException, ExecutionException {
-        EventGenerator gen = builder.withEventTypeId("SimpleEventTest-validateNrOfPartition").build();
+        EventGenerator gen = new MySimpleEventGenerator()//
+                .withEventTypeId("SimpleEventTest-validateNrOfPartition").build();
         EventIntegrationHelper it = new EventIntegrationHelper(gen, client);
         assertTrue("EventType should be created", it.createEventType());
         assertEquals(it.getNumberOfPartitions(), Integer.valueOf(1));
 
     }
-    
+
     @Test
-    public void receivePartitionStrategies() throws InterruptedException, ExecutionException{
-        EventGenerator gen = builder.withEventTypeId("SimpleEventTest-receivePartitionStrategies").build();
-        EventIntegrationHelper it = new EventIntegrationHelper(gen, client); 
+    public void receivePartitionStrategies() throws InterruptedException, ExecutionException {
+        EventGenerator gen = new MySimpleEventGenerator()//
+                .withEventTypeId("SimpleEventTest-receivePartitionStrategies").build();
+        EventIntegrationHelper it = new EventIntegrationHelper(gen, client);
         List<PartitionStrategy> strategies = it.getPartitionStrategies();
         assertEquals(strategies.size(), 3);
-        for(PartitionStrategy ps:strategies){
-            assertTrue("Did not find PartitionStrategy:"+ps.name(),PartitionStrategy.withName(ps.name()).isPresent());
-            
+        for (PartitionStrategy ps : strategies) {
+            assertTrue("Did not find PartitionStrategy:" + ps.name(), PartitionStrategy.withName(ps.name()).isPresent());
+
         }
     }
 

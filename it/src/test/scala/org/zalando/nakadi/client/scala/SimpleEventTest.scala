@@ -21,13 +21,12 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
   val client = ClientFactory.getScalaClient()
   val nrOfEvents = 45
-  val listener = new SimpleEventListener()
 
   override def afterAll {
-    client.stop()
+    //    client.stop()
   }
 
-  "404 should be handled graciously, by retuning None" in {
+  "404_should be handled graciously" in {
     val eventGenerator = new DefaultMySimpleEventGenerator() {
       def eventTypeId = s"SimpleEventIntegrationTest-Handle-404-Graciously"
     }
@@ -46,6 +45,8 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
     val it = new EventIntegrationHelper(eventGenerator, client)
     val cursor = Some(Cursor("0", "BEGIN"))
+    val listener = new SimpleEventListener()
+
     it.createEventType() shouldBe true
     val events = it.publishEvents(nrOfEvents)
     client.subscribe(eventGenerator.eventTypeName, StreamParameters(cursor = cursor), listener)
@@ -53,6 +54,36 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
     receivedEvents.size shouldBe events.size
     receivedEvents shouldBe events
   }
+
+  "Multiple events listeners must work in parallel" in {
+    val eventGenerator1 = new DefaultMySimpleEventGenerator() {
+      def eventTypeId = s"SimpleEventIntegrationTest-Multiple-listeners-in-parallel-$nrOfEvents"
+    }
+    val it = new EventIntegrationHelper(eventGenerator1, client)
+    val cursor = Some(Cursor("0", "BEGIN"))
+    it.createEventType() shouldBe true
+    val events = it.publishEvents(nrOfEvents)
+    val listener = new SimpleEventListener()
+    val listener2 = new SimpleEventListener()
+    val listener3 = new SimpleEventListener()
+
+    client.subscribe(eventGenerator1.eventTypeName, StreamParameters(cursor = cursor), listener)
+    client.subscribe(eventGenerator1.eventTypeName, StreamParameters(cursor = cursor), listener2)
+
+    val receivedEvents = listener.waitToReceive(nrOfEvents)
+    receivedEvents.size shouldBe events.size
+    receivedEvents shouldBe events
+
+    val receivedEvents2 = listener2.waitToReceive(nrOfEvents)
+    receivedEvents2.size shouldBe events.size
+    receivedEvents2 shouldBe events
+
+    client.subscribe(eventGenerator1.eventTypeName, StreamParameters(cursor = cursor), listener)
+    val receivedEvents3 = listener.waitToReceive(nrOfEvents * 2)
+    receivedEvents3.size shouldBe (nrOfEvents * 2)
+    
+  }
+  
 
   "Validate created EventType" in {
     val eventGenerator = new DefaultMySimpleEventGenerator() {
@@ -95,9 +126,9 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
     val it = new EventIntegrationHelper(eventGenerator, client)
     val result = it.getPartitionStrategies()
     result.size shouldBe 3 //NOT IMPLEMENTED
-    result should contain (PartitionStrategy.HASH)
-    result should contain (PartitionStrategy.RANDOM)
-    result should contain (PartitionStrategy.USER_DEFINED)
+    result should contain(PartitionStrategy.HASH)
+    result should contain(PartitionStrategy.RANDOM)
+    result should contain(PartitionStrategy.USER_DEFINED)
   }
   "Receive validation-strategies successfully" ignore {
     val eventGenerator = new DefaultMySimpleEventGenerator() {

@@ -13,12 +13,15 @@ import org.slf4j.Logger
 object MySimpleEvent {
 
   trait DefaultMySimpleEventGenerator extends EventGenerator {
-
-    def newId: String = Random.alphanumeric.take(12).mkString
+    private var counter = 0;
+    def newId: String = {
+      counter += 1
+      counter.toString()
+    }
 
     def newEvent(): Event = new MySimpleEvent(newId)
 
-    lazy val eventTypeName: String = eventTypeId + newId
+    lazy val eventTypeName: String = eventTypeId + Random.alphanumeric.take(12).mkString
 
     def schemaDefinition: String = """{ "properties": { "order_number": { "type": "string" } } }"""
   }

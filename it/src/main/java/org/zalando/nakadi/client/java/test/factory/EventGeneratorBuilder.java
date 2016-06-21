@@ -3,7 +3,6 @@ package org.zalando.nakadi.client.java.test.factory;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
 import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
@@ -14,20 +13,18 @@ import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.model.EventTypeSchema;
 import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 
-
 public abstract class EventGeneratorBuilder {
     private String eventTypeId;
-    private String newId= RandomStringUtils.randomAlphanumeric(12);
+    private Integer newId = new Integer(0);
     private Event newEvent;
-    private String eventTypeName;
     private String schemaDefinition;
-    private EventType eventType = null;// TODO
+    private EventType eventType = null;
     private String owner = "Nakadi-klients(java-integration-test-suite)";
     private EventTypeCategory category = EventTypeCategory.UNDEFINED;
     private List<EventValidationStrategy> validationStrategies = Collections.emptyList();
     private List<EventEnrichmentStrategy> enrichmentStrategies = Collections.emptyList();
     private PartitionStrategy partitionStrategy = PartitionStrategy.RANDOM;
-    private EventTypeSchema schemaType;// TODO
+    private EventTypeSchema schemaType;
     private List<String> dataKeyFields = Collections.emptyList();
     private List<String> partitionKeyFields = Collections.emptyList();
     private EventTypeStatistics statistics = null;
@@ -37,18 +34,13 @@ public abstract class EventGeneratorBuilder {
         return this;
     }
 
-    public EventGeneratorBuilder withNewId(String newId) {
+    public EventGeneratorBuilder withNewId(Integer newId) {
         this.newId = newId;
         return this;
     }
 
     public EventGeneratorBuilder withNewEvent(Event newEvent) {
         this.newEvent = newEvent;
-        return this;
-    }
-
-    public EventGeneratorBuilder withEventTypeName(String eventTypeName) {
-        this.eventTypeName = eventTypeName;
         return this;
     }
 
@@ -118,7 +110,7 @@ public abstract class EventGeneratorBuilder {
 
             @Override
             public String getNewId() {
-                return gen.getNewId();
+                return gen.getNewId().toString();
             }
 
             @Override
@@ -207,7 +199,7 @@ public abstract class EventGeneratorBuilder {
     }
 
     protected String getEventTypeName() {
-        return getEventTypeId()+getNewId();
+        return getEventTypeId() + getNewId();
     }
 
     /**
@@ -218,7 +210,7 @@ public abstract class EventGeneratorBuilder {
     }
 
     protected String getNewId() {
-        return newId;
+        return newId.toString();
     }
 
     protected Event getNewEvent() {
