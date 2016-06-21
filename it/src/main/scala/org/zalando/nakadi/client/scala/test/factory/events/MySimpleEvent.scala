@@ -38,7 +38,8 @@ class SimpleEventListener extends Listener[MySimpleEvent] {
 
   def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MySimpleEvent]): Unit = {
     receivedEvents = receivedEvents ++ events
-    log.info(s"Received ${events.size.toLong}")
+    log.info(s"Received ${events.size}")
+    log.info(s"Total ${receivedEvents.size}")
 
   }
   def onSubscribed(endpoint: String, cursor: Option[Cursor]): Unit = {
@@ -55,7 +56,6 @@ class SimpleEventListener extends Listener[MySimpleEvent] {
     log.info("############")
     receivedEvents
   }
-
 }
 
  

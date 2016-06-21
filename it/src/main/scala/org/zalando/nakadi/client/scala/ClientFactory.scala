@@ -6,19 +6,15 @@ import java.util.function.Supplier
 object ClientFactory {
   import sys.process._
   import scala.language.postfixOps
-  def host(): String = "nakadi.test.fernando.io"
-  def localHost(): String = "localhost"
-  def localPort(): Integer = 8080
   def OAuth2Token(): Option[() => String] = Option(() => "********-****-****-****-************")
-  def port(): Integer = 443
   def getJavaClient() =
     builder().buildJavaClient();
 
   def getScalaClient() = builder().build()
 
   private def builder() = {
-//	  useTest()
-//    useStaging()
+    //	  useTest()
+    //    useStaging()
     useLocal()
   }
   private def useLocal() = {
@@ -37,11 +33,7 @@ object ClientFactory {
       .withTokenProvider(ClientFactory.OAuth2Token())
   }
   private def useStaging() = {
-	  ClientBuilder()
-	  .withHost("nakadi********.**********.********")
-	  .withPort(443)
-	  .withSecuredConnection(true) //s
-	  .withVerifiedSslCertificate(false) //s
-	  .withTokenProvider(ClientFactory.OAuth2Token())
+    useTest()
+      .withHost("nakadi********.**********.********")
   }
 }

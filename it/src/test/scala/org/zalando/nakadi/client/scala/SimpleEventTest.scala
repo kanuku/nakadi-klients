@@ -9,8 +9,10 @@ import org.zalando.nakadi.client.scala.test.factory.EventIntegrationHelper
 import org.zalando.nakadi.client.scala.test.factory.events.MySimpleEvent
 import org.zalando.nakadi.client.scala.test.factory.events.SimpleEventListener
 import org.zalando.nakadi.client.scala.model.PartitionStrategy
+import org.scalatest.BeforeAndAfterAll
+import org.zalando.nakadi.client.scala.model.EventValidationStrategy
 
-class SimpleEventTest extends WordSpec with Matchers {
+class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
   import org.scalatest.Matchers._
   import ClientFactory._
@@ -21,13 +23,17 @@ class SimpleEventTest extends WordSpec with Matchers {
   val nrOfEvents = 45
   val listener = new SimpleEventListener()
 
+  override def afterAll {
+    client.stop()
+  }
+
   "404 should be handled graciously, by retuning None" in {
     val eventGenerator = new DefaultMySimpleEventGenerator() {
       def eventTypeId = s"SimpleEventIntegrationTest-Handle-404-Graciously"
     }
     val it = new EventIntegrationHelper(eventGenerator, client)
     it.createEventType() shouldBe true
-    
+
     it.getEventType("non-existing-event-type-name") match {
       case Some(_) => fail("Should not fail, because eventType was not created yet!!")
       case None    =>
@@ -46,12 +52,11 @@ class SimpleEventTest extends WordSpec with Matchers {
     val receivedEvents = listener.waitToReceive(nrOfEvents)
     receivedEvents.size shouldBe events.size
     receivedEvents shouldBe events
-
   }
 
   "Validate created EventType" in {
     val eventGenerator = new DefaultMySimpleEventGenerator() {
-      def eventTypeId = s"SimpleEventIntegrationTest-Validate-Created-Events-$nrOfEvents"
+      def eventTypeId = s"SimpleEventIntegrationTest-Validate-Created-EventType"
     }
     val it = new EventIntegrationHelper(eventGenerator, client)
 
@@ -74,43 +79,45 @@ class SimpleEventTest extends WordSpec with Matchers {
     eventType.partitionKeyFields shouldBe it.eventType.partitionKeyFields
   }
 
-  "Update existing EventType" in {
-
+  "Validate nr of partitions after Creation of EventType" in {
     val eventGenerator = new DefaultMySimpleEventGenerator() {
-      def eventTypeId = s"SimpleEventIntegrationTest-Update-Existing-EventType"
+      def eventTypeId = s"SimpleEventIntegrationTest-Validate-nr-of-partitions"
     }
     val it = new EventIntegrationHelper(eventGenerator, client)
     it.createEventType() shouldBe true
+    it.getNumberOfPartitions() shouldBe 1
+  }
 
-    //Generator with changes only in the schema
-    val schema = """{ "properties": { "order_number": { "type": "string" }, "id": { "type": "string" } } }"""
+  "Receive partition-strategies successfully" ignore {
+    val eventGenerator = new DefaultMySimpleEventGenerator() {
+      def eventTypeId = s"SimpleEventIntegrationTest-Receive-partition-strategies-successfully"
+    }
+    val it = new EventIntegrationHelper(eventGenerator, client)
+    val result = it.getPartitionStrategies()
+    result.size shouldBe 3 //NOT IMPLEMENTED
+    result should contain (PartitionStrategy.HASH)
+    result should contain (PartitionStrategy.RANDOM)
+    result should contain (PartitionStrategy.USER_DEFINED)
+  }
+  "Receive validation-strategies successfully" ignore {
+    val eventGenerator = new DefaultMySimpleEventGenerator() {
+      def eventTypeId = s"SimpleEventIntegrationTest-Receive-validation-strategies-successfully"
+    }
+    val it = new EventIntegrationHelper(eventGenerator, client)
+    val result = it.getValidationStrategies()
+    result.size shouldBe 0 //NOT IMPLEMENTED
+  }
 
-    val eventType2Update = new DefaultMySimpleEventGenerator() {
-      def eventTypeId = s"SimpleEventIntegrationTest-Update-Existing-EventType"
-//      override def schemaDefinition: String = schema
-            override def dataKeyFields = List("order_number") //Does not work
-//      override def partitionKeyFields = List("order_number")
-//      override def partitionStrategy = Some(PartitionStrategy.HASH)
-    }.eventType
+  "Receive enrichment-strategies successfully" ignore {
+    val eventGenerator = new DefaultMySimpleEventGenerator() {
+      def eventTypeId = s"SimpleEventIntegrationTest-Receive-enrichment-strategies-successfully"
+    }
+    val it = new EventIntegrationHelper(eventGenerator, client)
+    val result = it.getValidationStrategies()
+    result.size shouldBe 1
 
-    /*
-    it.updateEventType(eventType2Update) shouldBe true
-    val optionalOfCreatedEventType = it.getEventType()
+    result should contain(EventValidationStrategy.SCHEMA_VALIDATION)
 
-    optionalOfCreatedEventType.isDefined shouldBe true
-
-    val Some(eventType) = optionalOfCreatedEventType
-    eventType.category shouldBe eventType2Update.category
-    eventType.dataKeyFields shouldBe null //TODO this is not correct!!
-    eventType.name shouldBe it.eventType.name
-    eventType.owningApplication shouldBe eventType2Update.owningApplication
-    eventType.partitionStrategy shouldBe eventType2Update.partitionStrategy
-    eventType.schema shouldBe schema
-    eventType.statistics shouldBe eventType2Update.statistics
-    eventType.validationStrategies shouldBe null
-    eventType.enrichmentStrategies shouldBe eventType2Update.enrichmentStrategies
-    eventType.partitionKeyFields shouldBe eventType2Update.partitionKeyFields
-    */
   }
 
 }
