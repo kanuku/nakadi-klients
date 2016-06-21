@@ -2,6 +2,7 @@ package org.zalando.client.java;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +18,6 @@ import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventStreamBatch;
 import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.test.factory.EventGenerator;
-import org.zalando.nakadi.client.java.test.factory.EventGeneratorBuilder;
 import org.zalando.nakadi.client.java.test.factory.EventIntegrationHelper;
 import org.zalando.nakadi.client.java.test.factory.MySimpleEventGenerator;
 import org.zalando.nakadi.client.java.test.factory.events.MySimpleEvent;
@@ -41,6 +41,7 @@ public class SimpleEventTest {
 
     @Test
     public void handle404Graciously() throws InterruptedException, ExecutionException {
+        
         EventGenerator gen = new MySimpleEventGenerator()//
                 .withEventTypeId("SimpleEventTest-handle404Graciously")//
                 .build();
@@ -52,7 +53,7 @@ public class SimpleEventTest {
     }
 
     @Test
-    public void validatePublishedNrOfEvents() throws InterruptedException {
+    public void validatePublishedNrOfEvents() throws InterruptedException, ExecutionException {
         SimpleEventListener listener = new SimpleEventListener();
         EventGenerator gen = new MySimpleEventGenerator()//
                 .withEventTypeId("SimpleEventTest-validatePublishedNrOfEvents").build();
@@ -81,6 +82,37 @@ public class SimpleEventTest {
         assertEquals("Created & Received events differ in number", createdEvents.size(), receivedEvents.size());
     }
 
+    @Test
+    public void unsubscribedListenerShouldNotReceiveAnyEvents() throws InterruptedException, ExecutionException {
+        SimpleEventListener listener = new SimpleEventListener();
+        EventGenerator gen = new MySimpleEventGenerator()//
+                .withEventTypeId("SimpleEventTest-validatePublishedNrOfEvents").build();
+        EventIntegrationHelper it = new EventIntegrationHelper(gen, client);
+        assertTrue("EventType should be created", it.createEventType());
+        Thread.sleep(1000);// Creation can take time.
+        Optional<EventType> eventTypeOpt = it.getEventType();
+        assertTrue("Did not return the eventType", eventTypeOpt.isPresent());
+
+        Optional<Cursor> cursor = Optional.of(new Cursor("0", "BEGIN"));
+        Optional<Integer> batchLimit = Optional.empty();
+        Optional<Integer> streamLimit = Optional.empty();
+        Optional<Integer> batchFlushTimeout = Optional.empty();
+        Optional<Integer> streamTimeout = Optional.empty();
+        Optional<Integer> streamKeepAliveLimit = Optional.empty();
+        Optional<String> flowId = Optional.empty();
+        StreamParameters parameters = new StreamParameters(cursor, //
+                batchLimit, //
+                streamLimit, //
+                batchFlushTimeout, //
+                streamTimeout, //
+                streamKeepAliveLimit, //
+                flowId);
+        client.subscribe(it.getGen().getEventTypeName(), parameters, listener, typeRef);
+        client.unsubscribe(it.getGen().getEventTypeName(), Optional.of("0"), listener);
+        List<Event> createdEvents = it.publishEvents(nrOfEvents);
+        Thread.sleep(5000);
+        assertEquals("Unsubscribed listener must not receive events", 0, listener.getReceivedEvents().size());
+    }
 
     @Test
     public void validateCreatedEventType() throws InterruptedException {

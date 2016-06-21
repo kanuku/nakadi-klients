@@ -23,23 +23,21 @@ trait SubscriptionHolder {
 class SubscriptionHolderImpl extends SubscriptionHolder {
   import SupervisingActor._
   private var subscriptions: Map[SubscriptionKey, SubscriptionEntry] = Map() //EventTypeName+Partition
-  private var cursors: Map[SubscriptionKey,  Option[Cursor]] = Map()
+  private var cursors: Map[SubscriptionKey, Option[Cursor]] = Map()
   private var actors: Map[String, SubscriptionKey] = Map()
-  private var subscriptionCounter = 1
   private val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
-  def addCursor(key: SubscriptionKey, cursor:  Option[Cursor]): Unit = {
+  def addCursor(key: SubscriptionKey, cursor: Option[Cursor]): Unit = {
     cursors = cursors + ((key, cursor))
   }
 
   def addSubscription(key: SubscriptionKey, key2: ActorRef, entry: SubscriptionEntry) = {
     subscriptions = subscriptions + ((key, entry))
     actors = actors + ((key2.path.toString(), key))
-    subscriptionCounter+=1
   }
 
   def unsubscribe(key: SubscriptionKey): Unit = {
-
+    subscriptions = subscriptions - (key)
   }
 
   def entry(key: SubscriptionKey): Option[SubscriptionEntry] = {
@@ -53,10 +51,6 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
     subscriptions.size
   }
 
-  def count(): Int = {
-    subscriptionCounter
-  }
-
   def addActor(actor: ActorRef, key: SubscriptionKey): Unit = {
     actors = actors + ((actor.path.toString(), key))
   }
@@ -66,7 +60,7 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
   }
 
   def cursorByActor(actor: ActorRef): Option[Cursor] = {
-    actors.get(actor.path.toString()).flatMap(x => cursors.get(x).flatMap(a => a ))
+    actors.get(actor.path.toString()).flatMap(x => cursors.get(x).flatMap(a => a))
   }
 
 }

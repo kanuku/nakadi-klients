@@ -56,10 +56,10 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
   }
 
   "Multiple events listeners must work in parallel" in {
-    val eventGenerator1 = new DefaultMySimpleEventGenerator() {
+    val eventGenerator = new DefaultMySimpleEventGenerator() {
       def eventTypeId = s"SimpleEventIntegrationTest-Multiple-listeners-in-parallel-$nrOfEvents"
     }
-    val it = new EventIntegrationHelper(eventGenerator1, client)
+    val it = new EventIntegrationHelper(eventGenerator, client)
     val cursor = Some(Cursor("0", "BEGIN"))
     it.createEventType() shouldBe true
     val events = it.publishEvents(nrOfEvents)
@@ -67,8 +67,8 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
     val listener2 = new SimpleEventListener()
     val listener3 = new SimpleEventListener()
 
-    client.subscribe(eventGenerator1.eventTypeName, StreamParameters(cursor = cursor), listener)
-    client.subscribe(eventGenerator1.eventTypeName, StreamParameters(cursor = cursor), listener2)
+    client.subscribe(eventGenerator.eventTypeName, StreamParameters(cursor = cursor), listener)
+    client.subscribe(eventGenerator.eventTypeName, StreamParameters(cursor = cursor), listener2)
 
     val receivedEvents = listener.waitToReceive(nrOfEvents)
     receivedEvents.size shouldBe events.size
@@ -78,13 +78,26 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
     receivedEvents2.size shouldBe events.size
     receivedEvents2 shouldBe events
 
-    client.subscribe(eventGenerator1.eventTypeName, StreamParameters(cursor = cursor), listener)
+    client.subscribe(eventGenerator.eventTypeName, StreamParameters(cursor = cursor), listener)
     val receivedEvents3 = listener.waitToReceive(nrOfEvents * 2)
     receivedEvents3.size shouldBe (nrOfEvents * 2)
-    
-  }
-  
 
+  }
+
+  "An unsubscribed listener should not receive any events" in {
+    val eventGenerator = new DefaultMySimpleEventGenerator() {
+      def eventTypeId = s"SimpleEventIntegrationTest-Multiple-listeners-in-parallel-$nrOfEvents"
+    }
+    val it = new EventIntegrationHelper(eventGenerator, client)
+    val cursor = Some(Cursor("0", "BEGIN"))
+    it.createEventType() shouldBe true
+    val listener = new SimpleEventListener()
+    client.subscribe(eventGenerator.eventTypeName, StreamParameters(cursor = cursor), listener)
+    client.unsubscribe(eventGenerator.eventTypeName, Option("0"), listener)
+    it.publishEvents(nrOfEvents)
+    Thread.sleep(5000)
+    listener.receivedEvents.size shouldBe 0
+  }
   "Validate created EventType" in {
     val eventGenerator = new DefaultMySimpleEventGenerator() {
       def eventTypeId = s"SimpleEventIntegrationTest-Validate-Created-EventType"

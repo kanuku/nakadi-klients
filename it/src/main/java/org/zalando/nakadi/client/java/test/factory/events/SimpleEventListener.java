@@ -43,6 +43,11 @@ public class SimpleEventListener implements Listener<MySimpleEvent> {
 
     }
 
+    
+    public List<MySimpleEvent> getReceivedEvents() {
+        return receivedEvents;
+    }
+
     public List<MySimpleEvent> waitToReceive(Integer nrOfEvents) throws InterruptedException {
         while (nrOfEvents > receivedEvents.size()){
             log.info("Total: {}", receivedEvents.size());
@@ -54,4 +59,6 @@ public class SimpleEventListener implements Listener<MySimpleEvent> {
         log.info("##############");
         return receivedEvents;
     }
+    
+    
 }

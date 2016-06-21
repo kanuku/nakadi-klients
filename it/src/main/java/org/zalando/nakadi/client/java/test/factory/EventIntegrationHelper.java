@@ -68,10 +68,10 @@ public class EventIntegrationHelper {
         
     }
 
-    public List<Event> publishEvents(Integer nrOfEvents) {
+    public List<Event> publishEvents(Integer nrOfEvents) throws InterruptedException, ExecutionException {
         List<Event> events = new ArrayList<Event>();
         IntStream.range(0, nrOfEvents).forEach(nr -> events.add(gen.getNewEvent()));
-        client.publishEvents(eventType.getName(), events);
+        client.publishEvents(eventType.getName(), events).get();
         log.info("#######");
         log.info("#######" + events.size());
         log.info("#######");

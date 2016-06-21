@@ -90,9 +90,9 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
   }
 
   def subscribe(subscribe: SubscribeMsg) = {
-    subscriptionCounter+=1
+    subscriptionCounter += 1
     val SubscribeMsg(eventTypeName, endpoint, optCursor, eventHandler) = subscribe
-    log.info("Subscription nr {} - cursor {} - eventType {} - listener {}", subscriptionCounter , optCursor, eventTypeName, eventHandler.id())
+    log.info("Subscription nr {} - cursor {} - eventType {} - listener {}", subscriptionCounter, optCursor, eventTypeName, eventHandler.id())
 
     val subKey: SubscriptionKey = optCursor match {
       case Some(Cursor(partition, _)) => SubscriptionKey(eventTypeName, Some(partition))
@@ -115,7 +115,7 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
     subscriptions.addCursor(subKey, optCursor)
   }
 
-  def unsubscribe(unsubscription: UnsubscribeMsg) = {
+  def unsubscribe(unsubscription: UnsubscribeMsg): Boolean = {
     val UnsubscribeMsg(eventTypeName, partition, eventHandlerId) = unsubscription
     val key: SubscriptionKey = SubscriptionKey(eventTypeName, partition)
     log.info("Unsubscribe({})  ", unsubscription)
@@ -124,8 +124,10 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
         log.info("Unsubscribing Listener : {} from actor: {}", handler, actor)
         actor ! PoisonPill
         subscriptions.unsubscribe(key)
+        true
       case None =>
         log.warning("Listener not found for {}", unsubscription)
+        false
     }
   }
 
