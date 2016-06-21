@@ -1,6 +1,6 @@
 package org.zalando.nakadi.client.java.enumerator;
 
-import scala.Option;
+import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -26,11 +26,11 @@ public enum PartitionStrategy {
 		return strategy;
 	}
 
-	public static Option<PartitionStrategy> withName(String code){
+	public static Optional<PartitionStrategy> withName(String code){
         for(PartitionStrategy e : PartitionStrategy.values()){
-        	if (e.strategy.equals(code))
-        	return Option.apply(e);
+        	if (e.name().equals(code))
+        	return Optional.of(e);
         }
-        return Option.empty();
+        return Optional.empty();
     }
 }

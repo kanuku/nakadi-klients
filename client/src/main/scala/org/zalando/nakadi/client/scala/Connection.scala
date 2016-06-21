@@ -100,7 +100,8 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   type StepResult[T] = (T, Option[String])
 
   implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
-  def materializer(decider: Supervision.Decider): ActorMaterializer = {
+  
+ def materializer(decider: Supervision.Decider): ActorMaterializer = {
    ActorMaterializer( ActorMaterializerSettings(actorSystem)
       .withSupervisionStrategy(decider))
   }

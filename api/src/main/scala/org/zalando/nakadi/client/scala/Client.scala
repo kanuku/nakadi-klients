@@ -90,28 +90,6 @@ trait Client {
   def publishEvents[T <: Event](eventTypeName: String, events: Seq[T]): Future[Option[ClientError]]
 
   /**
-   * Publishes a single Events for the given EventType.
-   * {{{
-   * curl --request POST -d @fileWithEvent /event-types/{name}/events
-   * }}}
-   * @param eventTypeName - Name of the EventType
-   * @param event - Event to publish
-   *
-   */
-  def publishEvent[T <: Event](eventTypeName: String, event: T, ser: Serializer[T]): Future[Option[ClientError]]
-
-  /**
-   * Publishes a single Events to the given EventType.
-   * {{{
-   * curl --request POST -d @fileWithEvent /event-types/{name}/events
-   * }}}
-   * @param eventTypeName - Name of the EventType
-   * @param event - Event to publish
-   *
-   */
-  def publishEvent[T <: Event](eventTypeName: String, event: T): Future[Option[ClientError]]
-
-  /**
    * List the partitions tola the given EventType.
    * {{{
    * curl --request GET /event-types/{name}/partitions

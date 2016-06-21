@@ -70,14 +70,6 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
     logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
   }
 
-  def publishEvent[T <: Event](name: String, event: T, ser: Serializer[T]): Future[Option[ClientError]] = {
-    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
-  }
-
-  def publishEvent[T <: Event](name: String, event: T): Future[Option[ClientError]] = {
-    logFutureOption(connection.post(URI_EVENTS_OF_EVENT_TYPE.format(name), event).flatMap(in => mapToOption(in)))
-  }
-
   def getPartitions(name: String): Future[Either[ClientError, Option[Seq[Partition]]]] = {
     logFutureEither(connection.get(URI_PARTITIONS_BY_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)(deserializer(listOfPartitionTR))))
   }
@@ -94,6 +86,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
     logFutureEither(connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfPartitionStrategyTR))))
 
   def stop(): Option[ClientError] = {
+    materializer.shutdown()
     val result = Await.ready(connection.actorSystem().terminate(), Duration.Inf)
     None
   }

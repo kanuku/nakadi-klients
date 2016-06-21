@@ -38,6 +38,8 @@ import org.zalando.nakadi.client.utils.GeneralConversions
 import akka.http.scaladsl.model.StatusCodes
 import org.zalando.nakadi.client.scala.ScalaEventHandlerImpl
 import org.zalando.nakadi.client.scala.JavaEventHandlerImpl
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 /**
  * Handler for mapping(Java<->Scala) and handling http calls and listener subscriptions for the Java API.
@@ -49,6 +51,7 @@ trait JavaClientHandler {
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
   def subscribe[T <: JEvent](eventTypeName: String, endpoint: String, parameters: JStreamParameters, listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]]): Optional[ClientError]
   def unsubscribe[T <: JEvent](eventTypeName: String, partition: Optional[String], listener: JListener[T])
+  def stop(): Unit
 
 }
 
@@ -58,11 +61,8 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
   import GeneralConversions._
   private implicit val mat = connection.materializer()
 
-  //TODO: Use constructor later make the tests simpler
-
   def deserialize[T](response: HttpResponse, des: Deserializer[T]): Future[Optional[T]] = response match {
     case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
-
       Try(Unmarshal(entity).to[String].map(body => des.from(body))) match {
         case Success(result) => result.map(Optional.of(_))
         case Failure(error)  => throw new RuntimeException(error.getMessage)
@@ -71,7 +71,6 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
       Future.successful(Optional.empty())
     case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
       throw new RuntimeException(status.reason())
-
   }
 
   def get[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
@@ -123,6 +122,12 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
   def unsubscribe[T <: JEvent](eventTypeName: String, partition: Optional[String], listener: JListener[T]) = {
     subscriber.unsubscribe(eventTypeName, toOption(partition), listener.getId)
   }
+
+  def stop(): Unit = {
+    mat.shutdown()
+    Await.ready(connection.actorSystem().terminate(), Duration.Inf)
+  }
+
   private def getCursor(params: Option[ScalaStreamParameters]): Option[ScalaCursor] = params match {
     case Some(ScalaStreamParameters(cursor, batchLimit, streamLimit, batchFlushTimeout, streamTimeout, streamKeepAliveLimit, flowId)) => cursor
     case None => None
