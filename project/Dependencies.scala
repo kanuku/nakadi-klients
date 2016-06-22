@@ -21,11 +21,12 @@ object Dependencies {
 			"com.typesafe.akka"            %% "akka-actor"            	 					% akkaVersion,
 			"com.typesafe.akka"            %% "akka-http-experimental" 						% akkaVersion,
 			"com.typesafe.akka"            %% "akka-stream" 											% akkaVersion,
-			"com.typesafe.akka"            %% "akka-testkit"           						% akkaVersion % "test",
-		  "org.scalatest"                %% "scalatest"              						% "2.2.6" % "test",
-		  "com.google.code.findbugs"     % "jsr305"                  						% "1.3.9" % "test",
-		  "junit"                        % "junit"                   						% "4.12" % "test",
-			"org.mockito" 								 % "mockito-core" 											% "1.10.19" % "test"
+			"com.typesafe.akka"            %% "akka-testkit"           						% akkaVersion  % "test",
+		  "org.scalatest"                %% "scalatest"              						% "2.2.6"      % "test",
+		  "com.google.code.findbugs"     % "jsr305"                  						% "1.3.9"      % "test",
+		  "junit"                        % "junit"                   						% "4.12"       % "test",
+			"org.mockito" 								 % "mockito-core" 											% "1.10.19"    % "test",
+			"com.novocode" 								 % "junit-interface"                    % "0.11"       % "test"
 		)
 	}
 
