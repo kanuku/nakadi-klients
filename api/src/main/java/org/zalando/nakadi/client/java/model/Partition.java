@@ -4,9 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Partition information. Can be helpful when trying to start a stream using an
- * unmanaged API. This information is not related to the state of the consumer
- * clients.
+ * Partition information. Can be helpful when trying to start a stream using an unmanaged API. This information is not
+ * related to the state of the consumer clients.
  */
 public class Partition {
     private final String partition;
@@ -14,30 +13,19 @@ public class Partition {
     private final String newestAvailableOffset;
 
     /**
-     * Partition information. Can be helpful when trying to start a stream using
-     * an unmanaged API. This information is not related to the state of the
-     * consumer clients.
+     * Partition information. Can be helpful when trying to start a stream using an unmanaged API. This information is
+     * not related to the state of the consumer clients.
      * 
      * @param partition
      *            The partition's id.
      * @param oldestAvailableOffset
      *            An offset of the oldest available Event in that partition.
-     *            This value will be changing upon removal of Events from the
-     *            partition by the background archiving/cleanup mechanism.
      * @param newestAvailableOffset
      *            An offset of the newest available Event in that partition.
-     *            This value will be changing upon reception of new events for
-     *            this partition by Nakadi. This value can be used to construct
-     *            a cursor when opening streams (see `GET
-     *            /event-type/{name}/events` for details). Might assume the
-     *            special name BEGIN, meaning a pointer to the offset of the
-     *            oldest available event in the partition.
      */
     @JsonCreator
-    public Partition(
-    		@JsonProperty("partition") String partition, 
-    		@JsonProperty("oldest_available_offset")String oldestAvailableOffset, 
-    		@JsonProperty("newest_available_offset")String newestAvailableOffset) {
+    public Partition(@JsonProperty("partition") String partition, @JsonProperty("oldest_available_offset") String oldestAvailableOffset,
+            @JsonProperty("newest_available_offset") String newestAvailableOffset) {
         this.partition = partition;
         this.oldestAvailableOffset = oldestAvailableOffset;
         this.newestAvailableOffset = newestAvailableOffset;
@@ -53,6 +41,48 @@ public class Partition {
 
     public String getNewestAvailableOffset() {
         return newestAvailableOffset;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((newestAvailableOffset == null) ? 0 : newestAvailableOffset.hashCode());
+        result = prime * result + ((oldestAvailableOffset == null) ? 0 : oldestAvailableOffset.hashCode());
+        result = prime * result + ((partition == null) ? 0 : partition.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Partition other = (Partition) obj;
+        if (newestAvailableOffset == null) {
+            if (other.newestAvailableOffset != null)
+                return false;
+        } else if (!newestAvailableOffset.equals(other.newestAvailableOffset))
+            return false;
+        if (oldestAvailableOffset == null) {
+            if (other.oldestAvailableOffset != null)
+                return false;
+        } else if (!oldestAvailableOffset.equals(other.oldestAvailableOffset))
+            return false;
+        if (partition == null) {
+            if (other.partition != null)
+                return false;
+        } else if (!partition.equals(other.partition))
+            return false;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "Partition [partition=" + partition + ", oldestAvailableOffset=" + oldestAvailableOffset + ", newestAvailableOffset=" + newestAvailableOffset + "]";
     }
 
 }

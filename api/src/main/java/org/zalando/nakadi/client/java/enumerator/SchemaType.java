@@ -1,6 +1,6 @@
 package org.zalando.nakadi.client.java.enumerator;
 
-import scala.Option;
+import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -17,12 +17,12 @@ public enum SchemaType {
 		return schema;
 	}
 
-	public static Option<SchemaType> withName(String code) {
+	public static Optional<SchemaType> withName(String code) {
 		for (SchemaType e : SchemaType.values()) {
-			if (e.schema.equals(code))
-				return Option.apply(e);
+			if (e != null && e.schema.equals(code))
+				return Optional.of(e);
 		}
-		return Option.empty();
+		return Optional.empty();
 	}
 
 }

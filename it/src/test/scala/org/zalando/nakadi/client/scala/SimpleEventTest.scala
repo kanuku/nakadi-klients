@@ -11,6 +11,7 @@ import org.zalando.nakadi.client.scala.test.factory.events.SimpleEventListener
 import org.zalando.nakadi.client.scala.model.PartitionStrategy
 import org.scalatest.BeforeAndAfterAll
 import org.zalando.nakadi.client.scala.model.EventValidationStrategy
+import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
 
 class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
@@ -143,25 +144,15 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
     result should contain(PartitionStrategy.RANDOM)
     result should contain(PartitionStrategy.USER_DEFINED)
   }
-  "Receive validation-strategies successfully" ignore {
-    val eventGenerator = new DefaultMySimpleEventGenerator() {
-      def eventTypeId = s"SimpleEventIntegrationTest-Receive-validation-strategies-successfully"
-    }
-    val it = new EventIntegrationHelper(eventGenerator, client)
-    val result = it.getValidationStrategies()
-    result.size shouldBe 0 //NOT IMPLEMENTED
-  }
 
   "Receive enrichment-strategies successfully" ignore {
     val eventGenerator = new DefaultMySimpleEventGenerator() {
       def eventTypeId = s"SimpleEventIntegrationTest-Receive-enrichment-strategies-successfully"
     }
     val it = new EventIntegrationHelper(eventGenerator, client)
-    val result = it.getValidationStrategies()
+    val result = it.getEnrichmentStrategies()
     result.size shouldBe 1
-
-    result should contain(EventValidationStrategy.SCHEMA_VALIDATION)
-
+    result should contain(EventEnrichmentStrategy.METADATA)
   }
 
 }

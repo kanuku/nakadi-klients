@@ -1,16 +1,13 @@
 package org.zalando.nakadi.client.java.enumerator;
 
-import scala.Option;
+import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Defines a rule for transformation of an incoming Event. No existing fields
- * might be modified. In practice this is used to set automatically values in
- * the Event upon reception (i.e. set a reception timestamp on the Event). Rules
- * might require additional parameters; see the `doc` field of the existing
- * rules for details. See GET /registry/enrichment-strategies for a list of
- * available rules.
+ * Determines the enrichment to be performed on an Event upon reception(server side). Enrichment is performed once upon
+ * reception (and after validation) of an Event and is only possible on fields that are not defined on the incoming
+ * Event.
  */
 
 public enum EventEnrichmentStrategy {
@@ -27,11 +24,11 @@ public enum EventEnrichmentStrategy {
         return metadata;
     }
 
-    public static Option<EventEnrichmentStrategy> withName(String code) {
+    public static Optional<EventEnrichmentStrategy> withName(String code) {
         for (EventEnrichmentStrategy e : EventEnrichmentStrategy.values()) {
-            if (e.metadata.equals(code))
-                return Option.apply(e);
+            if (e != null && e.metadata.equals(code))
+                return Optional.of(e);
         }
-        return Option.empty();
+        return Optional.empty();
     }
 }

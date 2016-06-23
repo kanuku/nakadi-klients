@@ -97,11 +97,6 @@ public class ClientImpl implements Client {
     }
 
     @Override
-    public Future<Optional<List<EventValidationStrategy>>> getValidationStrategies() {
-        return handler.get(Uri.URI_VALIDATION_STRATEGIES(), seqOfEventValidationStrategy);
-    }
-
-    @Override
     public Future<Optional<List<EventEnrichmentStrategy>>> getEnrichmentStrategies() {
         return handler.get(Uri.URI_ENRICHMENT_STRATEGIES(), seqOfEventEnrichmentStrategy);
     }

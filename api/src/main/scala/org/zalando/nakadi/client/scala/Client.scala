@@ -99,15 +99,6 @@ trait Client {
   def getPartitions(eventTypeName: String): Future[Either[ClientError, Option[Seq[Partition]]]]
 
   /**
-   * Returns all of the validation strategies supported by this installation of Nakadi.
-   *
-   * {{{
-   * curl --request GET /registry/validation-strategies
-   * }}}
-   */
-  def getValidationStrategies(): Future[Either[ClientError, Option[Seq[EventValidationStrategy.Value]]]]
-
-  /**
    * Returns all of the enrichment strategies supported by this installation of Nakadi.
    * {{{
    * curl --request GET /registry/enrichment-strategies

@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Metrics {
-    private final Map<String,Object> metrics;
+    private final Map<String, Object> metrics;
 
     @JsonCreator
     public Metrics(@JsonProperty Map<String, Object> metrics) {
@@ -15,6 +15,11 @@ public class Metrics {
 
     public Map<String, Object> getMetrics() {
         return metrics;
+    }
+
+    @Override
+    public String toString() {
+        return "Metrics [metrics=" + metrics + "]";
     }
 
 }

@@ -65,7 +65,6 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client) extends 
     eventTypes
   }
 
-  def getValidationStrategies(): Seq[EventValidationStrategy.Value] = extractFromRightOptional(() => client.getValidationStrategies())
 
   def getEnrichmentStrategies(): Seq[EventEnrichmentStrategy.Value] = extractFromRightOptional(() => client.getEnrichmentStrategies())
   def getPartitionStrategies(): Seq[PartitionStrategy.Value] = extractFromRightOptional(() => client.getPartitioningStrategies())
