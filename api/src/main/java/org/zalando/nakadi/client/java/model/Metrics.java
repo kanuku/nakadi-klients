@@ -6,20 +6,26 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Metrics {
-    private final Map<String, Object> metrics;
+    private final String version;
+    private final Map<String, Object> gauges;
 
     @JsonCreator
-    public Metrics(@JsonProperty Map<String, Object> metrics) {
-        this.metrics = metrics;
+    public Metrics(@JsonProperty("version") String version, @JsonProperty("gauges") Map<String, Object> gauges) {
+        this.version = version;
+        this.gauges = gauges;
     }
 
-    public Map<String, Object> getMetrics() {
-        return metrics;
+    public String getVersion() {
+        return version;
+    }
+
+    public Map<String, Object> getGauges() {
+        return gauges;
     }
 
     @Override
     public String toString() {
-        return "Metrics [metrics=" + metrics + "]";
+        return "Metrics [version=" + version + ", gauges=" + gauges + "]";
     }
 
 }

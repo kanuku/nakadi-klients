@@ -97,7 +97,7 @@ case class Problem(
   detail: Option[String],
   instance: Option[String])
 
-case class Metrics(metrics: Map[String, Any])
+case class Metrics(version:String,gauges: Map[String, Any])
 
 /**
  * Partition information. Can be helpful when trying to start a stream using an unmanaged API. This information is not related to the state of the consumer clients.

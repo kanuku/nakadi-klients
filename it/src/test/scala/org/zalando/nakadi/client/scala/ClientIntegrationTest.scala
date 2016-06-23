@@ -2,7 +2,6 @@ package org.zalando.nakadi.client.scala
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
 import org.zalando.nakadi.client.scala.model.Cursor
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.model.PartitionStrategyType
 import org.zalando.nakadi.client.scala.test.factory.EventIntegrationHelper
 import org.zalando.nakadi.client.scala.test.factory.events.MySimpleEvent
@@ -17,7 +16,6 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
 
   import org.scalatest.Matchers._
   import ClientFactory._
-  import JacksonJsonMarshaller._
   import MySimpleEvent._
 
   val client = ClientFactory.getScalaClient()
@@ -34,9 +32,8 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
     val Right(metricsOpt) = result
     metricsOpt.isDefined shouldBe true
     val Some(metrics) = metricsOpt
-    println(" >>>> " + metrics)
-    //TODO Deserialization of Metrics is failing
-    //    metrics.metrics.size > 0 
+    metrics.version shouldNot be (null)
+    metrics.gauges.size should be > 0
   }
 
   "GET /event-types" in {
@@ -45,7 +42,8 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
     val Right(eventTypesOpt) = result
     eventTypesOpt.isDefined shouldBe true
     val Some(eventTypes) = eventTypesOpt
+    eventTypes.size should (equal(0) or (be > 0))
   }
-  
+
 }
 
