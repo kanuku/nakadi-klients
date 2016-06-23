@@ -8,7 +8,6 @@ import java.util.concurrent.Future;
 import org.zalando.nakadi.client.java.Client;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
-import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
 import org.zalando.nakadi.client.java.enumerator.SchemaType;
 import org.zalando.nakadi.client.java.model.Event;
@@ -51,8 +50,6 @@ public class EventCreationExample {
 			EventTypeSchema eventTypeSchema) {
 		String owningApplication = "team-laas";
 		EventTypeCategory category = EventTypeCategory.UNDEFINED;
-		List<EventValidationStrategy> validationStrategies = Lists
-				.newArrayList();
 		List<EventEnrichmentStrategy> enrichmentStrategies = Lists
 				.newArrayList();
 		PartitionStrategy partitionStrategy = PartitionStrategy.RANDOM;
@@ -63,7 +60,6 @@ public class EventCreationExample {
 		return new EventType(name, //
 				owningApplication, //
 				category, //
-				validationStrategies, //
 				enrichmentStrategies, //
 				partitionStrategy, //
 				eventTypeSchema, //

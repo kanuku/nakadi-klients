@@ -14,7 +14,7 @@ import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 
 /**
- * Tests the Marshalling and Umarshalling of the same object in a single run. It tests in this sequence: 1.Marshall and 2.Unmarshall. <br>
+ * Tests the Marshalling and Umarshalling of the same json object. It tests in this sequence: 1.Marshall and 2.Unmarshall. <br>
  * This is just a simple test that should break when Custom
  * Marshallers/Unmarshallers are used and produce different
  * unexpected results.
@@ -47,9 +47,6 @@ import JacksonJsonMarshaller._
     }
     s"$testName(eventTypeSchema)" in {
       checkSerializationDeserializationProcess("eventTypeSchema", eventTypeSchema)
-    }
-    s"$testName(eventValidationStrategy)" in {
-      checkSerializationDeserializationProcess("eventValidationStrategy", eventValidationStrategy)
     }
     s"$testName(partitionResolutionStrategy)" in {
       checkSerializationDeserializationProcess("partitionResolutionStrategy", partitionResolutionStrategy)

@@ -4,7 +4,6 @@ import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
 import org.zalando.nakadi.client.scala.model.EventType
 import org.zalando.nakadi.client.scala.model.EventTypeCategory
-import org.zalando.nakadi.client.scala.model.EventValidationStrategy
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala.model.EventTypeStatistics
 import org.zalando.nakadi.client.scala.model.EventTypeSchema
@@ -50,7 +49,6 @@ trait EventGenerator {
     new EventType(eventTypeName, //
       owner, //
       category, //
-      validationStrategies, //
       enrichmentStrategies, //
       partitionStrategy, //
       schemaType, //
@@ -72,10 +70,6 @@ trait EventGenerator {
    */
   def category: EventTypeCategory.Value = EventTypeCategory.UNDEFINED
 
-  /**
-   * Returns the validationStrategies value. Default = Nil
-   */
-  def validationStrategies: Seq[EventValidationStrategy.Value] = Nil
   /**
    * Returns the enrichmentStrategies value. Default = Nil
    */

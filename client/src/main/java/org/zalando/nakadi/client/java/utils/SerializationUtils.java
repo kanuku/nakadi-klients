@@ -5,7 +5,6 @@ import java.util.List;
 import org.zalando.nakadi.client.Deserializer;
 import org.zalando.nakadi.client.Serializer;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
 import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.model.JavaJacksonJsonMarshaller;
@@ -50,10 +49,6 @@ public class SerializationUtils {
 
     public static Deserializer<List<Partition>> seqOfPartitionDeserializer() {
         return JavaJacksonJsonMarshaller.deserializer(JavaJacksonJsonMarshaller.listOfPartitionTR());
-    }
-
-    public static Deserializer<List<EventValidationStrategy>> seqOfEventValidationStrategy() {
-        return JavaJacksonJsonMarshaller.deserializer(JavaJacksonJsonMarshaller.listOfEventValidationStrategyTR());
     }
 
     public static Deserializer<List<EventEnrichmentStrategy>> seqOfEventEnrichmentStrategy() {

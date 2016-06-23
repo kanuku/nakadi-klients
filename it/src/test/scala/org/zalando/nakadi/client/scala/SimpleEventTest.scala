@@ -10,7 +10,6 @@ import org.zalando.nakadi.client.scala.test.factory.events.MySimpleEvent
 import org.zalando.nakadi.client.scala.test.factory.events.SimpleEventListener
 import org.zalando.nakadi.client.scala.model.PartitionStrategy
 import org.scalatest.BeforeAndAfterAll
-import org.zalando.nakadi.client.scala.model.EventValidationStrategy
 import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
 
 class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
@@ -119,7 +118,6 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
     eventType.partitionStrategy shouldBe it.eventType.partitionStrategy
     eventType.schema shouldBe it.eventType.schema
     eventType.statistics shouldBe it.eventType.statistics
-    eventType.validationStrategies shouldBe null
     eventType.enrichmentStrategies shouldBe it.eventType.enrichmentStrategies
     eventType.partitionKeyFields shouldBe it.eventType.partitionKeyFields
   }

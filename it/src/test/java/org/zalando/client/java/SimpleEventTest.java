@@ -41,7 +41,7 @@ public class SimpleEventTest {
 
     @Test
     public void handle404Graciously() throws InterruptedException, ExecutionException {
-        
+
         EventGenerator gen = new MySimpleEventGenerator()//
                 .withEventTypeId("SimpleEventTest-handle404Graciously")//
                 .build();
@@ -109,7 +109,7 @@ public class SimpleEventTest {
                 flowId);
         client.subscribe(it.getGen().getEventTypeName(), parameters, listener, typeRef);
         client.unsubscribe(it.getGen().getEventTypeName(), Optional.of("0"), listener);
-        List<Event> createdEvents = it.publishEvents(nrOfEvents);
+        it.publishEvents(nrOfEvents);
         Thread.sleep(5000);
         assertEquals("Unsubscribed listener must not receive events", 0, listener.getReceivedEvents().size());
     }
@@ -135,7 +135,6 @@ public class SimpleEventTest {
         assertEquals(eventType.getSchema().getSchema(), originalEventType.getSchema().getSchema());
         assertEquals(eventType.getSchema().getType(), originalEventType.getSchema().getType());
         assertEquals(eventType.getStatistics(), originalEventType.getStatistics());
-        assertEquals(eventType.getValidationStrategies(), originalEventType.getValidationStrategies());
     }
 
     @Test

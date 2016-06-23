@@ -49,7 +49,6 @@ object EventCreationExample extends App {
 
   val owner = "team-laas"
   val category = EventTypeCategory.UNDEFINED // We want just to pass data without through Nakadi, simple schema-validation is enough!
-  val validationStrategies = Nil // Validation strategies are not defined yet!
   val enrichmentStrategies = Nil
   val partitionStrategy = Some(PartitionStrategy.RANDOM)
   val dataKeyFields = Nil
@@ -58,7 +57,6 @@ object EventCreationExample extends App {
   val eventType = new EventType(eventTypeName,
     owner,
     category,
-    validationStrategies,
     enrichmentStrategies,
     partitionStrategy,
     eventTypeSchema,

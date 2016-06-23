@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
-import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
 import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventType;
@@ -31,8 +30,6 @@ public interface EventGenerator {
     String getOwner();
 
     EventTypeCategory getCategory();
-
-    List<EventValidationStrategy> getValidationStrategies();
 
     List<EventEnrichmentStrategy> getEnrichmentStrategies();
 

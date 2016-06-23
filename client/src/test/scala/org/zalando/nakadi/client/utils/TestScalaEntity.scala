@@ -1,6 +1,24 @@
 package org.zalando.nakadi.client.utils
 
-import org.zalando.nakadi.client.scala.model._
+import org.zalando.nakadi.client.scala.model.BatchItemPublishingStatus
+import org.zalando.nakadi.client.scala.model.BatchItemResponse
+import org.zalando.nakadi.client.scala.model.BatchItemStep
+import org.zalando.nakadi.client.scala.model.Cursor
+import org.zalando.nakadi.client.scala.model.DataChangeEvent
+import org.zalando.nakadi.client.scala.model.DataOperation
+import org.zalando.nakadi.client.scala.model.Event
+import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
+import org.zalando.nakadi.client.scala.model.EventMetadata
+import org.zalando.nakadi.client.scala.model.EventStreamBatch
+import org.zalando.nakadi.client.scala.model.EventType
+import org.zalando.nakadi.client.scala.model.EventTypeCategory
+import org.zalando.nakadi.client.scala.model.EventTypeSchema
+import org.zalando.nakadi.client.scala.model.EventTypeStatistics
+import org.zalando.nakadi.client.scala.model.Metrics
+import org.zalando.nakadi.client.scala.model.Partition
+import org.zalando.nakadi.client.scala.model.PartitionStrategy
+import org.zalando.nakadi.client.scala.model.Problem
+import org.zalando.nakadi.client.scala.model.SchemaType
 
 object TestScalaEntity {
   //
@@ -10,14 +28,13 @@ object TestScalaEntity {
   val partition = new Partition("0", "132", "4423")
   val cursor = new Cursor("0", "120")
   val eventTypeSchema = new EventTypeSchema(SchemaType.JSON, "schema")
-  val eventValidationStrategy = EventValidationStrategy.SCHEMA_VALIDATION
   val partitionResolutionStrategy = PartitionStrategy.HASH
   val eventEnrichmentStrategy = EventEnrichmentStrategy.METADATA
 
   //Complex objects
   val eventTypeStatistics = new EventTypeStatistics(9281002, 19283, 21, 312)
   val eventType = new EventType("name", "owner", 
-      EventTypeCategory.BUSINESS, List(EventValidationStrategy.SCHEMA_VALIDATION)
+      EventTypeCategory.BUSINESS 
       , List(EventEnrichmentStrategy.METADATA), Some(partitionResolutionStrategy), 
       eventTypeSchema, 
       List("dataKeyFields"), List("partitioningKeyFields"), Option(eventTypeStatistics))

@@ -16,7 +16,6 @@ import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
 import org.zalando.nakadi.client.scala.model.EventType
-import org.zalando.nakadi.client.scala.model.EventValidationStrategy
 import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.model.Metrics
 import org.zalando.nakadi.client.scala.model.Partition
@@ -72,10 +71,6 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
 
   def getPartitions(name: String): Future[Either[ClientError, Option[Seq[Partition]]]] = {
     logFutureEither(connection.get(URI_PARTITIONS_BY_EVENT_TYPE.format(name)).flatMap(in => mapToEither(in)(deserializer(listOfPartitionTR))))
-  }
-
-  def getValidationStrategies(): Future[Either[ClientError, Option[Seq[EventValidationStrategy.Value]]]] = {
-    logFutureEither(connection.get(URI_VALIDATION_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfEventValidationStrategyTR))))
   }
 
   def getEnrichmentStrategies(): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.Value]]]] = {

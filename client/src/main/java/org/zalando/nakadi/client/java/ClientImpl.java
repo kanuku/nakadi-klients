@@ -8,7 +8,6 @@ import java.util.concurrent.Future;
 import org.zalando.nakadi.client.Deserializer;
 import org.zalando.nakadi.client.Serializer;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
 import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventStreamBatch;
@@ -30,7 +29,6 @@ public class ClientImpl implements Client {
     // List Deserializers
     private final Deserializer<List<EventType>> seqOfEventTypeDeserializer = SerializationUtils.seqOfEventTypeDeserializer();
     private final Deserializer<List<Partition>> seqOfPartitionDeserializer = SerializationUtils.seqOfPartitionDeserializer();
-    private final Deserializer<List<EventValidationStrategy>> seqOfEventValidationStrategy = SerializationUtils.seqOfEventValidationStrategy();
     private final Deserializer<List<EventEnrichmentStrategy>> seqOfEventEnrichmentStrategy = SerializationUtils.seqOfEventEnrichmentStrategy();
     private final Deserializer<List<PartitionStrategy>> seqOfPartitionStrategy = SerializationUtils.seqOfPartitionStrategy();
     // Serializers

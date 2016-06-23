@@ -60,7 +60,7 @@ trait ModelFactory {
                       owningApplication: String = "nakadi-klients"): EventType = {
     new EventType(name, //
       owningApplication, //
-      EventTypeCategory.UNDEFINED, Nil, Nil, //
+      EventTypeCategory.UNDEFINED, Nil, //
       Some(PartitionStrategy.RANDOM), eventTypeSchema, //
       Nil, paritionKeyFields, None)
   }

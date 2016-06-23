@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
-import org.zalando.nakadi.client.java.enumerator.EventValidationStrategy;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
 import org.zalando.nakadi.client.java.enumerator.SchemaType;
 import org.zalando.nakadi.client.java.model.Event;
@@ -21,7 +20,6 @@ public abstract class EventGeneratorBuilder {
     private EventType eventType = null;
     private String owner = "Nakadi-klients(java-integration-test-suite)";
     private EventTypeCategory category = EventTypeCategory.UNDEFINED;
-    private List<EventValidationStrategy> validationStrategies = Collections.emptyList();
     private List<EventEnrichmentStrategy> enrichmentStrategies = Collections.emptyList();
     private PartitionStrategy partitionStrategy = PartitionStrategy.RANDOM;
     private EventTypeSchema schemaType;
@@ -64,10 +62,7 @@ public abstract class EventGeneratorBuilder {
         return this;
     }
 
-    public EventGeneratorBuilder withValidationStrategies(List<EventValidationStrategy> validationStrategies) {
-        this.validationStrategies = validationStrategies;
-        return this;
-    }
+   
 
     public EventGeneratorBuilder withEnrichmentStrategies(List<EventEnrichmentStrategy> enrichmentStrategies) {
         this.enrichmentStrategies = enrichmentStrategies;
@@ -133,7 +128,6 @@ public abstract class EventGeneratorBuilder {
                 return new EventType(gen.getEventTypeName(), //
                         gen.getOwner(), //
                         gen.getCategory(),//
-                        gen.getValidationStrategies(), //
                         gen.getEnrichmentStrategies(),//
                         gen.getPartitionStrategy(), //
                         gen.getSchemaType(), //
@@ -150,11 +144,6 @@ public abstract class EventGeneratorBuilder {
             @Override
             public EventTypeCategory getCategory() {
                 return category;
-            }
-
-            @Override
-            public List<EventValidationStrategy> getValidationStrategies() {
-                return validationStrategies;
             }
 
             @Override
@@ -233,10 +222,7 @@ public abstract class EventGeneratorBuilder {
         return category;
     }
 
-    protected List<EventValidationStrategy> getValidationStrategies() {
-        return validationStrategies;
-    }
-
+     
     protected List<EventEnrichmentStrategy> getEnrichmentStrategies() {
         return enrichmentStrategies;
     }

@@ -31,7 +31,6 @@ object JacksonJsonMarshaller {
   implicit def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
   implicit def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
   implicit def eventTypeSchemaTR: TypeReference[EventTypeSchema] = new TypeReference[EventTypeSchema] {}
-  implicit def eventValidationStrategyTR: TypeReference[EventValidationStrategy.Value] = new TypeReference[EventValidationStrategy.Value] {}
   implicit def partitionResolutionStrategyTR: TypeReference[PartitionStrategy.Value] = new TypeReference[PartitionStrategy.Value] {}
   implicit def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy.Value] = new TypeReference[EventEnrichmentStrategy.Value] {}
   implicit def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] = new TypeReference[DataChangeEventQualifier] {}
@@ -47,7 +46,6 @@ object JacksonJsonMarshaller {
 
   //Lists
   implicit def listOfPartitionStrategyTR: TypeReference[Seq[PartitionStrategy.Value]] = new TypeReference[Seq[PartitionStrategy.Value]] {}
-  implicit def listOfEventValidationStrategyTR: TypeReference[Seq[EventValidationStrategy.Value]] = new TypeReference[Seq[EventValidationStrategy.Value]] {}
   implicit def listOfEventEnrichmentStrategyTR: TypeReference[Seq[EventEnrichmentStrategy.Value]] = new TypeReference[Seq[EventEnrichmentStrategy.Value]] {}
   implicit def listOfEventTypeTR: TypeReference[Seq[EventType]] = new TypeReference[Seq[EventType]] {}
   implicit def listOfPartitionTR: TypeReference[Seq[Partition]] = new TypeReference[Seq[Partition]] {}

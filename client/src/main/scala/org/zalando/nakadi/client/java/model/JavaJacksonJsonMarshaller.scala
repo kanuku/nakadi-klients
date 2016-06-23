@@ -28,7 +28,6 @@ object JavaJacksonJsonMarshaller {
    def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
    def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
    def eventTypeSchemaTR: TypeReference[EventTypeSchema] = new TypeReference[EventTypeSchema] {}
-   def eventValidationStrategyTR: TypeReference[EventValidationStrategy] = new TypeReference[EventValidationStrategy] {}
    def partitionResolutionStrategyTR: TypeReference[PartitionStrategy] = new TypeReference[PartitionStrategy] {}
    def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy] = new TypeReference[EventEnrichmentStrategy] {}
    def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] = new TypeReference[DataChangeEventQualifier] {}
@@ -44,7 +43,6 @@ object JavaJacksonJsonMarshaller {
 
   //Lists
    def listOfPartitionStrategyTR: TypeReference[java.util.List[PartitionStrategy]] = new TypeReference[java.util.List[PartitionStrategy]] {}
-   def listOfEventValidationStrategyTR: TypeReference[java.util.List[EventValidationStrategy]] = new TypeReference[java.util.List[EventValidationStrategy]] {}
    def listOfEventEnrichmentStrategyTR: TypeReference[java.util.List[EventEnrichmentStrategy]] = new TypeReference[java.util.List[EventEnrichmentStrategy]] {}
    def listOfEventTypeTR: TypeReference[java.util.List[EventType]] = new TypeReference[java.util.List[EventType]] {}
    def listOfPartitionTR: TypeReference[java.util.List[Partition]] = new TypeReference[java.util.List[Partition]] {}
