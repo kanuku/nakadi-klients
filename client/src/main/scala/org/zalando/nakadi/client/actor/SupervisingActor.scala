@@ -58,51 +58,51 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
 
   def receive: Receive = {
     case OffsetMsg(cursor, subKey) =>
-      log.info("Received cursor {} - subKey {}", cursor, subKey)
+      log.info("Received cursor [{}] - subKey [{}]", cursor, subKey)
       subscriptions.addCursor(subKey, Some(cursor))
     case subscrition: SubscribeMsg =>
-      log.info("New subscription {}", subscrition)
+      log.info("New subscription [{}]", subscrition)
       subscribe(subscrition)
     case unsubscription: UnsubscribeMsg =>
-      log.info("Number of subscriptions before unsubscribing {}", subscriptions.activeSize)
+      log.debug("Number of subscriptions before unsubscribing [{}]", subscriptions.size)
       unsubscribe(unsubscription)
-      log.info("Number of subscriptions after unsubscribing {}", subscriptions.activeSize)
+      log.info("Number of subscriptions after unsubscribing [{}]", subscriptions.size)
     case Terminated(terminatedActor) =>
-      log.info(s"ConsumingActor terminated {}", terminatedActor.path.name)
+      log.info(s"Actor [{}] terminated", terminatedActor.path.name)
       subscriptions.entryByActor(terminatedActor) match {
         case Some(SubscriptionEntry(SubscribeMsg(eventTypeName, endpoint, Some(Cursor(partition, offset)), handler), actor: ActorRef)) =>
+          val cursor = subscriptions.cursorByActor(terminatedActor)
           val unsubscription = UnsubscribeMsg(eventTypeName, Option(partition), handler.id())
           unsubscribe(unsubscription)
-          val cursor = subscriptions.cursorByActor(terminatedActor)
-          val subscription = SubscribeMsg(eventTypeName, endpoint, cursor, handler)
-          subscribe(subscription)
+          val newSubscription = SubscribeMsg(eventTypeName, endpoint, cursor, handler)
+          subscribe(newSubscription)
         case Some(SubscriptionEntry(SubscribeMsg(eventTypeName, endpoint, None, handler), actor: ActorRef)) =>
+          val cursor = subscriptions.cursorByActor(terminatedActor)
           val unsubscription = UnsubscribeMsg(eventTypeName, None, handler.id())
           unsubscribe(unsubscription)
-          val cursor = subscriptions.cursorByActor(terminatedActor)
-          val subscription = SubscribeMsg(eventTypeName, endpoint, cursor, handler)
-          subscribe(subscription)
+          val newSubscription = SubscribeMsg(eventTypeName, endpoint, cursor, handler)
+          subscribe(newSubscription)
         case None =>
-          log.warning("Did not find any SubscriptionKey for {}", terminatedActor.path.toString())
+          log.warning("Did not find any SubscriptionKey for [{}]", terminatedActor.path.toString())
         case e =>
-          log.warning("None exhaustive match! {}", e)
+          log.error("Received unexpected message! [{}]", e)
       }
   }
 
   def subscribe(subscribe: SubscribeMsg) = {
     subscriptionCounter += 1
     val SubscribeMsg(eventTypeName, endpoint, optCursor, eventHandler) = subscribe
-    log.info("Subscription nr {} - cursor {} - eventType {} - listener {}", subscriptionCounter, optCursor, eventTypeName, eventHandler.id())
+    log.info("Subscription nr [{}] - cursor [{}] - eventType [{}] - listener [{}]", subscriptionCounter, optCursor, eventTypeName, eventHandler.id())
 
-    val subKey: SubscriptionKey = optCursor match {
+    val subscriptionKey: SubscriptionKey = optCursor match {
       case Some(Cursor(partition, _)) => SubscriptionKey(eventTypeName, Some(partition))
       case None                       => SubscriptionKey(eventTypeName, None)
     }
 
     //Create the Consumer
-    val consumingActor = context.actorOf(Props(classOf[ConsumingActor], subKey, eventHandler), "EventConsumingActor-" + subscriptionCounter)
+    val consumingActor = context.actorOf(Props(classOf[ConsumingActor], subscriptionKey, eventHandler), "ConsumingActor-" + subscriptionCounter)
 
-    context.watch(consumingActor) //If the streaming is ending!!
+    context.watch(consumingActor)
 
     val subEntry: SubscriptionEntry = SubscriptionEntry(subscribe, consumingActor)
 
@@ -111,23 +111,20 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
 
     //Create the pipeline
     subscriptionHandler.createPipeline(optCursor, consumingActor, endpoint, eventHandler)
-    subscriptions.addSubscription(subKey, consumingActor, subEntry)
-    subscriptions.addCursor(subKey, optCursor)
+    subscriptions.add(subscriptionKey, consumingActor, subEntry)
+    subscriptions.addCursor(subscriptionKey, optCursor)
   }
 
-  def unsubscribe(unsubscription: UnsubscribeMsg): Boolean = {
+  def unsubscribe(unsubscription: UnsubscribeMsg): Unit = {
     val UnsubscribeMsg(eventTypeName, partition, eventHandlerId) = unsubscription
     val key: SubscriptionKey = SubscriptionKey(eventTypeName, partition)
-    log.info("Unsubscribe({})  ", unsubscription)
     subscriptions.entry(key) match {
-      case Some(SubscriptionEntry(handler, actor)) =>
-        log.info("Unsubscribing Listener : {} from actor: {}", handler, actor)
+      case Some(SubscriptionEntry(SubscribeMsg(eventTypeName, endpoint, cursor, handler), actor: ActorRef)) =>
+        log.info("Unsubscribing Listener : [{}] from actor: [{}]", handler.id(), actor.path)
+        subscriptions.remove(key)
         actor ! PoisonPill
-        subscriptions.unsubscribe(key)
-        true
       case None =>
         log.warning("Listener not found for {}", unsubscription)
-        false
     }
   }
 

@@ -55,7 +55,7 @@ class ConsumingActor(subscription: SubscriptionKey,
   override def receive: Receive = {
     case OnNext(msg: ByteString) =>
       val message = msg.utf8String
-      log.debug("Event - cursor {} - {} - msg {}", lastCursor, subscription, message)
+      log.info("Event - prevCursor [{}] - [{}] - msg [{}]", lastCursor, subscription, message)
       handler.handleOnReceive(subscription.toString(), message) match {
         case Right(cursor) =>
           lastCursor = Some(cursor)
@@ -63,16 +63,16 @@ class ConsumingActor(subscription: SubscriptionKey,
         case Left(error) => log.error(error.error.getMessage)
       }
     case OnError(err: Throwable) =>
-      log.error("onError - cursor {} - {} - error {}", lastCursor, subscription, err.getMessage)
+      log.error("onError - cursor [{}] - [{}] - error [{}]", lastCursor, subscription, err.getMessage)
       context.stop(self)
     case OnComplete =>
-      //  When using stream_limit, the server stops the connection.
-      log.info("onComplete - cursor {} - {}", lastCursor, subscription)
-      context.parent ! UnsubscribeMsg 
+      log.info("onComplete - connection closed by server - cursor [{}] - [{}]", lastCursor, subscription)
+      context.stop(self)
     case Terminated =>
-      log.info("Received Terminated msg - subscription {} with listener-id {} ", subscription, handler.id())
+      log.info("Received Terminated msg - subscription [{}] with listener-id [{}] ", subscription, handler.id())
+      context.stop(self)
     case a =>
-      log.error("Could not handle message: {}", a)
+      log.error("Could not handle message: [{}]", a)
       context.stop(self)
   }
 
