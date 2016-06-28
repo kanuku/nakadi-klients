@@ -24,22 +24,22 @@ class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
 
   def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MeetingsEvent]): Unit = {
     eventCount.addAndGet(events.size.toLong)
-    log.info("#####################################")
-    log.info(s"Received " + events.size.toLong)
-    log.info(s"Has a total of $eventCount events")
-    log.info("#####################################")
+//    log.debug("#####################################")
+//    log.debug(s"Received " + events.size.toLong)
+    log.debug(s"Has a total of $eventCount events")
+//    log.debug("#####################################")
 //    if (!slept) {
-//      Thread.sleep(65000)
+//      Thread.sleep(1000)
 //      slept = true
 //    }
     log.info(s"Proccessed cursor $cursor")
 
   }
   def onSubscribed(endpoint: String, cursor: Option[Cursor]): Unit = {
-    log.info("########## onSubscribed ############")
-    log.info("Endpoint " + endpoint)
-    log.info("Cursor " + cursor)
-    log.info("#####################################")
+    log.debug("########## onSubscribed ############")
+    log.debug("Endpoint " + endpoint)
+    log.debug("Cursor " + cursor)
+    log.debug("#####################################")
 
   }
 }
@@ -60,17 +60,17 @@ object EventListenerExample extends App {
    * Create the Parameters with the cursor.
    */
 
-  val cursor = Cursor("0", "5000")
+  val cursor = Cursor("0", "BEGIN")
 
   val parameters = new StreamParameters(
     cursor = Some(cursor) //
 //    cursor = None //
-    , batchLimit = Some(100) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
+    , batchLimit = Some(400) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
     //        , streamLimit = Some(500) // Maximum number of `Event`s to stream (over all partitions being streamed in this
     //connection).
-            , batchFlushTimeout = Some(5) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
+//            , batchFlushTimeout = Some(10) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
     //        ,streamKeepAliveLimit=Some(4)
-            , streamTimeout = Some(5)
+            , streamTimeout = Some(0)
     )
 
   /**
@@ -84,7 +84,9 @@ object EventListenerExample extends App {
   val eventTypeName = "Example-2000"
   val result = client.subscribe(eventTypeName, parameters, listener)
 
-//  Thread.sleep(30000)
+//  Thread.sleep(10000)
+//  val listener2 = new EventCounterListener("Test2")
+//  client.subscribe(eventTypeName, parameters, listener2)
   //  client.stop()
 //  client.unsubscribe(eventTypeName, Some("0"), listener)
   //  client.subscribe(eventTypeName, parameters, listener)

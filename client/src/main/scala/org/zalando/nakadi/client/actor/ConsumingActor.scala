@@ -35,14 +35,10 @@ import akka.actor.Terminated
  *
  */
 
-object ConsumingActor {
-}
-
 class ConsumingActor(subscription: SubscriptionKey,
                      handler: EventHandler)
     extends Actor with ActorLogging with ActorSubscriber {
   import ModelConverter._
-  import ConsumingActor._
 
   var lastCursor: Option[Cursor] = null
 
@@ -67,7 +63,7 @@ class ConsumingActor(subscription: SubscriptionKey,
       context.stop(self)
     case OnComplete =>
       log.info("onComplete - connection closed by server - cursor [{}] - [{}]", lastCursor, subscription)
-      context.stop(self)
+      context.parent ! UnsubscribeMsg(subscription.eventTypeName,subscription.partition,handler.id())
     case Terminated =>
       log.info("Received Terminated msg - subscription [{}] with listener-id [{}] ", subscription, handler.id())
       context.stop(self)

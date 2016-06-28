@@ -42,7 +42,6 @@ object SupervisingActor {
 
 class SupervisingActor(val connection: Connection, val subscriptionHandler: SubscriptionHandler) extends Actor with ActorLogging {
   import SupervisingActor._
-  import ConsumingActor._
   val subscriptions: SubscriptionHolder = new SubscriptionHolderImpl()
   var subscriptionCounter = 0;
   override val supervisorStrategy: SupervisorStrategy = {
@@ -61,12 +60,15 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
       log.info("Received cursor [{}] - subKey [{}]", cursor, subKey)
       subscriptions.addCursor(subKey, Some(cursor))
     case subscrition: SubscribeMsg =>
-      log.info("New subscription [{}]", subscrition)
+      val before = subscriptions.size
       subscribe(subscrition)
+      val after = subscriptions.size
+      log.info(s"SubscribeMsg - nr of subscriptions before [$before] - after [$after]")
     case unsubscription: UnsubscribeMsg =>
-      log.debug("Number of subscriptions before unsubscribing [{}]", subscriptions.size)
+      val before = subscriptions.size
       unsubscribe(unsubscription)
-      log.info("Number of subscriptions after unsubscribing [{}]", subscriptions.size)
+      val after = subscriptions.size
+      log.info(s"UnsubscribeMsg - nr of subscriptions before [$before] - after [$after]")
     case Terminated(terminatedActor) =>
       log.info(s"Actor [{}] terminated", terminatedActor.path.name)
       subscriptions.entryByActor(terminatedActor) match {
@@ -83,7 +85,7 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
           val newSubscription = SubscribeMsg(eventTypeName, endpoint, cursor, handler)
           subscribe(newSubscription)
         case None =>
-          log.warning("Did not find any SubscriptionKey for [{}]", terminatedActor.path.toString())
+          log.warning("Did not find any SubscriptionKey for [{}]", terminatedActor.path.name)
         case e =>
           log.error("Received unexpected message! [{}]", e)
       }
@@ -120,7 +122,7 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
     val key: SubscriptionKey = SubscriptionKey(eventTypeName, partition)
     subscriptions.entry(key) match {
       case Some(SubscriptionEntry(SubscribeMsg(eventTypeName, endpoint, cursor, handler), actor: ActorRef)) =>
-        log.info("Unsubscribing Listener : [{}] from actor: [{}]", handler.id(), actor.path)
+        log.info("Unsubscribing Listener : [{}] from actor: [{}]", handler.id(), actor.path.name)
         subscriptions.remove(key)
         actor ! PoisonPill
       case None =>

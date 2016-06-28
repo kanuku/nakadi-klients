@@ -16,7 +16,7 @@ object Dependencies {
 		  "com.google.guava"             % "guava"                   						% "19.0",
 		  "com.fasterxml.jackson.core"   % "jackson-core"           						% jacksonVersion,
 		  "com.fasterxml.jackson.module" %% "jackson-module-scala"   						% jacksonVersion,
-		  "ch.qos.logback"               % "logback-classic"         						% "1.1.3",
+		  "ch.qos.logback"               % "logback-classic"         						% "1.1.7" % "runtime",
 			"com.typesafe.akka"            %% "akka-actor"            	 					% akkaVersion,
 			"com.typesafe.akka"            %% "akka-http-experimental" 						% akkaVersion,
 			"com.typesafe.akka"            %% "akka-stream" 											% akkaVersion,

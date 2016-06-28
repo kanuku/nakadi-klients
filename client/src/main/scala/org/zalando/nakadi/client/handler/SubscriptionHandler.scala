@@ -74,8 +74,8 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
     //Setup a flow for the request
     val requestFlow = Flow[Option[Cursor]].via(requestCreator(url))
       .via(connection.requestFlow())
-      .buffer(RECEIVE_BUFFER_SIZE, OverflowStrategy.fail)
-      .via(requestRenderer)
+      .buffer(RECEIVE_BUFFER_SIZE, OverflowStrategy.backpressure)
+      .via(requestRenderer(eventHandler))
       .withAttributes(ActorAttributes.supervisionStrategy(decider()))
 
     //create the pipeline
@@ -85,7 +85,6 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
 
     result.onComplete {
       case Success(requestSource) ⇒
-        logger.info("Connection established with success!")
       case Failure(e) ⇒
         val msg = "An exception occurred: " + e.getMessage
         eventHandler.handleOnError(url, Some(msg), e)
@@ -102,9 +101,18 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
   private def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
     Flow[Option[Cursor]].map(withHttpRequest(url, _, None, connection.tokenProvider))
 
-  private def requestRenderer: Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
-    Flow[HttpResponse].filter(x => x.status.isSuccess())
-      .map(_.entity.withSizeLimit(Long.MaxValue).dataBytes.via(delimiterFlow))
+  private def requestRenderer(handler:EventHandler): Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
+    Flow[HttpResponse].filter { x =>
+      if (x.status.isSuccess()) {
+          logger.info("Connection established with success!")
+        x.status.isSuccess()
+      } else {
+        x.entity.toStrict(10.second).map { body =>
+          logger.error(s"http-status: ${ x.status.intValue().toString()}, reason[${ x.status.reason()}], body:[${body.data.decodeString("UTF-8")}]")
+        }
+        false
+      }
+    }.map(_.entity.withSizeLimit(Long.MaxValue).dataBytes.via(delimiterFlow))
 
   private def delimiterFlow = Flow[ByteString]
     .via(Framing.delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))
