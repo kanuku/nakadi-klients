@@ -72,9 +72,7 @@ public class EventIntegrationHelper {
         List<Event> events = new ArrayList<Event>();
         IntStream.range(0, nrOfEvents).forEach(nr -> events.add(gen.getNewEvent()));
         client.publishEvents(eventType.getName(), events).get();
-        log.info("#######");
-        log.info("#######" + events.size());
-        log.info("#######");
+        log.info("Events published" + events.size());
         return events;
 
     }
