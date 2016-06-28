@@ -72,7 +72,7 @@ object EventCreationExample extends App {
   // 4. Publish the EventType
 //  System.exit(0)
   var counter = 0
-  for (n <- 1 to 5000) {
+  for (n <- 1 to 500) {
     val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
     var events = ListBuffer[MeetingsEvent]()
     for (a <- 1 to 100) {

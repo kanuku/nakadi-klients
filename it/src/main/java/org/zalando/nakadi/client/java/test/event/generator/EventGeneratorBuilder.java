@@ -1,8 +1,9 @@
-package org.zalando.nakadi.client.java.test.factory;
+package org.zalando.nakadi.client.java.test.event.generator;
 
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
@@ -241,6 +242,13 @@ public abstract class EventGeneratorBuilder {
 
     protected EventTypeStatistics getStatistics() {
         return statistics;
+    }
+    
+    public String randomNumeric(int size) {
+        return RandomStringUtils.randomNumeric(size);
+    }
+    public String randomAlphanumeric(int size) {
+        return RandomStringUtils.randomAlphanumeric(size);
     }
 
 }

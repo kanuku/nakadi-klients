@@ -16,11 +16,11 @@ import org.zalando.nakadi.client.java.model.Cursor;
 import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventStreamBatch;
 import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.test.factory.EventGenerator;
-import org.zalando.nakadi.client.java.test.factory.EventIntegrationHelper;
-import org.zalando.nakadi.client.java.test.factory.MySimpleEventGenerator;
-import org.zalando.nakadi.client.java.test.factory.events.MySimpleEvent;
-import org.zalando.nakadi.client.java.test.factory.events.SimpleEventListener;
+import org.zalando.nakadi.client.java.test.event.generator.EventGenerator;
+import org.zalando.nakadi.client.java.test.event.generator.EventIntegrationHelper;
+import org.zalando.nakadi.client.java.test.event.simple.MySimpleEvent;
+import org.zalando.nakadi.client.java.test.event.simple.MySimpleEventGenerator;
+import org.zalando.nakadi.client.java.test.event.simple.SimpleEventListener;
 import org.zalando.nakadi.client.scala.ClientFactory;
 
 import com.fasterxml.jackson.core.type.TypeReference;

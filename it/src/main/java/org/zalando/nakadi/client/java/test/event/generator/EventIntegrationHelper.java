@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.java.test.factory;
+package org.zalando.nakadi.client.java.test.event.generator;
 
 import java.util.ArrayList;
 import java.util.List;

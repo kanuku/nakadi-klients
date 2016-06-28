@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.java.test.factory.events;
+package org.zalando.nakadi.client.java.test.event.simple;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +20,7 @@ public class SimpleEventListener implements Listener<MySimpleEvent> {
     
     @Override
     public String getId() {
-        return "MySimpleEventListner";
+        return "MySimpleEventListner"; 
     }
 
     @Override
