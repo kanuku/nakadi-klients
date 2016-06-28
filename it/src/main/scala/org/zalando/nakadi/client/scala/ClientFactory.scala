@@ -6,7 +6,7 @@ import java.util.function.Supplier
 object ClientFactory {
   import sys.process._
   import scala.language.postfixOps
-  def OAuth2Token(): Option[() => String] = Option(() => "25c71f66-f93a-409d-8983-8888dfac0942")
+  def OAuth2Token(): Option[() => String] = Option(() => "****")
   def getJavaClient() =
     builder().buildJavaClient();
 
@@ -26,7 +26,7 @@ object ClientFactory {
   }
   private def useSandbox() = {
     ClientBuilder()
-      .withHost("nakadi-sandbox.aruha-test.zalan.do")
+      .withHost("")
       .withPort(443)
       .withSecuredConnection(true) //s
       .withVerifiedSslCertificate(false) //s
@@ -34,6 +34,6 @@ object ClientFactory {
   }
   private def useStaging() = {
     useSandbox()
-      .withHost("nakadi-staging.aruha-test.zalan.do")
+      .withHost("")
   }
 }
