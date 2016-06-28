@@ -23,7 +23,6 @@ import org.zalando.nakadi.client.scala.model.PartitionStrategy
 import org.zalando.nakadi.client.utils.Uri
 
 import com.fasterxml.jackson.core.`type`.TypeReference
-import com.typesafe.scalalogging.Logger
 
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes
@@ -35,7 +34,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   import HttpFactory._
   implicit val materializer = connection.materializer()
 
-  private val logger = Logger(LoggerFactory.getLogger(this.getClass))
+  private val logger = LoggerFactory.getLogger(this.getClass)
 
   def getMetrics(): Future[Either[ClientError, Option[Metrics]]] = {
     logFutureEither(connection.get(URI_METRICS).flatMap(mapToEither(_)(deserializer(metricsTR))))

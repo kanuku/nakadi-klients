@@ -16,7 +16,6 @@ import org.zalando.nakadi.client.utils.ModelConverter._
 import java.util.{ List => JList }
 import java.util.Optional
 import org.slf4j.LoggerFactory
-import com.typesafe.scalalogging.Logger
 import jdk.nashorn.internal.runtime.regexp.joni.constants.Arguments
 import com.google.common.base.Preconditions._
 
@@ -33,7 +32,7 @@ trait EventHandler {
 }
 
 class ScalaEventHandlerImpl[S <: Event](des: Deserializer[EventStreamBatch[S]], listener: Listener[S]) extends EventHandler {
-  private val log = Logger(LoggerFactory.getLogger(this.getClass))
+  private val log = LoggerFactory.getLogger(this.getClass)
   private def createException(msg: String) = new IllegalStateException(msg)
   checkArgument(listener != null, "Listener must not be null", null)
   checkArgument(des != null, "Deserializer must not be null", null)
@@ -66,7 +65,7 @@ class ScalaEventHandlerImpl[S <: Event](des: Deserializer[EventStreamBatch[S]], 
 
 }
 class JavaEventHandlerImpl[J <: JEvent](des: Deserializer[JEventStreamBatch[J]], listener: JListener[J]) extends EventHandler {
-  private val log = Logger(LoggerFactory.getLogger(this.getClass))
+  private val log = LoggerFactory.getLogger(this.getClass)
   private def createException(msg: String) = new IllegalStateException(msg)
   checkArgument(listener != null, "Listener must not be null", null)
   checkArgument(des != null, "Deserializer must not be null", null)

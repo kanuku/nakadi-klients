@@ -14,7 +14,6 @@ object Dependencies {
 		Seq(
 			"com.typesafe"                 % "config"                  						% "1.3.0",
 		  "com.google.guava"             % "guava"                   						% "19.0",
-		  "com.typesafe.scala-logging"   %% "scala-logging"          						% "3.1.0",
 		  "com.fasterxml.jackson.core"   % "jackson-core"           						% jacksonVersion,
 		  "com.fasterxml.jackson.module" %% "jackson-module-scala"   						% jacksonVersion,
 		  "ch.qos.logback"               % "logback-classic"         						% "1.1.3",

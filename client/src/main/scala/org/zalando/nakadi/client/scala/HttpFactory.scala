@@ -11,7 +11,6 @@ import akka.http.scaladsl.model.headers.{ Accept, RawHeader }
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import org.zalando.nakadi.client.scala.model.Cursor
 import org.slf4j.LoggerFactory
-import com.typesafe.scalalogging.Logger
 
 //
 object HttpFactory {

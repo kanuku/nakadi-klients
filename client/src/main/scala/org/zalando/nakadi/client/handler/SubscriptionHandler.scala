@@ -9,12 +9,11 @@ import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.actor.SupervisingActor
 import org.zalando.nakadi.client.actor.SupervisingActor.SubscribeMsg
 import org.zalando.nakadi.client.actor.SupervisingActor.UnsubscribeMsg
+import org.zalando.nakadi.client.scala.ClientError
 import org.zalando.nakadi.client.scala.Connection
 import org.zalando.nakadi.client.scala.EventHandler
 import org.zalando.nakadi.client.scala.HttpFactory
 import org.zalando.nakadi.client.scala.model.Cursor
-
-import com.typesafe.scalalogging.Logger
 
 import akka.NotUsed
 import akka.actor.ActorRef
@@ -32,7 +31,6 @@ import akka.stream.scaladsl.Framing
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import org.zalando.nakadi.client.scala.ClientError
 
 trait SubscriptionHandler {
   /**
@@ -54,7 +52,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
   private val RECEIVE_BUFFER_SIZE = 40960
   private val EVENT_DELIMITER = "\n"
 
-  val logger = Logger(LoggerFactory.getLogger(this.getClass))
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   def subscribe(eventTypeName: String, endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler) = {
     supervisingActor ! SubscribeMsg(eventTypeName, endpoint, cursor, eventHandler)

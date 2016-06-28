@@ -9,13 +9,12 @@ import EventCreationExample._
 import com.fasterxml.jackson.core.`type`.TypeReference
 import java.util.concurrent.atomic.AtomicLong
 import org.slf4j.LoggerFactory
-import com.typesafe.scalalogging.Logger
 
 /**
  * Your listener will have to implement the necessary
  */
 class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
-  val log = Logger(LoggerFactory.getLogger(this.getClass))
+  val log = LoggerFactory.getLogger(this.getClass)
   private var eventCount: AtomicLong = new AtomicLong(0);
   private var callerCount: AtomicLong = new AtomicLong(0);
   private var slept = false
@@ -29,10 +28,10 @@ class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
     log.info(s"Received " + events.size.toLong)
     log.info(s"Has a total of $eventCount events")
     log.info("#####################################")
-    if (!slept) {
-      Thread.sleep(65000)
-      slept = true
-    }
+//    if (!slept) {
+//      Thread.sleep(65000)
+//      slept = true
+//    }
     log.info(s"Proccessed cursor $cursor")
 
   }
@@ -61,16 +60,17 @@ object EventListenerExample extends App {
    * Create the Parameters with the cursor.
    */
 
-//  val cursor = Cursor("0", "400")
+  val cursor = Cursor("0", "5000")
 
   val parameters = new StreamParameters(
-//    cursor = Some(cursor) //
-//    , batchLimit = Some(10) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
+    cursor = Some(cursor) //
+//    cursor = None //
+    , batchLimit = Some(100) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
     //        , streamLimit = Some(500) // Maximum number of `Event`s to stream (over all partitions being streamed in this
     //connection).
-    //        , batchFlushTimeout = Some(5) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
+            , batchFlushTimeout = Some(5) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
     //        ,streamKeepAliveLimit=Some(4)
-    //        , streamTimeout = Some(1)
+            , streamTimeout = Some(5)
     )
 
   /**
@@ -84,9 +84,9 @@ object EventListenerExample extends App {
   val eventTypeName = "Example-2000"
   val result = client.subscribe(eventTypeName, parameters, listener)
 
-  Thread.sleep(30000)
+//  Thread.sleep(30000)
   //  client.stop()
-  client.unsubscribe(eventTypeName, Some("0"), listener)
+//  client.unsubscribe(eventTypeName, Some("0"), listener)
   //  client.subscribe(eventTypeName, parameters, listener)
 
 }

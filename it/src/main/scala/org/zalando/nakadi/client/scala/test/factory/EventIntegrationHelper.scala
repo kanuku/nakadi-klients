@@ -16,9 +16,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.Future
 
-import com.typesafe.scalalogging.Logger
 class EventIntegrationHelper(generator: EventGenerator, client: Client) extends WordSpec with Matchers {
-  private val log = Logger(LoggerFactory.getLogger(this.getClass))
+  private val log = LoggerFactory.getLogger(this.getClass)
   val eventType = generator.eventType
 
   def createEventType(): Boolean = {
@@ -72,7 +71,7 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client) extends 
   //Private methods
   private def wasItsuccessfull(in: Option[ClientError], msg: String): Boolean = in match {
     case Some(clientError) =>
-      log.error("{} => ClientError: {}", generator.eventTypeId + "-" + msg, clientError)
+      log.error(s"${generator.eventTypeId} - ${msg} => ClientError: $clientError")
       false
     case None =>
       true

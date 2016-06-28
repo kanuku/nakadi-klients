@@ -14,7 +14,6 @@ import org.zalando.nakadi.client.java.JavaClientHandlerImpl
 import org.zalando.nakadi.client.java.model.{ Event => JEvent }
 import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.Serializer
-import com.typesafe.scalalogging.Logger
 
 import HttpFactory.TokenProvider
 import akka.actor.Actor
@@ -110,7 +109,7 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
   private implicit val http = Http(actorSystem)
   private val actors: Map[String, Actor] = Map()
 
-  val logger = Logger(LoggerFactory.getLogger(this.getClass))
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   def requestFlow(): Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] = newSslContext(securedConnection, verifySSlCertificate) match {
     case Some(result) => http.outgoingConnectionHttps(host, port, result)
@@ -130,13 +129,13 @@ sealed class ConnectionImpl(val host: String, val port: Int, val tokenProvider: 
 
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
 	  val entity = serializer.to(model)
-    logger.info("Put: {} - Data: {}", endpoint, entity)
+    logger.info(s"Put: $endpoint - Data: $entity")
     executeCall(withHttpRequest(endpoint, HttpMethods.PUT, Nil, tokenProvider, None))
   }
 
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
     val entity = serializer.to(model)
-    logger.info("Post:{} - Data:{}", endpoint, entity)
+     logger.info(s"Put: $endpoint - Data: $entity")
     executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST, tokenProvider))
   }
 

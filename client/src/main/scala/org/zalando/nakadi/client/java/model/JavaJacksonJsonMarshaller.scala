@@ -17,11 +17,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.typesafe.scalalogging.Logger
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion
 
 object JavaJacksonJsonMarshaller {
-  val logger = Logger(LoggerFactory.getLogger(this.getClass))
+  val logger = LoggerFactory.getLogger(this.getClass)
   // All TypeReferences
    def problemTR: TypeReference[Problem] = new TypeReference[Problem] {}
    def metricsTR: TypeReference[Metrics] = new TypeReference[Metrics] {}

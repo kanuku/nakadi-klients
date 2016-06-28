@@ -26,7 +26,6 @@ import org.zalando.nakadi.client.scala.{ StreamParameters => ScalaStreamParamete
 import org.zalando.nakadi.client.utils.FutureConversions
 import org.zalando.nakadi.client.utils.ModelConverter
 
-import com.typesafe.scalalogging.Logger
 
 import akka.http.scaladsl.model.HttpHeader
 import akka.http.scaladsl.model.HttpMethods
@@ -56,7 +55,7 @@ trait JavaClientHandler {
 }
 
 class JavaClientHandlerImpl(val connection: Connection, subscriber: SubscriptionHandler) extends JavaClientHandler {
-  val logger: Logger = Logger(LoggerFactory.getLogger(this.getClass))
+  val logger = LoggerFactory.getLogger(this.getClass)
   import HttpFactory._
   import GeneralConversions._
   private implicit val mat = connection.materializer()

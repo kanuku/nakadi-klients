@@ -16,14 +16,13 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.typesafe.scalalogging.Logger
 import com.fasterxml.jackson.module.scala.IteratorModule
 import com.fasterxml.jackson.module.scala.OptionModule
 import com.fasterxml.jackson.module.scala.SeqModule
 import com.fasterxml.jackson.module.scala.MapModule
 
 object JacksonJsonMarshaller {
-  val logger = Logger(LoggerFactory.getLogger(this.getClass))
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   // All TypeReferences
   implicit def problemTR: TypeReference[Problem] = new TypeReference[Problem] {}

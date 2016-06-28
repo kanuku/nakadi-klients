@@ -13,7 +13,6 @@ import org.zalando.nakadi.client.java.model.{ Cursor => JCursor }
 import java.util.Optional
 import scala.collection.JavaConversions._
 import org.slf4j.LoggerFactory
-import com.typesafe.scalalogging.Logger
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
 
 object ModelConverter {

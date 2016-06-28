@@ -4,8 +4,8 @@ import org.zalando.nakadi.client.scala.model.Cursor
 
 import akka.actor.ActorRef
 import org.slf4j.LoggerFactory
-import com.typesafe.scalalogging.Logger
 import com.google.common.base.Preconditions
+import org.slf4j.Logger
 
 /**
  * Tracks subscriptions of SubscriptionEntries and Cursors.
@@ -27,7 +27,7 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
   private var subscriptions: Map[SubscriptionKey, SubscriptionEntry] = Map() //EventTypeName+Partition
   private var cursors: Map[SubscriptionKey, Option[Cursor]] = Map()
   private var actors: Map[String, SubscriptionKey] = Map()
-  private val logger = Logger(LoggerFactory.getLogger(this.getClass))
+  private val logger = LoggerFactory.getLogger(this.getClass)
 
   def addCursor(key: SubscriptionKey, cursor: Option[Cursor]): Unit = {
     cursors = cursors + ((key, cursor))
