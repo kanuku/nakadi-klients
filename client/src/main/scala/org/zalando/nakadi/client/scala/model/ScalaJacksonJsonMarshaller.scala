@@ -25,53 +25,77 @@ object JacksonJsonMarshaller {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   // All TypeReferences
-  implicit def problemTR: TypeReference[Problem] = new TypeReference[Problem] {}
-  implicit val metricsTR: TypeReference[Metrics] = new TypeReference[Metrics] {}
-  implicit def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
+  implicit def problemTR: TypeReference[Problem] =
+    new TypeReference[Problem] {}
+  implicit val metricsTR: TypeReference[Metrics] =
+    new TypeReference[Metrics] {}
+  implicit def partitionTR: TypeReference[Partition] =
+    new TypeReference[Partition] {}
   implicit def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
-  implicit def eventTypeSchemaTR: TypeReference[EventTypeSchema] = new TypeReference[EventTypeSchema] {}
-  implicit def partitionResolutionStrategyTR: TypeReference[PartitionStrategy.Value] = new TypeReference[PartitionStrategy.Value] {}
-  implicit def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy.Value] = new TypeReference[EventEnrichmentStrategy.Value] {}
-  implicit def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] = new TypeReference[DataChangeEventQualifier] {}
-  implicit def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] = new TypeReference[EventTypeStatistics] {}
-  implicit def eventTypeTR: TypeReference[EventType] = new TypeReference[EventType] {}
+  implicit def eventTypeSchemaTR: TypeReference[EventTypeSchema] =
+    new TypeReference[EventTypeSchema] {}
+  implicit def partitionResolutionStrategyTR: TypeReference[
+      PartitionStrategy.Value] = new TypeReference[PartitionStrategy.Value] {}
+  implicit def eventEnrichmentStrategyTR: TypeReference[
+      EventEnrichmentStrategy.Value] =
+    new TypeReference[EventEnrichmentStrategy.Value] {}
+  implicit def dataChangeEventQualifierTR: TypeReference[
+      DataChangeEventQualifier] =
+    new TypeReference[DataChangeEventQualifier] {}
+  implicit def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] =
+    new TypeReference[EventTypeStatistics] {}
+  implicit def eventTypeTR: TypeReference[EventType] =
+    new TypeReference[EventType] {}
   implicit def eventTR: TypeReference[Event] = new TypeReference[Event] {}
-  implicit def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] = new TypeReference[EventStreamBatch[_]] {}
+  implicit def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] =
+    new TypeReference[EventStreamBatch[_]] {}
 
-  implicit def eventMetadataTR: TypeReference[EventMetadata] = new TypeReference[EventMetadata] {}
-  implicit def businessEventTR: TypeReference[BusinessEvent] = new TypeReference[BusinessEvent] {}
-  implicit def batchItemResponseTR: TypeReference[BatchItemResponse] = new TypeReference[BatchItemResponse] {}
-  implicit def dataChangeEventTR: TypeReference[DataChangeEvent[Any]] = new TypeReference[DataChangeEvent[Any]] {}
+  implicit def eventMetadataTR: TypeReference[EventMetadata] =
+    new TypeReference[EventMetadata] {}
+  implicit def businessEventTR: TypeReference[BusinessEvent] =
+    new TypeReference[BusinessEvent] {}
+  implicit def batchItemResponseTR: TypeReference[BatchItemResponse] =
+    new TypeReference[BatchItemResponse] {}
+  implicit def dataChangeEventTR: TypeReference[DataChangeEvent[Any]] =
+    new TypeReference[DataChangeEvent[Any]] {}
 
   //Lists
-  implicit def listOfPartitionStrategyTR: TypeReference[Seq[PartitionStrategy.Value]] = new TypeReference[Seq[PartitionStrategy.Value]] {}
-  implicit def listOfEventEnrichmentStrategyTR: TypeReference[Seq[EventEnrichmentStrategy.Value]] = new TypeReference[Seq[EventEnrichmentStrategy.Value]] {}
-  implicit def listOfEventTypeTR: TypeReference[Seq[EventType]] = new TypeReference[Seq[EventType]] {}
-  implicit def listOfPartitionTR: TypeReference[Seq[Partition]] = new TypeReference[Seq[Partition]] {}
+  implicit def listOfPartitionStrategyTR: TypeReference[
+      Seq[PartitionStrategy.Value]] =
+    new TypeReference[Seq[PartitionStrategy.Value]] {}
+  implicit def listOfEventEnrichmentStrategyTR: TypeReference[
+      Seq[EventEnrichmentStrategy.Value]] =
+    new TypeReference[Seq[EventEnrichmentStrategy.Value]] {}
+  implicit def listOfEventTypeTR: TypeReference[Seq[EventType]] =
+    new TypeReference[Seq[EventType]] {}
+  implicit def listOfPartitionTR: TypeReference[Seq[Partition]] =
+    new TypeReference[Seq[Partition]] {}
 
-  implicit def optionalDeserializer[T](implicit expectedType: TypeReference[T]): Deserializer[Option[T]] = new Deserializer[Option[T]] {
-    def from(from: String): Option[T] = {
+  implicit def optionalDeserializer[T](
+      implicit expectedType: TypeReference[T]): Deserializer[Option[T]] =
+    new Deserializer[Option[T]] {
+      def from(from: String): Option[T] = {
 
-      defaultObjectMapper.readValue[Option[T]](from, expectedType)
+        defaultObjectMapper.readValue[Option[T]](from, expectedType)
+      }
     }
-  }
 
   implicit def serializer[T]: Serializer[T] = new Serializer[T] {
     def to(from: T): String = defaultObjectMapper.writeValueAsString(from)
   }
 
-  implicit def deserializer[T](implicit expectedType: TypeReference[T]): Deserializer[T] = new Deserializer[T] {
-    def from(from: String): T = defaultObjectMapper.readValue[T](from, expectedType)
-  }
+  implicit def deserializer[T](
+      implicit expectedType: TypeReference[T]): Deserializer[T] =
+    new Deserializer[T] {
+      def from(from: String): T =
+        defaultObjectMapper.readValue[T](from, expectedType)
+    }
 
-  
-  lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper(){
-    private val module = new OptionModule
-    with MapModule
-    with SeqModule
+  lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper() {
+    private val module = new OptionModule with MapModule with SeqModule
     with IteratorModule
 
-  this.registerModule(module)
+    this.registerModule(module)
 
   } //
     .registerModule(new DefaultScalaModule)
@@ -83,13 +107,14 @@ object JacksonJsonMarshaller {
     .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
     .addHandler(new DeserializationProblemHandler() {
       override def handleUnknownProperty(ctxt: DeserializationContext,
-                                         jp: JsonParser, deserializer: JsonDeserializer[_],
+                                         jp: JsonParser,
+                                         deserializer: JsonDeserializer[_],
                                          beanOrClass: AnyRef,
                                          propertyName: String): Boolean = {
-        logger.warn(s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
+        logger.warn(
+            s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
         true
       }
     })
 
 }
- 

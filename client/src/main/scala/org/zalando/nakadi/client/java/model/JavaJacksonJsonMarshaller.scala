@@ -22,45 +22,64 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion
 object JavaJacksonJsonMarshaller {
   val logger = LoggerFactory.getLogger(this.getClass)
   // All TypeReferences
-   def problemTR: TypeReference[Problem] = new TypeReference[Problem] {}
-   def metricsTR: TypeReference[Metrics] = new TypeReference[Metrics] {}
-   def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
-   def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
-   def eventTypeSchemaTR: TypeReference[EventTypeSchema] = new TypeReference[EventTypeSchema] {}
-   def partitionResolutionStrategyTR: TypeReference[PartitionStrategy] = new TypeReference[PartitionStrategy] {}
-   def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy] = new TypeReference[EventEnrichmentStrategy] {}
-   def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] = new TypeReference[DataChangeEventQualifier] {}
-   def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] = new TypeReference[EventTypeStatistics] {}
-   def eventTypeTR: TypeReference[EventType] = new TypeReference[EventType] {}
-   def eventTR: TypeReference[Event] = new TypeReference[Event] {}
-   def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] = new TypeReference[EventStreamBatch[_]] {}
+  def problemTR: TypeReference[Problem] = new TypeReference[Problem] {}
+  def metricsTR: TypeReference[Metrics] = new TypeReference[Metrics] {}
+  def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
+  def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
+  def eventTypeSchemaTR: TypeReference[EventTypeSchema] =
+    new TypeReference[EventTypeSchema] {}
+  def partitionResolutionStrategyTR: TypeReference[PartitionStrategy] =
+    new TypeReference[PartitionStrategy] {}
+  def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy] =
+    new TypeReference[EventEnrichmentStrategy] {}
+  def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] =
+    new TypeReference[DataChangeEventQualifier] {}
+  def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] =
+    new TypeReference[EventTypeStatistics] {}
+  def eventTypeTR: TypeReference[EventType] = new TypeReference[EventType] {}
+  def eventTR: TypeReference[Event] = new TypeReference[Event] {}
+  def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] =
+    new TypeReference[EventStreamBatch[_]] {}
 
-   def eventMetadataTR: TypeReference[EventMetadata] = new TypeReference[EventMetadata] {}
-   def businessEventTR: TypeReference[BusinessEvent] = new TypeReference[BusinessEvent] {}
-   def batchItemResponseTR: TypeReference[BatchItemResponse] = new TypeReference[BatchItemResponse] {}
-   def dataChangeEventTR: TypeReference[DataChangeEvent[Any]] = new TypeReference[DataChangeEvent[Any]] {}
+  def eventMetadataTR: TypeReference[EventMetadata] =
+    new TypeReference[EventMetadata] {}
+  def businessEventTR: TypeReference[BusinessEvent] =
+    new TypeReference[BusinessEvent] {}
+  def batchItemResponseTR: TypeReference[BatchItemResponse] =
+    new TypeReference[BatchItemResponse] {}
+  def dataChangeEventTR: TypeReference[DataChangeEvent[Any]] =
+    new TypeReference[DataChangeEvent[Any]] {}
 
   //Lists
-   def listOfPartitionStrategyTR: TypeReference[java.util.List[PartitionStrategy]] = new TypeReference[java.util.List[PartitionStrategy]] {}
-   def listOfEventEnrichmentStrategyTR: TypeReference[java.util.List[EventEnrichmentStrategy]] = new TypeReference[java.util.List[EventEnrichmentStrategy]] {}
-   def listOfEventTypeTR: TypeReference[java.util.List[EventType]] = new TypeReference[java.util.List[EventType]] {}
-   def listOfPartitionTR: TypeReference[java.util.List[Partition]] = new TypeReference[java.util.List[Partition]] {}
+  def listOfPartitionStrategyTR: TypeReference[
+      java.util.List[PartitionStrategy]] =
+    new TypeReference[java.util.List[PartitionStrategy]] {}
+  def listOfEventEnrichmentStrategyTR: TypeReference[
+      java.util.List[EventEnrichmentStrategy]] =
+    new TypeReference[java.util.List[EventEnrichmentStrategy]] {}
+  def listOfEventTypeTR: TypeReference[java.util.List[EventType]] =
+    new TypeReference[java.util.List[EventType]] {}
+  def listOfPartitionTR: TypeReference[java.util.List[Partition]] =
+    new TypeReference[java.util.List[Partition]] {}
 
-   def optionalDeserializer[T]( expectedType: TypeReference[T]): Deserializer[Option[T]] = new Deserializer[Option[T]] {
-    def from(from: String): Option[T] = {
-      defaultObjectMapper.readValue[Option[T]](from, expectedType)
+  def optionalDeserializer[T](
+      expectedType: TypeReference[T]): Deserializer[Option[T]] =
+    new Deserializer[Option[T]] {
+      def from(from: String): Option[T] = {
+        defaultObjectMapper.readValue[Option[T]](from, expectedType)
+      }
     }
-  }
 
-   def serializer[T]: Serializer[T] = new Serializer[T] {
+  def serializer[T]: Serializer[T] = new Serializer[T] {
     def to(from: T): String = defaultObjectMapper.writeValueAsString(from)
   }
 
-   def deserializer[T]( expectedType: TypeReference[T]): Deserializer[T] = new Deserializer[T] {
-    def from(from: String): T = {
-      defaultObjectMapper.readValue[T](from, expectedType)
+  def deserializer[T](expectedType: TypeReference[T]): Deserializer[T] =
+    new Deserializer[T] {
+      def from(from: String): T = {
+        defaultObjectMapper.readValue[T](from, expectedType)
+      }
     }
-  }
 
   lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper() //
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -69,10 +88,12 @@ object JavaJacksonJsonMarshaller {
     .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
     .addHandler(new DeserializationProblemHandler() {
       override def handleUnknownProperty(ctxt: DeserializationContext,
-                                         jp: JsonParser, deserializer: JsonDeserializer[_],
+                                         jp: JsonParser,
+                                         deserializer: JsonDeserializer[_],
                                          beanOrClass: AnyRef,
                                          propertyName: String): Boolean = {
-        logger.warn(s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
+        logger.warn(
+            s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
         true
       }
     })

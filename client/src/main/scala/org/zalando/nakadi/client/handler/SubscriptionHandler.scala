@@ -33,32 +33,52 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 
 trait SubscriptionHandler {
+
   /**
-   * Handles the subscription for an eventHandler.
-   */
-  def subscribe(eventTypeName: String, endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler): Option[ClientError]
-  def unsubscribe(eventTypeName: String, partition: Option[String], listenerId: String): Option[ClientError]
-  def createPipeline(cursor: Option[Cursor], consumingActor: ActorRef, url: String, eventHandler: EventHandler)
+    * Handles the subscription for an eventHandler.
+    */
+  def subscribe(eventTypeName: String,
+                endpoint: String,
+                cursor: Option[Cursor],
+                eventHandler: EventHandler): Option[ClientError]
+  def unsubscribe(eventTypeName: String,
+                  partition: Option[String],
+                  listenerId: String): Option[ClientError]
+  def createPipeline(cursor: Option[Cursor],
+                     consumingActor: ActorRef,
+                     url: String,
+                     eventHandler: EventHandler)
 }
 
-class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHandler {
+class SubscriptionHandlerImpl(val connection: Connection)
+    extends SubscriptionHandler {
   import HttpFactory._
   import SupervisingActor._
   //Local variables
   private implicit val materializer = connection.materializer(decider())
 
-  private val supervisingActor = connection.actorSystem.actorOf(Props(classOf[SupervisingActor], connection, this), "SupervisingActor" + System.currentTimeMillis())
+  private val supervisingActor = connection.actorSystem.actorOf(
+      Props(classOf[SupervisingActor], connection, this),
+      "SupervisingActor" + System.currentTimeMillis())
 
   private val RECEIVE_BUFFER_SIZE = 40960
   private val EVENT_DELIMITER = "\n"
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  def subscribe(eventTypeName: String, endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler) = {
-    supervisingActor ! SubscribeMsg(eventTypeName, endpoint, cursor, eventHandler)
+  def subscribe(eventTypeName: String,
+                endpoint: String,
+                cursor: Option[Cursor],
+                eventHandler: EventHandler) = {
+    supervisingActor ! SubscribeMsg(eventTypeName,
+                                    endpoint,
+                                    cursor,
+                                    eventHandler)
     None
   }
-  def unsubscribe(eventTypeName: String, partition: Option[String], listenerId: String) = {
+  def unsubscribe(eventTypeName: String,
+                  partition: Option[String],
+                  listenerId: String) = {
     supervisingActor ! UnsubscribeMsg(eventTypeName, partition, listenerId)
     None
   }
@@ -67,12 +87,16 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
     case _ => Supervision.Stop
   }
 
-  def createPipeline(cursor: Option[Cursor], consumingActor: ActorRef, url: String, eventHandler: EventHandler) = {
+  def createPipeline(cursor: Option[Cursor],
+                     consumingActor: ActorRef,
+                     url: String,
+                     eventHandler: EventHandler) = {
 
     val subscriber = ActorSubscriber[ByteString](consumingActor)
 
     //Setup a flow for the request
-    val requestFlow = Flow[Option[Cursor]].via(requestCreator(url))
+    val requestFlow = Flow[Option[Cursor]]
+      .via(requestCreator(url))
       .via(connection.requestFlow())
       .buffer(RECEIVE_BUFFER_SIZE, OverflowStrategy.backpressure)
       .via(requestRenderer(eventHandler))
@@ -80,7 +104,8 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
 
     //create the pipeline
     val result = Source(List(cursor))
-      .via(requestFlow).withAttributes(ActorAttributes.supervisionStrategy(decider()))
+      .via(requestFlow)
+      .withAttributes(ActorAttributes.supervisionStrategy(decider()))
       .runForeach(_.runWith(Sink.fromSubscriber(subscriber)))
 
     result.onComplete {
@@ -89,7 +114,10 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
         val msg = "An exception occurred: " + e.getMessage
         eventHandler.handleOnError(url, Some(msg), e)
         logger.error(msg + e)
-        connection.actorSystem().scheduler.scheduleOnce(5.seconds)(stopActor(consumingActor)) //TODO: Make it configurable
+        connection
+          .actorSystem()
+          .scheduler
+          .scheduleOnce(5.seconds)(stopActor(consumingActor)) //TODO: Make it configurable
     }
   }
 
@@ -98,22 +126,30 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
     actor ! PoisonPill
   }
 
-  private def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
-    Flow[Option[Cursor]].map(withHttpRequest(url, _, None, connection.tokenProvider))
+  private def requestCreator(
+      url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
+    Flow[Option[Cursor]]
+      .map(withHttpRequest(url, _, None, connection.tokenProvider))
 
-  private def requestRenderer(handler:EventHandler): Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
+  private def requestRenderer(handler: EventHandler)
+    : Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
     Flow[HttpResponse].filter { x =>
       if (x.status.isSuccess()) {
-          logger.info("Connection established with success!")
+        logger.info("Connection established with success!")
         x.status.isSuccess()
       } else {
         x.entity.toStrict(10.second).map { body =>
-          logger.error(s"http-status: ${ x.status.intValue().toString()}, reason[${ x.status.reason()}], body:[${body.data.decodeString("UTF-8")}]")
+          logger.error(
+              s"http-status: ${x.status.intValue().toString()}, reason[${x.status
+            .reason()}], body:[${body.data.decodeString("UTF-8")}]")
         }
         false
       }
     }.map(_.entity.withSizeLimit(Long.MaxValue).dataBytes.via(delimiterFlow))
 
-  private def delimiterFlow = Flow[ByteString]
-    .via(Framing.delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))
+  private def delimiterFlow =
+    Flow[ByteString].via(
+        Framing.delimiter(ByteString(EVENT_DELIMITER),
+                          maximumFrameLength = RECEIVE_BUFFER_SIZE,
+                          allowTruncation = true))
 }

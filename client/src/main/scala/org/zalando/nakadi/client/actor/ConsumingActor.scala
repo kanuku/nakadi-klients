@@ -22,36 +22,40 @@ import akka.util.ByteString
 import org.zalando.nakadi.client.utils.ModelConverter
 import org.zalando.nakadi.client.scala.EventHandler
 import org.zalando.nakadi.client.scala.ErrorResult
-import org.zalando.nakadi.client.java.model.{ Event => JEvent }
+import org.zalando.nakadi.client.java.model.{Event => JEvent}
 import SupervisingActor._
 import akka.actor.Terminated
 
 /**
- * This actor serves as Sink for the pipeline.<br>
- * 1. It receives the message and the cursor from the payload.
- * 2. It tries to deserialize the message to EventStreamBatch, containing a cursor and a sequence of Events.
- * 3. Passes the deserialized sequence of events to the listener.
- * 4. Sends the received cursor from the Publisher, to be passed to the pipeline.
- *
- */
-
-class ConsumingActor(subscription: SubscriptionKey,
-                     handler: EventHandler)
-    extends Actor with ActorLogging with ActorSubscriber {
+  * This actor serves as Sink for the pipeline.<br>
+  * 1. It receives the message and the cursor from the payload.
+  * 2. It tries to deserialize the message to EventStreamBatch, containing a cursor and a sequence of Events.
+  * 3. Passes the deserialized sequence of events to the listener.
+  * 4. Sends the received cursor from the Publisher, to be passed to the pipeline.
+  *
+  */
+class ConsumingActor(subscription: SubscriptionKey, handler: EventHandler)
+    extends Actor
+    with ActorLogging
+    with ActorSubscriber {
   import ModelConverter._
 
   var lastCursor: Option[Cursor] = null
 
-  override protected def requestStrategy: RequestStrategy = new RequestStrategy {
-    override def requestDemand(remainingRequested: Int): Int = {
-      Math.max(remainingRequested, 10)
+  override protected def requestStrategy: RequestStrategy =
+    new RequestStrategy {
+      override def requestDemand(remainingRequested: Int): Int = {
+        Math.max(remainingRequested, 10)
+      }
     }
-  }
 
   override def receive: Receive = {
     case OnNext(msg: ByteString) =>
       val message = msg.utf8String
-      log.info("Event - prevCursor [{}] - [{}] - msg [{}]", lastCursor, subscription, message)
+      log.info("Event - prevCursor [{}] - [{}] - msg [{}]",
+               lastCursor,
+               subscription,
+               message)
       handler.handleOnReceive(subscription.toString(), message) match {
         case Right(cursor) =>
           lastCursor = Some(cursor)
@@ -59,13 +63,23 @@ class ConsumingActor(subscription: SubscriptionKey,
         case Left(error) => log.error(error.error.getMessage)
       }
     case OnError(err: Throwable) =>
-      log.error("onError - cursor [{}] - [{}] - error [{}]", lastCursor, subscription, err.getMessage)
+      log.error("onError - cursor [{}] - [{}] - error [{}]",
+                lastCursor,
+                subscription,
+                err.getMessage)
       context.stop(self)
     case OnComplete =>
-      log.info("onComplete - connection closed by server - cursor [{}] - [{}]", lastCursor, subscription)
-      context.parent ! UnsubscribeMsg(subscription.eventTypeName,subscription.partition,handler.id())
+      log.info("onComplete - connection closed by server - cursor [{}] - [{}]",
+               lastCursor,
+               subscription)
+      context.parent ! UnsubscribeMsg(subscription.eventTypeName,
+                                      subscription.partition,
+                                      handler.id())
     case Terminated =>
-      log.info("Received Terminated msg - subscription [{}] with listener-id [{}] ", subscription, handler.id())
+      log.info(
+          "Received Terminated msg - subscription [{}] with listener-id [{}] ",
+          subscription,
+          handler.id())
       context.stop(self)
     case a =>
       log.error("Could not handle message: [{}]", a)
@@ -73,6 +87,3 @@ class ConsumingActor(subscription: SubscriptionKey,
   }
 
 }
-
- 
-
