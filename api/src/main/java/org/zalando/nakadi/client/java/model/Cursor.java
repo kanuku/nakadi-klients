@@ -64,6 +64,11 @@ public class Cursor {
         return true;
     }
 
+    @Override
+    public String toString() {
+        return "Cursor [partition=" + partition + ", offset=" + offset + "]";
+    }
+
     
     
 }

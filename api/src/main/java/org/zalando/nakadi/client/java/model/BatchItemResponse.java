@@ -72,4 +72,9 @@ public class BatchItemResponse {
 		return detail;
 	}
 
+    @Override
+    public String toString() {
+        return "BatchItemResponse [eid=" + eid + ", publishingStatus=" + publishingStatus + ", step=" + step + ", detail=" + detail + "]";
+    }
+
 }

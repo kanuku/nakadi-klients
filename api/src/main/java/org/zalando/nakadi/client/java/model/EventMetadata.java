@@ -101,4 +101,73 @@ public class EventMetadata {
         return partition;
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((eid == null) ? 0 : eid.hashCode());
+        result = prime * result + ((eventTypeName == null) ? 0 : eventTypeName.hashCode());
+        result = prime * result + ((flowId == null) ? 0 : flowId.hashCode());
+        result = prime * result + ((occurredAt == null) ? 0 : occurredAt.hashCode());
+        result = prime * result + ((parentEids == null) ? 0 : parentEids.hashCode());
+        result = prime * result + ((partition == null) ? 0 : partition.hashCode());
+        result = prime * result + ((receivedAt == null) ? 0 : receivedAt.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        EventMetadata other = (EventMetadata) obj;
+        if (eid == null) {
+            if (other.eid != null)
+                return false;
+        } else if (!eid.equals(other.eid))
+            return false;
+        if (eventTypeName == null) {
+            if (other.eventTypeName != null)
+                return false;
+        } else if (!eventTypeName.equals(other.eventTypeName))
+            return false;
+        if (flowId == null) {
+            if (other.flowId != null)
+                return false;
+        } else if (!flowId.equals(other.flowId))
+            return false;
+        if (occurredAt == null) {
+            if (other.occurredAt != null)
+                return false;
+        } else if (!occurredAt.equals(other.occurredAt))
+            return false;
+        if (parentEids == null) {
+            if (other.parentEids != null)
+                return false;
+        } else if (!parentEids.equals(other.parentEids))
+            return false;
+        if (partition == null) {
+            if (other.partition != null)
+                return false;
+        } else if (!partition.equals(other.partition))
+            return false;
+        if (receivedAt == null) {
+            if (other.receivedAt != null)
+                return false;
+        } else if (!receivedAt.equals(other.receivedAt))
+            return false;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "EventMetadata [eid=" + eid + ", eventTypeName=" + eventTypeName + ", occurredAt=" + occurredAt + ", receivedAt=" + receivedAt + ", parentEids=" + parentEids + ", flowId=" + flowId
+                + ", partition=" + partition + "]";
+    }
+
+    
+    
 }

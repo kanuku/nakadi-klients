@@ -32,7 +32,7 @@ public class DataChangeEvent<T> implements DataChangeEventQualifier, Event {
     public String getDataType() {
         return dataType;
     }
-
+    @JsonProperty("data_op") 
     @Override
     public DataOperation getDataOperation() {
         return dataOperation;
