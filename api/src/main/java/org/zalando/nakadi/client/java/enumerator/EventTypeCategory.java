@@ -25,7 +25,7 @@ public enum EventTypeCategory {
 
     public static Optional<EventTypeCategory> withName(String code) {
         for (EventTypeCategory e : EventTypeCategory.values()) {
-            if (e != null && e.category.equals(code))
+            if (e != null && e.name().equals(code))
                 return Optional.of(e);
         }
         return Optional.empty();

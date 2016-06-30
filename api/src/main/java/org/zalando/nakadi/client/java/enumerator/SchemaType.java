@@ -19,7 +19,7 @@ public enum SchemaType {
 
 	public static Optional<SchemaType> withName(String code) {
 		for (SchemaType e : SchemaType.values()) {
-			if (e != null && e.schema.equals(code))
+			if (e != null && e.name().equals(code))
 				return Optional.of(e);
 		}
 		return Optional.empty();

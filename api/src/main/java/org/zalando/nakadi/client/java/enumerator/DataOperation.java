@@ -1,9 +1,9 @@
 package org.zalando.nakadi.client.java.enumerator;
 
 
-import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Optional;
 
-import scala.Option;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 
 /**
@@ -26,11 +26,11 @@ public enum DataOperation {
 		return operation;
 	}
 
-	public static Option<DataOperation> withName(String code){
+	public static Optional<DataOperation> withName(String code){
         for(DataOperation e : DataOperation.values()){
-        	if (e.operation.equals(code))
-        	return Option.apply(e);
+        	if (e != null && e.name().equals(code))
+        	return Optional.of(e);
         }
-        return Option.empty();
+        return Optional.empty();
     }
 }

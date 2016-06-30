@@ -26,7 +26,7 @@ public enum EventEnrichmentStrategy {
 
     public static Optional<EventEnrichmentStrategy> withName(String code) {
         for (EventEnrichmentStrategy e : EventEnrichmentStrategy.values()) {
-            if (e != null && e.metadata.equals(code))
+            if (e != null && e.name().equals(code))
                 return Optional.of(e);
         }
         return Optional.empty();

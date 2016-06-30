@@ -1,7 +1,7 @@
 package org.zalando.nakadi.client.java.enumerator;
 
 
-import scala.Option;
+import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -27,11 +27,11 @@ public enum BatchItemPublishingStatus {
 		return status;
 	};
 
-	public static Option<BatchItemPublishingStatus> withName(String code) {
+	public static Optional<BatchItemPublishingStatus> withName(String name) {
 		for (BatchItemPublishingStatus e : BatchItemPublishingStatus.values()) {
-			if (e.status.equals(code))
-				return Option.apply(e);
+			if (e != null && e.name().equals(name))
+				return Optional.of(e);
 		}
-		return Option.empty();
+		return Optional.empty();
 	}
 }
