@@ -3,6 +3,8 @@ import Keys._
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseCreateSrc
 import Dependencies._
+import de.johoop.findbugs4sbt.FindBugs._
+import de.johoop.findbugs4sbt.ReportType
 
 object NakadiClient extends Build {
 
@@ -54,12 +56,16 @@ lazy val client = withDefaults(
     ).settings(libraryDependencies ++= itDeps)
 
   def withDefaults(projectName:String, project:sbt.Project)={
-    project.settings(
+    project
+    .settings(findbugsSettings: _*)
+    .settings(
         name := projectName,
         organization := "org.zalando.nakadi.client",
         version := "2.0.0-pre-alpha.17",
         crossPaths := false,
         scalaVersion := "2.11.8",
+        findbugsReportType := Some(ReportType.FancyHtml),
+        findbugsReportPath := Some(target.value / "findbugs-report.html"),
         publishTo := whereToPublishTo(isSnapshot.value),
         resolvers += Resolver.mavenLocal,
         resolvers += "Maven Central Server" at "http://repo1.maven.org/maven2",
