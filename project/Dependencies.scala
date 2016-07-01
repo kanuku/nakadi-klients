@@ -4,10 +4,14 @@ object Dependencies {
 
 	val akkaVersion = "2.4.7"
 	val jacksonVersion = "2.7.3"
+	val scalaTestVersion = "2.2.6"
+	val junitVersion = "4.12"
 	val apiDeps = {
 		Seq(
 		"com.fasterxml.jackson.module" %% "jackson-module-scala"   						% jacksonVersion,
-		"com.fasterxml.jackson.core"   % "jackson-annotations"     						% jacksonVersion)
+		"com.fasterxml.jackson.core"   % "jackson-annotations"     						% jacksonVersion,
+		"org.scalatest"                %% "scalatest"              						% scalaTestVersion      % "test",
+		"junit"                        % "junit"                   						% junitVersion % "test")
 	}
 
 	val clientDeps = {
@@ -22,9 +26,9 @@ object Dependencies {
 			"com.typesafe.akka"            %% "akka-stream" 											% akkaVersion,
 			"com.typesafe.akka"            % "akka-slf4j_2.11"                    % "2.4.7",
 			"com.typesafe.akka"            %% "akka-testkit"           						% akkaVersion  % "test",
-		  "org.scalatest"                %% "scalatest"              						% "2.2.6"      % "test",
+		  "org.scalatest"                %% "scalatest"              						% scalaTestVersion      % "test",
 		  "com.google.code.findbugs"     % "jsr305"                  						% "1.3.9"      % "test",
-		  "junit"                        % "junit"                   						% "4.12"       % "test",
+		  "junit"                        % "junit"                   						% junitVersion       % "test",
 			"org.mockito" 								 % "mockito-core" 											% "1.10.19"    % "test",
 			"com.novocode" 								 % "junit-interface"                    % "0.11"       % "test"
 		)
@@ -34,9 +38,10 @@ object Dependencies {
 		Seq(
 			"org.zalando.stups"                 % "tokens"                  						% "0.9.9",
 			"org.apache.httpcomponents"         % "httpclient"               						% "4.5.2",
-			"org.scalatest"                     %% "scalatest"               						% "2.2.6",
+			"org.scalatest"                     %% "scalatest"               						% scalaTestVersion,
 			"commons-lang" 											% "commons-lang" 												% "2.6",
-			"org.zalando"                       % "jackson-datatype-money"              % "0.6.0"
+			"org.zalando"                       % "jackson-datatype-money"              % "0.6.0",
+			"junit"                             % "junit"                   						% junitVersion       % "test"
 		)
 	}
 }
