@@ -55,14 +55,14 @@ object EventCreationExample extends App {
   val paritionKeyFields = List("date", "topic")
 
   val eventType = new EventType(eventTypeName,
-    owner,
-    category,
-    enrichmentStrategies,
-    partitionStrategy,
-    eventTypeSchema,
-    dataKeyFields,
-    paritionKeyFields,
-    None)
+                                owner,
+                                category,
+                                enrichmentStrategies,
+                                partitionStrategy,
+                                eventTypeSchema,
+                                dataKeyFields,
+                                paritionKeyFields,
+                                None)
 
   //You need to import the default Serializer if you don't sepecify your own!
   import JacksonJsonMarshaller._
@@ -77,7 +77,8 @@ object EventCreationExample extends App {
     var events = ListBuffer[MeetingsEvent]()
     for (a <- 1 to 10) {
       counter += 1
-      events += MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton" + counter)
+      events += MeetingsEvent("2016-04-28T13:28:15+00:00",
+                              "Hackaton" + counter)
     }
     Await.result(client.publishEvents(eventTypeName, events), 120.seconds)
   }

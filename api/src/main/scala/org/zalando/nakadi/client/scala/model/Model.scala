@@ -167,28 +167,7 @@ case class EventTypeStatistics(messagesPerMinute: Integer,
                                readParallelism: Integer,
                                writeParallelism: Integer)
 
-/**
-  * Defines a rule for the resolution of incoming Events into partitions. Rules might require additional parameters; see the `doc` field of the existing rules for details. See `GET /registry/partition-strategies` for a list of available rules.
-  */
-case object PartitionStrategy extends Enumeration {
-  type PartitionStrategy = Value
-  val HASH = Value("hash")
-  val USER_DEFINED = Value("user_defined")
-  val RANDOM = Value("random")
-}
-class PartitionStrategyType extends TypeReference[PartitionStrategy.type]
-
-/**
-  * Defines a rule for transformation of an incoming Event. No existing fields might be modified. In practice this is used to set automatically values in the Event upon reception (i.e. set a reception timestamp on the Event). Rules might require additional parameters; see the `doc` field of the existing rules for details. See GET /registry/enrichment-strategies for a list of available rules.
-  */
-case object EventEnrichmentStrategy extends Enumeration {
-  type EventEnrichmentStrategy = Value
-  val METADATA = Value("metadata_enrichment")
-}
-class EventEnrichmentStrategyType
-    extends TypeReference[EventEnrichmentStrategy.type]
-
-/**
+                               /**
   * A status corresponding to one individual Event's publishing attempt.
   * @param eid Eid of the corresponding item. Will be absent if missing on the incoming Event.
   * @param publishingStatus Indicator of the submission of the Event within a Batch. - SUBMITTED indicates successful submission, including commit on he underlying broker. - FAILED indicates the message submission was not possible and can be resubmitted if so desired. - ABORTED indicates that the submission of this item was not attempted any further due to a failure on another item in the batch.
@@ -207,6 +186,27 @@ case class BatchItemResponse(
 // ENUMS ////////////////////////
 /////////////////////////////////
 
+
+/**
+  * Defines a rule for the resolution of incoming Events into partitions. Rules might require additional parameters; see the `doc` field of the existing rules for details. See `GET /registry/partition-strategies` for a list of available rules.
+  */
+case object PartitionStrategy extends Enumeration {
+  type PartitionStrategy = Value
+  val HASH = Value("hash")
+  val USER_DEFINED = Value("user_defined")
+  val RANDOM = Value("random")
+}
+class PartitionStrategyType extends TypeReference[PartitionStrategy.type]
+
+/**
+  * Defines a rule for transformation of an incoming Event. No existing fields might be modified. In practice this is used to set automatically values in the Event upon reception (i.e. set a reception timestamp on the Event). Rules might require additional parameters; see the `doc` field of the existing rules for details. See GET /registry/enrichment-strategies for a list of available rules.
+  */
+case object EventEnrichmentStrategy extends Enumeration {
+  type EventEnrichmentStrategy = Value
+  val METADATA = Value("metadata_enrichment")
+}
+class EventEnrichmentStrategyType extends TypeReference[EventEnrichmentStrategy.type]
+    
 /**
   * Identifier for the type of operation to executed on the entity. <br>
   * C: Creation <br>

@@ -6,14 +6,15 @@ import java.util.function.Supplier
 object ClientFactory {
   import sys.process._
   import scala.language.postfixOps
-  def OAuth2Token(): Option[() => String] = Option(() => "*")
+  def OAuth2Token(): Option[() => String] =
+    Option(() => "*")
   def getJavaClient() =
     builder().buildJavaClient();
 
   def getScalaClient() = builder().build()
 
   private def builder() = {
-//    	  useSandbox()
+//    useSandbox()
 //        useStaging()
     useLocal()
   }
@@ -33,7 +34,6 @@ object ClientFactory {
       .withTokenProvider(ClientFactory.OAuth2Token())
   }
   private def useStaging() = {
-    useSandbox()
-      .withHost("nakadi-staging.aruha-test.zalan.do")
+    useSandbox().withHost("nakadi-staging.aruha-test.zalan.do")
   }
 }

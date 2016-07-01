@@ -101,7 +101,7 @@ object JacksonJsonMarshaller {
     .registerModule(new DefaultScalaModule)
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     .configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true)
-    .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY,true)
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
     .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)

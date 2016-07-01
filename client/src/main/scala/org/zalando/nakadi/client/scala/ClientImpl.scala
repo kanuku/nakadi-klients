@@ -27,6 +27,8 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
+import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategyType
 
 class ClientImpl(connection: Connection,
                  subscriber: SubscriptionHandler,
@@ -182,7 +184,7 @@ class ClientImpl(connection: Connection,
     : Future[Either[ClientError, T]] = {
     future recover {
       case e: Throwable =>
-        val msg = s"A unexpected error occured: ${e.getMessage}"
+        val msg = s"An unexpected error occured: ${e.getMessage}"
         logger.error(msg)
         Left(ClientError(msg, None))
     }
@@ -191,7 +193,7 @@ class ClientImpl(connection: Connection,
       future: Future[Option[ClientError]]): Future[Option[ClientError]] = {
     future recover {
       case e: Throwable =>
-        val msg = s"A unexpected error occured: ${e.getMessage}"
+        val msg = s"An unexpected error occured: ${e.getMessage}"
         Option(ClientError(msg, None))
     }
   }

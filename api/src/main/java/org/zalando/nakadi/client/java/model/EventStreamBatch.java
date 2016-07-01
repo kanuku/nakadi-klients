@@ -59,4 +59,42 @@ public class EventStreamBatch<T extends Event> {
         return events;
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((cursor == null) ? 0 : cursor.hashCode());
+        result = prime * result + ((events == null) ? 0 : events.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        EventStreamBatch other = (EventStreamBatch) obj;
+        if (cursor == null) {
+            if (other.cursor != null)
+                return false;
+        } else if (!cursor.equals(other.cursor))
+            return false;
+        if (events == null) {
+            if (other.events != null)
+                return false;
+        } else if (!events.equals(other.events))
+            return false;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "EventStreamBatch [cursor=" + cursor + ", events=" + events + "]";
+    }
+    
+    
+
 }

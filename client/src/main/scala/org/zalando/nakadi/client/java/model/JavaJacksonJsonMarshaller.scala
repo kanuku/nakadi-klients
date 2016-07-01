@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion
+import com.fasterxml.jackson.databind.JavaType
 
 object JavaJacksonJsonMarshaller {
   val logger = LoggerFactory.getLogger(this.getClass)
@@ -51,19 +52,19 @@ object JavaJacksonJsonMarshaller {
     new TypeReference[DataChangeEvent[Any]] {}
 
   //Lists
-  def listOfPartitionStrategyTR: TypeReference[
-      java.util.List[PartitionStrategy]] =
+  def listOfPartitionStrategyTR: TypeReference[java.util.List[PartitionStrategy]] =
     new TypeReference[java.util.List[PartitionStrategy]] {}
-  def listOfEventEnrichmentStrategyTR: TypeReference[
-      java.util.List[EventEnrichmentStrategy]] =
+  def listOfEventEnrichmentStrategyTR: TypeReference[java.util.List[EventEnrichmentStrategy]] =
     new TypeReference[java.util.List[EventEnrichmentStrategy]] {}
   def listOfEventTypeTR: TypeReference[java.util.List[EventType]] =
     new TypeReference[java.util.List[EventType]] {}
   def listOfPartitionTR: TypeReference[java.util.List[Partition]] =
     new TypeReference[java.util.List[Partition]] {}
+  def listOfDataChangeEventTR: TypeReference[java.util.List[DataChangeEvent[Any]]] =
+    new TypeReference[java.util.List[DataChangeEvent[Any]]] {}
 
   def optionalDeserializer[T](
-      expectedType: TypeReference[T]): Deserializer[Option[T]] =
+    expectedType: TypeReference[T]): Deserializer[Option[T]] =
     new Deserializer[Option[T]] {
       def from(from: String): Option[T] = {
         defaultObjectMapper.readValue[Option[T]](from, expectedType)
@@ -80,6 +81,12 @@ object JavaJacksonJsonMarshaller {
         defaultObjectMapper.readValue[T](from, expectedType)
       }
     }
+  def deserializer[T](expectedType: JavaType): Deserializer[T] =
+          new Deserializer[T] {
+      def from(from: String): T = {
+              defaultObjectMapper.readValue[T](from, expectedType)
+      }
+  }
 
   lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper() //
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -93,7 +100,7 @@ object JavaJacksonJsonMarshaller {
                                          beanOrClass: AnyRef,
                                          propertyName: String): Boolean = {
         logger.warn(
-            s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
+          s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
         true
       }
     })

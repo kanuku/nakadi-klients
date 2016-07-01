@@ -21,12 +21,16 @@ object MySimpleEvent {
 
     def newEvent(): Event = new MySimpleEvent(newId)
 
-    lazy val eventTypeName: String = eventTypeId + Random.alphanumeric.take(12).mkString
+    lazy val eventTypeName: String = eventTypeId + Random.alphanumeric
+        .take(12)
+        .mkString
 
-    def schemaDefinition: String = """{ "properties": { "order_number": { "type": "string" } } }"""
+    def schemaDefinition: String =
+      """{ "properties": { "order_number": { "type": "string" } } }"""
   }
 
-  implicit def myEventExampleTR: TypeReference[EventStreamBatch[MySimpleEvent]] = new TypeReference[EventStreamBatch[MySimpleEvent]] {}
+  implicit def myEventExampleTR: TypeReference[EventStreamBatch[MySimpleEvent]] =
+    new TypeReference[EventStreamBatch[MySimpleEvent]] {}
 }
 
 case class MySimpleEvent(orderNumber: String) extends Event
@@ -39,7 +43,9 @@ class SimpleEventListener extends Listener[MySimpleEvent] {
     log.error(s"Error $sourceUrl $error")
   }
 
-  def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MySimpleEvent]): Unit = {
+  def onReceive(sourceUrl: String,
+                cursor: Cursor,
+                events: Seq[MySimpleEvent]): Unit = {
     receivedEvents = receivedEvents ++ events
     log.info(s"Received ${events.size}")
     log.info(s"Total ${receivedEvents.size}")
@@ -55,10 +61,9 @@ class SimpleEventListener extends Listener[MySimpleEvent] {
       Thread.sleep(2000) // Wait 2 seconds
     }
     log.info("############")
-    log.info(s"Waited to receive $nrOfEvents events, actual size =${receivedEvents.size}")
+    log.info(
+        s"Waited to receive $nrOfEvents events, actual size =${receivedEvents.size}")
     log.info("############")
     receivedEvents
   }
 }
-
- 

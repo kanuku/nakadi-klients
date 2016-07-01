@@ -24,6 +24,37 @@ public class Metrics {
     }
 
     @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((gauges == null) ? 0 : gauges.hashCode());
+        result = prime * result + ((version == null) ? 0 : version.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Metrics other = (Metrics) obj;
+        if (gauges == null) {
+            if (other.gauges != null)
+                return false;
+        } else if (!gauges.equals(other.gauges))
+            return false;
+        if (version == null) {
+            if (other.version != null)
+                return false;
+        } else if (!version.equals(other.version))
+            return false;
+        return true;
+    }
+
+    @Override
     public String toString() {
         return "Metrics [version=" + version + ", gauges=" + gauges + "]";
     }

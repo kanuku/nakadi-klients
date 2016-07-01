@@ -11,8 +11,8 @@ import java.util.concurrent.atomic.AtomicLong
 import org.slf4j.LoggerFactory
 
 /**
- * Your listener will have to implement the necessary
- */
+  * Your listener will have to implement the necessary
+  */
 class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
   val log = LoggerFactory.getLogger(this.getClass)
   private var eventCount: AtomicLong = new AtomicLong(0);
@@ -22,7 +22,9 @@ class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
     println("Error %s %s".format(sourceUrl, error))
   }
 
-  def onReceive(sourceUrl: String, cursor: Cursor, events: Seq[MeetingsEvent]): Unit = {
+  def onReceive(sourceUrl: String,
+                cursor: Cursor,
+                events: Seq[MeetingsEvent]): Unit = {
     eventCount.addAndGet(events.size.toLong)
 //    log.debug("#####################################")
 //    log.debug(s"Received " + events.size.toLong)
@@ -47,37 +49,38 @@ class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
 object EventListenerExample extends App {
 
   /**
-   * Create our client
-   */
+    * Create our client
+    */
   val client: Client = ClientFactory.getScalaClient()
 
   /**
-   * Initialize our Listener
-   */
+    * Initialize our Listener
+    */
   val listener = new EventCounterListener("Test")
 
   /**
-   * Create the Parameters with the cursor.
-   */
-
+    * Create the Parameters with the cursor.
+    */
   val cursor = Cursor("0", "BEGIN")
 
   val parameters = new StreamParameters(
-    cursor = Some(cursor) //
+      cursor = Some(cursor) //
 //    cursor = None //
-    , batchLimit = Some(400) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
-    //        , streamLimit = Some(500) // Maximum number of `Event`s to stream (over all partitions being streamed in this
-    //connection).
+      ,
+      batchLimit = Some(400) //  Maximum number of `Event`s in each chunk (and therefore per partition) of the stream.  
+      //        , streamLimit = Some(500) // Maximum number of `Event`s to stream (over all partitions being streamed in this
+      //connection).
 //            , batchFlushTimeout = Some(10) // Maximum time in seconds to wait for the flushing of each chunk (per partition).
-    //        ,streamKeepAliveLimit=Some(4)
-            , streamTimeout = Some(0)
-    )
+      //        ,streamKeepAliveLimit=Some(4)
+      ,
+      streamTimeout = Some(0)
+  )
 
   /**
-   * Create TypeReference for the JacksonObjectMapper
-   */
-
-  implicit def typeRef: TypeReference[EventStreamBatch[MeetingsEvent]] = new TypeReference[EventStreamBatch[MeetingsEvent]] {}
+    * Create TypeReference for the JacksonObjectMapper
+    */
+  implicit def typeRef: TypeReference[EventStreamBatch[MeetingsEvent]] =
+    new TypeReference[EventStreamBatch[MeetingsEvent]] {}
   import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller._
 
   //  val eventTypeName = "Event-example-with-0-messages"

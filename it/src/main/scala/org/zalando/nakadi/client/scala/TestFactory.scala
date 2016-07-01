@@ -11,22 +11,20 @@ import org.zalando.nakadi.client.scala.model._
 import com.fasterxml.jackson.core.`type`.TypeReference
 import org.zalando.nakadi.client.scala.model._
 
-
-
 sealed trait TestUtil {
-  
-    def executeCall[T](call: => Future[T]): T = {
+
+  def executeCall[T](call: => Future[T]): T = {
     Await.result(call, 10.second)
   }
 }
 
-case class EventActions(client: Client)extends TestUtil {
+case class EventActions(client: Client) extends TestUtil {
   def publish[T <: Event](name: String, event: Seq[T]) = {
     executeCall(client.publishEvents[T](name, event))
   }
 }
 
-case class EventTypesActions(client: Client)extends TestUtil {
+case class EventTypesActions(client: Client) extends TestUtil {
   def create(event: EventType) = {
     executeCall(client.createEventType(event))
   }
@@ -43,26 +41,33 @@ case class EventTypesActions(client: Client)extends TestUtil {
     executeCall(client.deleteEventType(name))
   }
 
-
 }
- 
 
 trait ModelFactory {
   val x = Random.alphanumeric
   case class MyEventExample(orderNumber: String) extends Event
-  implicit def myEventExampleTR: TypeReference[EventStreamBatch[MyEventExample]] = new TypeReference[EventStreamBatch[MyEventExample]] {}
+  implicit def myEventExampleTR: TypeReference[
+      EventStreamBatch[MyEventExample]] =
+    new TypeReference[EventStreamBatch[MyEventExample]] {}
   //EventType
   def paritionKeyFields() = List("order_number")
-  def eventTypeSchema() = new EventTypeSchema(SchemaType.JSON, schemaDefinition)
-  def schemaDefinition() = """{ "properties": { "order_number": { "type": "string" } } }"""
+  def eventTypeSchema() =
+    new EventTypeSchema(SchemaType.JSON, schemaDefinition)
+  def schemaDefinition() =
+    """{ "properties": { "order_number": { "type": "string" } } }"""
 
-  def createEventType(name: String,
-                      owningApplication: String = "nakadi-klients"): EventType = {
+  def createEventType(
+      name: String,
+      owningApplication: String = "nakadi-klients"): EventType = {
     new EventType(name, //
-      owningApplication, //
-      EventTypeCategory.UNDEFINED, Nil, //
-      Some(PartitionStrategy.RANDOM), eventTypeSchema, //
-      Nil, paritionKeyFields, None)
+                  owningApplication, //
+                  EventTypeCategory.UNDEFINED,
+                  Nil, //
+                  Some(PartitionStrategy.RANDOM),
+                  eventTypeSchema, //
+                  Nil,
+                  paritionKeyFields,
+                  None)
   }
   def createEventMetadata(): EventMetadata = {
     val length = 5

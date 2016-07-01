@@ -21,45 +21,42 @@ import org.zalando.nakadi.client.scala.model.BatchItemPublishingStatus
 import org.zalando.nakadi.client.scala.model.EventTypeCategory
 import org.zalando.nakadi.client.scala.model.SchemaType
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
+import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
+import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategyType
 
-case object EnumModule extends SimpleModule() {
-  //  addSerializer(ser)
-}
-
-object FunninessLevel extends Enumeration {
-  type FunninessLevel = Value
-  val LOL = Value("LOL")
-  val ROFL = Value("ROFL")
-  val LMAO = Value("LMAO")
-}
-
-class EnumSerializer extends JsonSerializer[FunninessLevel.FunninessLevel] {
-  def serialize(id: FunninessLevel.FunninessLevel, json: JsonGenerator, provider: SerializerProvider) = {
-    json.writeString(id.toString())
-  }
-}
-class EnumDeserializer extends JsonDeserializer[FunninessLevel.FunninessLevel] {
-  def deserialize(jp: JsonParser, ctxt: DeserializationContext): FunninessLevel.FunninessLevel = {
-    FunninessLevel.withName(jp.getText())
-  }
-}
-
-//object Test extends App with JacksonJsonMarshaller {
+//case object EnumModule extends SimpleModule() {
+//  //  addSerializer(ser)
+//}
 //
-//  val marshaller = new JacksonJsonMarshaller {}
+//object FunninessLevel extends Enumeration {
+//  type FunninessLevel = Value
+//  val LOL = Value("LOL")
+//  val ROFL = Value("ROFL")
+//  val LMAO = Value("LMAO")
+//}
 //
-//  val mapper = marshaller.defaultObjectMapper
+//class EnumSerializer extends JsonSerializer[EventEnrichmentStrategy.Value] {
+//  def serialize(id: EventEnrichmentStrategy.Value, json: JsonGenerator, provider: SerializerProvider) = {
+//    json.writeString(id.toString())
+//  }
+//}
+//class EnumDeserializer extends JsonDeserializer[EventEnrichmentStrategy.Value] {
+//  def deserialize(jp: JsonParser, ctxt: DeserializationContext): EventEnrichmentStrategy.Value = {
+//    EventEnrichmentStrategy.withName(jp.getText())
+//  }
+//}
 //
-//  implicit val personType = new TypeReference[Person] {}
-//  
-//  case class Person(name: String, @JsonScalaEnumeration(classOf[UserStatusType]) humor: DataOperation.Value)
-//  val person = Person("Fernando", DataOperation.CREATE)
-//  val json = marshaller.serializer[Person].toJson(person)
+//object Test extends App {
+//  import JacksonJsonMarshaller._
 //
-//  println(" #### -- PERSON >> " + person)
-//  println(" #### -- JSON-PERSON >> " + json)
-//  val personResult = marshaller.deserializer[Person].fromJson(json)
-//  println(" #### -- PERSON >> " + personResult)
+//  val mapper = defaultObjectMapper
+//
+//  case class EnumHolder(@JsonScalaEnumeration(classOf[EventEnrichmentStrategyType]) humor: Seq[EventEnrichmentStrategy.Value])
+//  val holder = EnumHolder(List(EventEnrichmentStrategy.METADATA))
+//  val json = """["metadata_enrichment"]"""
+//  println("#### EnumHolder  toJson #####" + mapper.writeValueAsString(holder))
+//  println("#### EnumHolder  toEnum #####" + mapper.readValue(json, new TypeReference[EventEnrichmentStrategy.Value]{}))
 //
 //}
 

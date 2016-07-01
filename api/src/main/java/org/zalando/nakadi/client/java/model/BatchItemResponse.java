@@ -71,6 +71,45 @@ public class BatchItemResponse {
 	public String getDetail() {
 		return detail;
 	}
+	
+	
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((detail == null) ? 0 : detail.hashCode());
+        result = prime * result + ((eid == null) ? 0 : eid.hashCode());
+        result = prime * result + ((publishingStatus == null) ? 0 : publishingStatus.hashCode());
+        result = prime * result + ((step == null) ? 0 : step.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        BatchItemResponse other = (BatchItemResponse) obj;
+        if (detail == null) {
+            if (other.detail != null)
+                return false;
+        } else if (!detail.equals(other.detail))
+            return false;
+        if (eid == null) {
+            if (other.eid != null)
+                return false;
+        } else if (!eid.equals(other.eid))
+            return false;
+        if (publishingStatus != other.publishingStatus)
+            return false;
+        if (step != other.step)
+            return false;
+        return true;
+    }
 
     @Override
     public String toString() {
