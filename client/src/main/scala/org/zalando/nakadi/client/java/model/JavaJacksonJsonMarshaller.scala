@@ -29,18 +29,15 @@ object JavaJacksonJsonMarshaller {
   def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
   def eventTypeSchemaTR: TypeReference[EventTypeSchema] =
     new TypeReference[EventTypeSchema] {}
-  def partitionResolutionStrategyTR: TypeReference[PartitionStrategy] =
-    new TypeReference[PartitionStrategy] {}
-  def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy] =
-    new TypeReference[EventEnrichmentStrategy] {}
-  def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] =
-    new TypeReference[DataChangeEventQualifier] {}
-  def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] =
-    new TypeReference[EventTypeStatistics] {}
+  def eventTypeCategoryTR: TypeReference[EventTypeCategory] =
+          new TypeReference[EventTypeCategory] {}
+  def partitionResolutionStrategyTR: TypeReference[PartitionStrategy] = new TypeReference[PartitionStrategy] {}
+  def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy] = new TypeReference[EventEnrichmentStrategy] {}
+  def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] = new TypeReference[DataChangeEventQualifier] {}
+  def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] = new TypeReference[EventTypeStatistics] {}
   def eventTypeTR: TypeReference[EventType] = new TypeReference[EventType] {}
   def eventTR: TypeReference[Event] = new TypeReference[Event] {}
-  def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] =
-    new TypeReference[EventStreamBatch[_]] {}
+  def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] = new TypeReference[EventStreamBatch[_]] {}
 
   def eventMetadataTR: TypeReference[EventMetadata] =
     new TypeReference[EventMetadata] {}
@@ -82,11 +79,11 @@ object JavaJacksonJsonMarshaller {
       }
     }
   def deserializer[T](expectedType: JavaType): Deserializer[T] =
-          new Deserializer[T] {
+    new Deserializer[T] {
       def from(from: String): T = {
-              defaultObjectMapper.readValue[T](from, expectedType)
+        defaultObjectMapper.readValue[T](from, expectedType)
       }
-  }
+    }
 
   lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper() //
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)

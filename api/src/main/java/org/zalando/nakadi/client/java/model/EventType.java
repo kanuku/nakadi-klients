@@ -113,6 +113,75 @@ public class EventType {
     public EventTypeStatistics getStatistics() {
         return statistics;
     }
+    
+    
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((category == null) ? 0 : category.hashCode());
+        result = prime * result + ((dataKeyFields == null) ? 0 : dataKeyFields.hashCode());
+        result = prime * result + ((enrichmentStrategies == null) ? 0 : enrichmentStrategies.hashCode());
+        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((owningApplication == null) ? 0 : owningApplication.hashCode());
+        result = prime * result + ((partitionKeyFields == null) ? 0 : partitionKeyFields.hashCode());
+        result = prime * result + ((partitionStrategy == null) ? 0 : partitionStrategy.hashCode());
+        result = prime * result + ((schema == null) ? 0 : schema.hashCode());
+        result = prime * result + ((statistics == null) ? 0 : statistics.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        EventType other = (EventType) obj;
+        if (category != other.category)
+            return false;
+        if (dataKeyFields == null) {
+            if (other.dataKeyFields != null)
+                return false;
+        } else if (!dataKeyFields.equals(other.dataKeyFields))
+            return false;
+        if (enrichmentStrategies == null) {
+            if (other.enrichmentStrategies != null)
+                return false;
+        } else if (!enrichmentStrategies.equals(other.enrichmentStrategies))
+            return false;
+        if (name == null) {
+            if (other.name != null)
+                return false;
+        } else if (!name.equals(other.name))
+            return false;
+        if (owningApplication == null) {
+            if (other.owningApplication != null)
+                return false;
+        } else if (!owningApplication.equals(other.owningApplication))
+            return false;
+        if (partitionKeyFields == null) {
+            if (other.partitionKeyFields != null)
+                return false;
+        } else if (!partitionKeyFields.equals(other.partitionKeyFields))
+            return false;
+        if (partitionStrategy != other.partitionStrategy)
+            return false;
+        if (schema == null) {
+            if (other.schema != null)
+                return false;
+        } else if (!schema.equals(other.schema))
+            return false;
+        if (statistics == null) {
+            if (other.statistics != null)
+                return false;
+        } else if (!statistics.equals(other.statistics))
+            return false;
+        return true;
+    }
 
     @Override
     public String toString() {

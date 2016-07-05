@@ -32,6 +32,7 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
     val Right(metricsOpt) = result
     metricsOpt.isDefined shouldBe true
     val Some(metrics) = metricsOpt
+    println(metrics)
     metrics.version shouldNot be (null)
     metrics.gauges.size should be > 0
   }

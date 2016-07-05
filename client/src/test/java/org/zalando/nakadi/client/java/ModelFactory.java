@@ -3,6 +3,7 @@ package org.zalando.nakadi.client.java;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -11,6 +12,9 @@ import java.util.stream.Stream;
 import org.zalando.nakadi.client.java.enumerator.BatchItemPublishingStatus;
 import org.zalando.nakadi.client.java.enumerator.BatchItemStep;
 import org.zalando.nakadi.client.java.enumerator.DataOperation;
+import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
+import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
+import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
 import org.zalando.nakadi.client.java.enumerator.SchemaType;
 import org.zalando.nakadi.client.java.model.BatchItemResponse;
 import org.zalando.nakadi.client.java.model.BusinessEvent;
@@ -19,6 +23,7 @@ import org.zalando.nakadi.client.java.model.DataChangeEvent;
 import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventMetadata;
 import org.zalando.nakadi.client.java.model.EventStreamBatch;
+import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.model.EventTypeSchema;
 import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 import org.zalando.nakadi.client.java.model.Metrics;
@@ -120,5 +125,32 @@ public final class ModelFactory {
         
         return new Problem(randomUUID(), randomUUID(), randomInt(), randomUUID(), randomUUID());
     }
+
+    public static EventType newEventType() {
+        List<EventEnrichmentStrategy> newEnrichmentStrategy=Lists.newArrayList(EventEnrichmentStrategy.METADATA);
+        return new EventType(randomUUID(), randomUUID(), EventTypeCategory.BUSINESS, //
+                newEnrichmentStrategy, newPartitionStrategy(),  newEventTypeSchema(), randomListOfString(12), randomListOfString(21), newEventTypeStatistics());
+    }
+
+    
+
+    public static PartitionStrategy newPartitionStrategy() {
+        return PartitionStrategy.values()[randomizer.nextInt(PartitionStrategy.values().length)];
+    }
+
+    public static EventEnrichmentStrategy newEventEnrichmentStrategy() {
+        
+        return EventEnrichmentStrategy.values()[randomizer.nextInt(EventEnrichmentStrategy.values().length)];
+    }
+
+    public static EventTypeCategory newEventTypeCategory() {
+        return EventTypeCategory.values()[randomizer.nextInt(EventTypeCategory.values().length)];
+    }
+
+    public static ClientError newClientError() {
+        return new ClientError(randomUUID(), Optional.of(randomInt()), Optional.of(new IllegalStateException()));
+    }
+
+    
 
 }

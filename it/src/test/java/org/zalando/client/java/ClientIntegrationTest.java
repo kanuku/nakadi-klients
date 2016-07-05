@@ -31,7 +31,6 @@ public class ClientIntegrationTest {
         Metrics metrics = result.get();
         assertNotNull("Version should be available", metrics.getVersion());
         assertTrue("Gauges should not be empty", metrics.getGauges().size() > 0);
-
     }
     
     @Test
@@ -40,7 +39,6 @@ public class ClientIntegrationTest {
         List<EventType> events = result.get();
         assertTrue(result.isPresent());
         assertTrue(events.size()>=0);
-        
     }
     
     @Test
@@ -50,6 +48,7 @@ public class ClientIntegrationTest {
         List<EventEnrichmentStrategy> enrichtmentStrategies = result.get();
         assertTrue("EventEnrichmentStrategy",enrichtmentStrategies.size() == 1);
     }
+    
     @Test
     public void getPartitioningStrategies() throws InterruptedException, ExecutionException{
         Optional<List<PartitionStrategy>> result = client.getPartitioningStrategies().get();

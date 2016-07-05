@@ -1,7 +1,6 @@
 package org.zalando.nakadi.client.java;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -10,6 +9,9 @@ import java.util.stream.Stream;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
+import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
+import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
 import org.zalando.nakadi.client.java.model.BatchItemResponse;
 import org.zalando.nakadi.client.java.model.BusinessEvent;
 import org.zalando.nakadi.client.java.model.Cursor;
@@ -18,6 +20,7 @@ import org.zalando.nakadi.client.java.model.DataChangeEventQualifier;
 import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventMetadata;
 import org.zalando.nakadi.client.java.model.EventStreamBatch;
+import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.model.EventTypeSchema;
 import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 import org.zalando.nakadi.client.java.model.JavaJacksonJsonMarshaller;
@@ -56,7 +59,7 @@ public class JavaJacksonJsonMarshallerTest {
 
         // Check
         compareBatchItemResponse(in, out);
-        assertEquals(json,toJson(out));
+        assertEquals(json, toJson(out));
     }
 
     @Test
@@ -66,7 +69,7 @@ public class JavaJacksonJsonMarshallerTest {
         BusinessEvent out = toObject(json, new TypeReference<BusinessEventImpl>() {
         });
         compareMetadata(in.metadata(), out.metadata());
-        assertEquals(json,toJson(out));
+        assertEquals(json, toJson(out));
     }
 
     @Test
@@ -75,7 +78,7 @@ public class JavaJacksonJsonMarshallerTest {
         String json = toJson(in);
         Cursor out = toObject(json, JavaJacksonJsonMarshaller.cursorTR());
         compareCursor(in, out);
-        assertEquals(json,toJson(out));
+        assertEquals(json, toJson(out));
     }
 
     @Test
@@ -88,7 +91,7 @@ public class JavaJacksonJsonMarshallerTest {
 
         compareDataChangeEvent(in, out);
         compareSimpleEvent(in.getData(), out.getData());
-        assertEquals(json,toJson(out));
+        assertEquals(json, toJson(out));
 
     }
 
@@ -98,7 +101,7 @@ public class JavaJacksonJsonMarshallerTest {
         String json = toJson(in);
         EventMetadata out = toObject(json, JavaJacksonJsonMarshaller.eventMetadataTR());
         compareMetadata(in, out);
-        assertEquals(json,toJson(out));
+        assertEquals(json, toJson(out));
     }
 
     @Test
@@ -112,7 +115,7 @@ public class JavaJacksonJsonMarshallerTest {
         EventStreamBatch<SimpleEvent> out = toObject(json, expectedType);
         compareEventStreamBatch(in, out);
         compareSimpleEvents(in.getEvents(), out.getEvents());
-        assertEquals(json,toJson(out));
+        assertEquals(json, toJson(out));
     }
 
     @Test
@@ -121,7 +124,7 @@ public class JavaJacksonJsonMarshallerTest {
         String json = toJson(in);
         EventTypeSchema out = toObject(json, JavaJacksonJsonMarshaller.eventTypeSchemaTR());
         compareEventTypeSchema(in, out);
-        assertEquals(json,toJson(out));
+        assertEquals(json, toJson(out));
 
     }
 
@@ -131,7 +134,7 @@ public class JavaJacksonJsonMarshallerTest {
         String json = toJson(in);
         EventTypeStatistics out = toObject(json, JavaJacksonJsonMarshaller.eventTypeStatisticsTR());
         compareEventTypeStatistics(in, out);
-        assertEquals(json,toJson(out));
+        assertEquals(json, toJson(out));
     }
 
     @Test
@@ -139,7 +142,7 @@ public class JavaJacksonJsonMarshallerTest {
         Metrics in = ModelFactory.newMetrics();
         String json = toJson(in);
         Metrics out = toObject(json, JavaJacksonJsonMarshaller.metricsTR());
-        assertEquals(json,toJson(out));
+        assertEquals(json, toJson(out));
     }
 
     @Test
@@ -147,22 +150,52 @@ public class JavaJacksonJsonMarshallerTest {
         Partition in = ModelFactory.newPartition();
         String json = toJson(in);
         Partition out = toObject(json, JavaJacksonJsonMarshaller.partitionTR());
-        comparePartition(in,out);
-        assertEquals(json,toJson(out));
+        comparePartition(in, out);
+        assertEquals(json, toJson(out));
     }
-
-  
 
     @Test
     public void testProblem() throws JsonProcessingException {
         Problem in = ModelFactory.newProblem();
         String json = toJson(in);
         Problem out = toObject(json, JavaJacksonJsonMarshaller.problemTR());
-        compareProblem(in,out);
-        assertEquals(json,toJson(out));
-        
+        compareProblem(in, out);
+        assertEquals(json, toJson(out));
+
     }
-    
+
+    @Test
+    public void testPartitionStrategy() throws JsonProcessingException {
+        PartitionStrategy in =  ModelFactory.newPartitionStrategy();
+        String json = toJson(in);
+        PartitionStrategy out = toObject(json, JavaJacksonJsonMarshaller.partitionResolutionStrategyTR());
+        assertEquals(json, toJson(out));
+    }
+
+    @Test
+    public void testEventEnrichmentStrategy() throws JsonProcessingException {
+        EventEnrichmentStrategy in = ModelFactory.newEventEnrichmentStrategy();
+        String json = toJson(in);
+        EventEnrichmentStrategy out = toObject(json, JavaJacksonJsonMarshaller.eventEnrichmentStrategyTR());
+        assertEquals(json, toJson(out));
+    }
+
+    @Test
+    public void testEventTypeCategory() throws JsonProcessingException {
+        EventTypeCategory in =  ModelFactory.newEventTypeCategory();
+        String json = toJson(in);
+        EventTypeCategory out = toObject(json, JavaJacksonJsonMarshaller.eventTypeCategoryTR());
+        assertEquals(json, toJson(out));
+    }
+
+    @Test
+    public void testEventType() throws JsonProcessingException {
+        EventType in = ModelFactory.newEventType();
+        String json = toJson(in);
+        EventType out = toObject(json, JavaJacksonJsonMarshaller.eventTypeTR());
+        assertTrue(in.equals(out));
+    }
+
     private void compareProblem(Problem left, Problem right) {
         assertEquals(left.getDetail(), right.getDetail());
         assertEquals(left.getInstance(), right.getInstance());
@@ -170,7 +203,8 @@ public class JavaJacksonJsonMarshallerTest {
         assertEquals(left.getTitle(), right.getTitle());
         assertEquals(left.getType(), right.getType());
         assertTrue(left.equals(right));
-        
+        assertTrue(left.hashCode() == right.hashCode());
+
     }
 
     private void comparePartition(Partition left, Partition right) {
@@ -178,13 +212,14 @@ public class JavaJacksonJsonMarshallerTest {
         assertEquals(left.getOldestAvailableOffset(), right.getOldestAvailableOffset());
         assertEquals(left.getPartition(), right.getPartition());
         assertTrue(left.equals(right));
-         
-     }
+        assertEquals(left.hashCode(), right.hashCode());
+    }
 
     private void compareEventTypeSchema(EventTypeSchema left, EventTypeSchema right) {
         assertEquals(left.getType(), right.getType());
         assertEquals(left.getSchema(), right.getSchema());
         assertTrue(left.equals(right));
+        assertEquals(left.hashCode(), right.hashCode());
     }
 
     private void compareBatchItemResponse(BatchItemResponse left, BatchItemResponse right) {
@@ -194,6 +229,7 @@ public class JavaJacksonJsonMarshallerTest {
         assertEquals(left.getStep(), right.getStep());
         assertEquals(left.toString(), right.toString());
         assertTrue(left.equals(right));
+        assertEquals(left.hashCode(), right.hashCode());
     }
 
     private void compareMetadata(EventMetadata left, EventMetadata right) {
@@ -206,7 +242,7 @@ public class JavaJacksonJsonMarshallerTest {
         assertEquals(left.getReceivedAt(), right.getReceivedAt());
         assertEquals(left.toString(), right.toString());
         assertTrue(left.equals(right));
-        assertTrue(left.equals(right));
+        assertEquals(left.hashCode(), right.hashCode());
     }
 
     private void compareEventTypeStatistics(EventTypeStatistics left, EventTypeStatistics right) {
@@ -215,15 +251,14 @@ public class JavaJacksonJsonMarshallerTest {
         assertEquals(left.getReadParallelism(), right.getReadParallelism());
         assertEquals(left.getWriteParallelism(), right.getWriteParallelism());
         assertTrue(left.equals(right));
-
+        assertEquals(left.hashCode(), right.hashCode());
     }
-
-    
 
     private void compareCursor(Cursor left, Cursor right) {
         assertEquals(left.getOffset(), right.getOffset());
         assertEquals(left.getPartition(), right.getPartition());
         assertTrue(left.equals(right));
+        assertEquals(left.hashCode(), right.hashCode());
     }
 
     private void compareDataChangeEvent(DataChangeEvent<SimpleEvent> left, DataChangeEvent<SimpleEvent> right) {
@@ -231,23 +266,27 @@ public class JavaJacksonJsonMarshallerTest {
         compareDataChangeEventQualifier((DataChangeEventQualifier) left, (DataChangeEventQualifier) right);
         compareMetadata(left.getMetadata(), right.getMetadata());
         assertTrue(left.equals(right));
+        assertEquals(left.hashCode(), right.hashCode());
     }
 
     private void compareDataChangeEventQualifier(DataChangeEventQualifier left, DataChangeEventQualifier right) {
         assertEquals(left.getDataOperation(), right.getDataOperation());
         assertEquals(left.getDataType(), right.getDataType());
         assertTrue(left.equals(right));
+        assertEquals(left.hashCode(), right.hashCode());
     }
 
     private <T extends Event> void compareEventStreamBatch(EventStreamBatch<T> left, EventStreamBatch<T> right) {
         compareCursor(left.getCursor(), right.getCursor());
         assertTrue(left.equals(right));
+        assertEquals(left.hashCode(), right.hashCode());
 
     }
 
     private void compareSimpleEvent(SimpleEvent left, SimpleEvent right) {
         assertEquals(left.getId(), left.getId());
         assertTrue(left.equals(right));
+        assertEquals(left.hashCode(), right.hashCode());
     }
 
     private void compareSimpleEvents(List<SimpleEvent> left, List<SimpleEvent> right) {

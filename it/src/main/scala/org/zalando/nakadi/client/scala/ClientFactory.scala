@@ -14,8 +14,8 @@ object ClientFactory {
   def getScalaClient() = builder().build()
 
   private def builder() = {
-//    useSandbox()
-//        useStaging()
+    //    useSandbox()
+    //        useStaging()
     useLocal()
   }
   private def useLocal() = {
