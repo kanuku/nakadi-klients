@@ -38,7 +38,7 @@ val defaultOptions= Seq(
 
 lazy val root = project.in(file("."))
   .settings(publishTo := whereToPublishTo(isSnapshot.value))
-  .aggregate(api, client, it)
+  .aggregate(api, client)
 
 lazy val api = withDefaults(
     "nakadi-klients-api",
