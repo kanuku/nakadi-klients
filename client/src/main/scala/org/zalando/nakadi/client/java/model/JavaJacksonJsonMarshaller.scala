@@ -23,21 +23,22 @@ import com.fasterxml.jackson.databind.JavaType
 object JavaJacksonJsonMarshaller {
   val logger = LoggerFactory.getLogger(this.getClass)
   // All TypeReferences
-  def problemTR: TypeReference[Problem] = new TypeReference[Problem] {}
-  def metricsTR: TypeReference[Metrics] = new TypeReference[Metrics] {}
+  def problemTR: TypeReference[Problem]     = new TypeReference[Problem]   {}
+  def metricsTR: TypeReference[Metrics]     = new TypeReference[Metrics]   {}
   def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
-  def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
+  def cursorTR: TypeReference[Cursor]       = new TypeReference[Cursor]    {}
   def eventTypeSchemaTR: TypeReference[EventTypeSchema] =
     new TypeReference[EventTypeSchema] {}
   def eventTypeCategoryTR: TypeReference[EventTypeCategory] =
-          new TypeReference[EventTypeCategory] {}
-  def partitionResolutionStrategyTR: TypeReference[PartitionStrategy] = new TypeReference[PartitionStrategy] {}
+    new TypeReference[EventTypeCategory] {}
+  def partitionResolutionStrategyTR: TypeReference[PartitionStrategy]   = new TypeReference[PartitionStrategy]       {}
   def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy] = new TypeReference[EventEnrichmentStrategy] {}
-  def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] = new TypeReference[DataChangeEventQualifier] {}
+  def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] =
+    new TypeReference[DataChangeEventQualifier] {}
   def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] = new TypeReference[EventTypeStatistics] {}
-  def eventTypeTR: TypeReference[EventType] = new TypeReference[EventType] {}
-  def eventTR: TypeReference[Event] = new TypeReference[Event] {}
-  def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] = new TypeReference[EventStreamBatch[_]] {}
+  def eventTypeTR: TypeReference[EventType]                     = new TypeReference[EventType]           {}
+  def eventTR: TypeReference[Event]                             = new TypeReference[Event]               {}
+  def eventStreamBatchTR: TypeReference[EventStreamBatch[_]]    = new TypeReference[EventStreamBatch[_]] {}
 
   def eventMetadataTR: TypeReference[EventMetadata] =
     new TypeReference[EventMetadata] {}
@@ -60,8 +61,7 @@ object JavaJacksonJsonMarshaller {
   def listOfDataChangeEventTR: TypeReference[java.util.List[DataChangeEvent[Any]]] =
     new TypeReference[java.util.List[DataChangeEvent[Any]]] {}
 
-  def optionalDeserializer[T](
-    expectedType: TypeReference[T]): Deserializer[Option[T]] =
+  def optionalDeserializer[T](expectedType: TypeReference[T]): Deserializer[Option[T]] =
     new Deserializer[Option[T]] {
       def from(from: String): Option[T] = {
         defaultObjectMapper.readValue[Option[T]](from, expectedType)
@@ -97,7 +97,7 @@ object JavaJacksonJsonMarshaller {
                                          beanOrClass: AnyRef,
                                          propertyName: String): Boolean = {
         logger.warn(
-          s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
+            s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
         true
       }
     })

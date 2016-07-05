@@ -4,6 +4,7 @@ import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseCreateSrc
 import Dependencies._
 import de.johoop.findbugs4sbt.FindBugs._
+import org.scalafmt.sbt.ScalaFmtPlugin.autoImport._
 import de.johoop.findbugs4sbt.ReportType
 
 object NakadiClient extends Build {
@@ -66,6 +67,7 @@ lazy val client = withDefaults(
         scalaVersion := "2.11.8",
         findbugsReportType := Some(ReportType.FancyHtml),
         findbugsReportPath := Some(target.value / "findbugs-report.html"),
+        scalafmtConfig := Some(baseDirectory.value / ".scalafmt"),
         publishTo := whereToPublishTo(isSnapshot.value),
         resolvers += Resolver.mavenLocal,
         resolvers += "Maven Central Server" at "http://repo1.maven.org/maven2",

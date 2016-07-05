@@ -27,20 +27,17 @@ object JacksonJsonMarshaller {
   // All TypeReferences
   implicit def problemTR: TypeReference[Problem] =
     new TypeReference[Problem] {}
-  implicit val metricsTR: TypeReference[Metrics] =
-    new TypeReference[Metrics] {}
+  implicit val metricsTR: TypeReference[Metrics] = new TypeReference[Metrics] {}
   implicit def partitionTR: TypeReference[Partition] =
     new TypeReference[Partition] {}
   implicit def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
   implicit def eventTypeSchemaTR: TypeReference[EventTypeSchema] =
     new TypeReference[EventTypeSchema] {}
-  implicit def partitionResolutionStrategyTR: TypeReference[
-      PartitionStrategy.Value] = new TypeReference[PartitionStrategy.Value] {}
-  implicit def eventEnrichmentStrategyTR: TypeReference[
-      EventEnrichmentStrategy.Value] =
+  implicit def partitionResolutionStrategyTR: TypeReference[PartitionStrategy.Value] =
+    new TypeReference[PartitionStrategy.Value] {}
+  implicit def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy.Value] =
     new TypeReference[EventEnrichmentStrategy.Value] {}
-  implicit def dataChangeEventQualifierTR: TypeReference[
-      DataChangeEventQualifier] =
+  implicit def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] =
     new TypeReference[DataChangeEventQualifier] {}
   implicit def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] =
     new TypeReference[EventTypeStatistics] {}
@@ -60,19 +57,16 @@ object JacksonJsonMarshaller {
     new TypeReference[DataChangeEvent[Any]] {}
 
   //Lists
-  implicit def listOfPartitionStrategyTR: TypeReference[
-      Seq[PartitionStrategy.Value]] =
+  implicit def listOfPartitionStrategyTR: TypeReference[Seq[PartitionStrategy.Value]] =
     new TypeReference[Seq[PartitionStrategy.Value]] {}
-  implicit def listOfEventEnrichmentStrategyTR: TypeReference[
-      Seq[EventEnrichmentStrategy.Value]] =
+  implicit def listOfEventEnrichmentStrategyTR: TypeReference[Seq[EventEnrichmentStrategy.Value]] =
     new TypeReference[Seq[EventEnrichmentStrategy.Value]] {}
   implicit def listOfEventTypeTR: TypeReference[Seq[EventType]] =
     new TypeReference[Seq[EventType]] {}
   implicit def listOfPartitionTR: TypeReference[Seq[Partition]] =
     new TypeReference[Seq[Partition]] {}
 
-  implicit def optionalDeserializer[T](
-      implicit expectedType: TypeReference[T]): Deserializer[Option[T]] =
+  implicit def optionalDeserializer[T](implicit expectedType: TypeReference[T]): Deserializer[Option[T]] =
     new Deserializer[Option[T]] {
       def from(from: String): Option[T] = {
 
@@ -84,16 +78,14 @@ object JacksonJsonMarshaller {
     def to(from: T): String = defaultObjectMapper.writeValueAsString(from)
   }
 
-  implicit def deserializer[T](
-      implicit expectedType: TypeReference[T]): Deserializer[T] =
+  implicit def deserializer[T](implicit expectedType: TypeReference[T]): Deserializer[T] =
     new Deserializer[T] {
       def from(from: String): T =
         defaultObjectMapper.readValue[T](from, expectedType)
     }
 
   lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper() {
-    private val module = new OptionModule with MapModule with SeqModule
-    with IteratorModule
+    private val module = new OptionModule with MapModule with SeqModule with IteratorModule
 
     this.registerModule(module)
 
@@ -101,7 +93,7 @@ object JacksonJsonMarshaller {
     .registerModule(new DefaultScalaModule)
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     .configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true)
-    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY,true)
+    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
     .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
