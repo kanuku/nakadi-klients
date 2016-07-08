@@ -3,7 +3,7 @@ package org.zalando.nakadi.client.scala
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
 import org.zalando.nakadi.client.scala.model.Cursor
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.model.PartitionStrategyType
 import org.zalando.nakadi.client.scala.test.factory.EventIntegrationHelper
 import org.zalando.nakadi.client.scala.test.factory.events.MySimpleEvent
@@ -16,7 +16,7 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
   import org.scalatest.Matchers._
   import ClientFactory._
-  import JacksonJsonMarshaller._
+  import ScalaJacksonJsonMarshaller._
   import MySimpleEvent._
 
   val client = ClientFactory.getScalaClient()

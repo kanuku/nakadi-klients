@@ -21,7 +21,7 @@ import akka.http.scaladsl.model.HttpProtocol
 import akka.http.scaladsl.model.HttpProtocols
 import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.ContentTypes
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.scala._
 import org.zalando.nakadi.client.utils.Uri
@@ -31,7 +31,7 @@ import org.mockito.ArgumentCaptor
 import org.zalando.nakadi.client.Deserializer
 
 class ScalaClientTest extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter {
-  import JacksonJsonMarshaller._
+  import ScalaJacksonJsonMarshaller._
   import Uri._
   private var connection: Connection = mock[Connection]
   private var subscriptionHandler: SubscriptionHandler = mock[SubscriptionHandler]

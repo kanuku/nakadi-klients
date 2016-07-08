@@ -11,7 +11,7 @@ case class Example private (enrichment_strategies: Seq[String])
 class ScalaJacksonJsonModuleTest extends WordSpec with Matchers {
   val emptyJsonList = """{"enrichment_strategies": []}"""
   val emptyJson = """{}"""
-  val mapper = JacksonJsonMarshaller.defaultObjectMapper
+  val mapper = ScalaJacksonJsonMarshaller.defaultObjectMapper
 
   "Deserialize from empty array to Nil  " in {
     val actual = mapper.readValue(emptyJsonList, classOf[Example])

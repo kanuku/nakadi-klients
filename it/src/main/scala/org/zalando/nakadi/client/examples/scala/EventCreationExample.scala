@@ -6,7 +6,7 @@ import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventType
 import org.zalando.nakadi.client.scala.model.EventTypeCategory
 import org.zalando.nakadi.client.scala.model.EventTypeSchema
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.model.PartitionStrategy
 import org.zalando.nakadi.client.scala.model.SchemaType
 import org.zalando.nakadi.client.utils.ClientBuilder
@@ -65,7 +65,7 @@ object EventCreationExample extends App {
                                 None)
 
   //You need to import the default Serializer if you don't sepecify your own!
-  import JacksonJsonMarshaller._
+  import ScalaJacksonJsonMarshaller._
 
   client.createEventType(eventType)
   Thread.sleep(3000)

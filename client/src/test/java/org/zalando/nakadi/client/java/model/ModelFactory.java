@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.java;
+package org.zalando.nakadi.client.java.model;
 
 import java.util.HashMap;
 import java.util.List;
@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.zalando.nakadi.client.java.ClientError;
 import org.zalando.nakadi.client.java.enumerator.BatchItemPublishingStatus;
 import org.zalando.nakadi.client.java.enumerator.BatchItemStep;
 import org.zalando.nakadi.client.java.enumerator.DataOperation;
@@ -33,8 +34,6 @@ import org.zalando.nakadi.client.java.model.Problem;
 import com.google.common.collect.Lists;
 
 public final class ModelFactory {
-    private ModelFactory() {
-    }
 
     private static Random randomizer = new Random();
 
@@ -90,56 +89,53 @@ public final class ModelFactory {
     }
 
     public static Metrics newMetrics() {
-        int depth= 5;
-        Map<String, Object> gauges=new HashMap<String, Object>();
-        gauges.put("normalString",randomUUID());
-        gauges.put("SimpleEvent",newSimpleEvent());
-        gauges.put("List",randomListOfString(depth));
-        gauges.put("List",randomListOfString(depth));
-        gauges.put("MapOfMaps",randomMapOfString(depth));
-        return new Metrics("version",gauges);
+        int depth = 5;
+        Map<String, Object> gauges = new HashMap<String, Object>();
+        gauges.put("normalString", randomUUID());
+        gauges.put("SimpleEvent", newSimpleEvent());
+        gauges.put("List", randomListOfString(depth));
+        gauges.put("List", randomListOfString(depth));
+        gauges.put("MapOfMaps", randomMapOfString(depth));
+        return new Metrics("version", gauges);
     }
-    
-    public static List<String> randomListOfString(int nrOfItems){
-        return Stream.generate(()-> randomUUID()).limit(nrOfItems).collect(Collectors.toList());
-        
+
+    public static List<String> randomListOfString(int nrOfItems) {
+        return Stream.generate(() -> randomUUID()).limit(nrOfItems).collect(Collectors.toList());
+
     }
-    
+
     /**
-     * A function that call itself to generate maps that contain other maps as values. 
+     * A function that call itself to generate maps that contain other maps as values.
+     * 
      * @param nrOfItems
      * @return
      */
-    public static Map<String,Object> randomMapOfString(int nrOfItems){
-        return  Stream.generate(()-> randomUUID()).limit(nrOfItems).collect(
-                Collectors.toMap(i->"nrOfItems-"+nrOfItems+"--"+i,i->randomMapOfString(nrOfItems-1)));
+    public static Map<String, Object> randomMapOfString(int nrOfItems) {
+        return Stream.generate(() -> randomUUID()).limit(nrOfItems).collect(Collectors.toMap(i -> "nrOfItems-" + nrOfItems + "--" + i, i -> randomMapOfString(nrOfItems - 1)));
     }
 
     public static Partition newPartition() {
-        
-        return new Partition(randomUUID(),randomUUID(),randomUUID());
+
+        return new Partition(randomUUID(), randomUUID(), randomUUID());
     }
 
     public static Problem newProblem() {
-        
-        
+
         return new Problem(randomUUID(), randomUUID(), randomInt(), randomUUID(), randomUUID());
     }
 
     public static EventType newEventType() {
-        List<EventEnrichmentStrategy> newEnrichmentStrategy=Lists.newArrayList(EventEnrichmentStrategy.METADATA);
+        List<EventEnrichmentStrategy> newEnrichmentStrategy = Lists.newArrayList(EventEnrichmentStrategy.METADATA);
         return new EventType(randomUUID(), randomUUID(), EventTypeCategory.BUSINESS, //
-                newEnrichmentStrategy, newPartitionStrategy(),  newEventTypeSchema(), randomListOfString(12), randomListOfString(21), newEventTypeStatistics());
+                newEnrichmentStrategy, newPartitionStrategy(), newEventTypeSchema(), randomListOfString(12), randomListOfString(21), newEventTypeStatistics());
     }
-
-    
 
     public static PartitionStrategy newPartitionStrategy() {
         return PartitionStrategy.values()[randomizer.nextInt(PartitionStrategy.values().length)];
     }
 
     public static EventEnrichmentStrategy newEventEnrichmentStrategy() {
-        
+
         return EventEnrichmentStrategy.values()[randomizer.nextInt(EventEnrichmentStrategy.values().length)];
     }
 
@@ -150,7 +146,5 @@ public final class ModelFactory {
     public static ClientError newClientError() {
         return new ClientError(randomUUID(), Optional.of(randomInt()), Optional.of(new IllegalStateException()));
     }
-
-    
 
 }

@@ -81,7 +81,7 @@ object EventListenerExample extends App {
     */
   implicit def typeRef: TypeReference[EventStreamBatch[MeetingsEvent]] =
     new TypeReference[EventStreamBatch[MeetingsEvent]] {}
-  import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller._
+  import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller._
 
   //  val eventTypeName = "Event-example-with-0-messages"
   val eventTypeName = "Example-2000"

@@ -4,7 +4,7 @@ import scala.concurrent.duration.DurationInt
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
 import org.zalando.nakadi.client.scala.model._
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import org.zalando.nakadi.client.utils.AkkaConfig
 import org.zalando.nakadi.client.utils.TestScalaEntity
 import com.fasterxml.jackson.core.`type`.TypeReference
@@ -20,7 +20,7 @@ import org.zalando.nakadi.client.Serializer
  * unexpected results.
  */
 class SerializerDeserializerTest extends WordSpec with Matchers with AkkaConfig {
-import JacksonJsonMarshaller._
+import ScalaJacksonJsonMarshaller._
   import TestScalaEntity._
 
   "When an entity(scala object) is marshalled and unmarshalled it" should {

@@ -24,6 +24,7 @@ object Dependencies {
 			"com.typesafe.akka"            %% "akka-actor"            	 					% akkaVersion,
 			"com.typesafe.akka"            %% "akka-http-experimental" 						% akkaVersion,
 			"com.typesafe.akka"            %% "akka-stream" 											% akkaVersion,
+			"org.slf4j" 									 % "slf4j-api" 												  % "1.7.21"
 			"com.typesafe.akka"            % "akka-slf4j_2.11"                    % "2.4.7",
 			"com.typesafe.akka"            %% "akka-testkit"           						% akkaVersion  % "test",
 		  "org.scalatest"                %% "scalatest"              						% scalaTestVersion      % "test",

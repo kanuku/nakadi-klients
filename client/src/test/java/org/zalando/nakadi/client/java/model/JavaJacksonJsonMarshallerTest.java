@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.java;
+package org.zalando.nakadi.client.java.model;
 
 import static org.junit.Assert.*;
 
@@ -33,7 +33,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 
 public class JavaJacksonJsonMarshallerTest {
-    Logger log = LoggerFactory.getLogger(this.getClass());
+    private  Logger log = LoggerFactory.getLogger(this.getClass());
 
     private <T> String toJson(T in) throws JsonProcessingException {
         log.info("ToJson - in {}", in.toString());

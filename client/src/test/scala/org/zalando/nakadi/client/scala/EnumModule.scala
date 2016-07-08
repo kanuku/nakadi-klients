@@ -2,7 +2,7 @@ package org.zalando.nakadi.client.scala
 
 import scala.reflect._
 import scala.reflect.runtime.universe._
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.Version
@@ -21,7 +21,7 @@ import org.zalando.nakadi.client.scala.model.BatchItemPublishingStatus
 import org.zalando.nakadi.client.scala.model.EventTypeCategory
 import org.zalando.nakadi.client.scala.model.SchemaType
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
 import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategyType
 

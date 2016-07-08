@@ -1,4 +1,4 @@
-package org.zalando.nakadi.client.java;
+package org.zalando.nakadi.client.java.model;
 
 import org.zalando.nakadi.client.java.model.Event;
 

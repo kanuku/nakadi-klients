@@ -16,7 +16,7 @@ import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
 import org.zalando.nakadi.client.scala.model.EventStreamBatch
 import org.zalando.nakadi.client.scala.model.EventType
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.model.Metrics
 import org.zalando.nakadi.client.scala.model.Partition
 import org.zalando.nakadi.client.scala.model.PartitionStrategy
@@ -35,7 +35,7 @@ class ClientImpl(connection: Connection,
                  charSet: String = "UTF-8")
     extends Client {
   import Uri._
-  import JacksonJsonMarshaller._
+  import ScalaJacksonJsonMarshaller._
   import HttpFactory._
   implicit val materializer = connection.materializer()
 

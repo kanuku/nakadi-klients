@@ -1,12 +1,12 @@
 package org.zalando.nakadi.client.scala
 
-import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import org.zalando.nakadi.client.utils.ClientBuilder
 
 object ClientCreationExample extends App {
-  import JacksonJsonMarshaller._
+  import ScalaJacksonJsonMarshaller._
   val a = ClientBuilder()
     .withHost("nakadi-sandbox.aruha-test.zalan.do")
     .withSecuredConnection(true) //s
