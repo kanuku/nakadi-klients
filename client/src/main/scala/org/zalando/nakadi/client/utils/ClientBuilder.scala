@@ -15,11 +15,7 @@ object ClientBuilder {
             tokenProvider: Option[() => String] = None,
             securedConnection: Boolean = true,
             verifySSlCertificate: Boolean = true) =
-    new ClientBuilder(host,
-                      port,
-                      tokenProvider,
-                      securedConnection,
-                      verifySSlCertificate)
+    new ClientBuilder(host, port, tokenProvider, securedConnection, verifySSlCertificate)
 
   private val DEFAULT_PORT = 443
 }
@@ -29,27 +25,16 @@ class ClientBuilder private (host: String = null, //
                              tokenProvider: Option[() => String] = None, //
                              securedConnection: Boolean = true, //
                              verifySSlCertificate: Boolean = true) {
-  def this() = this(null, ClientBuilder.DEFAULT_PORT, None, true, true)
+  def this() =
+    this(null, ClientBuilder.DEFAULT_PORT, None, true, true)
   def withHost(host: String): ClientBuilder =
-    new ClientBuilder(checkNotNull(host),
-                      port,
-                      tokenProvider,
-                      securedConnection,
-                      verifySSlCertificate)
+    new ClientBuilder(checkNotNull(host), port, tokenProvider, securedConnection, verifySSlCertificate)
 
   def withPort(port: Int): ClientBuilder =
-    new ClientBuilder(host,
-                      port,
-                      tokenProvider,
-                      securedConnection,
-                      verifySSlCertificate)
+    new ClientBuilder(host, port, tokenProvider, securedConnection, verifySSlCertificate)
 
   def withTokenProvider(tokenProvider: Option[() => String]): ClientBuilder =
-    new ClientBuilder(host,
-                      port,
-                      tokenProvider,
-                      securedConnection,
-                      verifySSlCertificate)
+    new ClientBuilder(host, port, tokenProvider, securedConnection, verifySSlCertificate)
 
   def withTokenProvider4Java(tokenProvider: Supplier[String]): ClientBuilder =
     withTokenProvider {
@@ -61,33 +46,17 @@ class ClientBuilder private (host: String = null, //
     }
 
   def withSecuredConnection(securedConnection: Boolean = true): ClientBuilder =
-    new ClientBuilder(host,
-                      port,
-                      tokenProvider,
-                      checkNotNull(securedConnection),
-                      verifySSlCertificate)
+    new ClientBuilder(host, port, tokenProvider, checkNotNull(securedConnection), verifySSlCertificate)
 
-  def withVerifiedSslCertificate(
-      verifySSlCertificate: Boolean = true): ClientBuilder =
-    new ClientBuilder(host,
-                      port,
-                      tokenProvider,
-                      securedConnection,
-                      checkNotNull(verifySSlCertificate))
+  def withVerifiedSslCertificate(verifySSlCertificate: Boolean = true): ClientBuilder =
+    new ClientBuilder(host, port, tokenProvider, securedConnection, checkNotNull(verifySSlCertificate))
 
   def build(): Client =
-    Connection.newClient(host,
-                         port,
-                         tokenProvider,
-                         securedConnection,
-                         verifySSlCertificate)
+    Connection.newClient(host, port, tokenProvider, securedConnection, verifySSlCertificate)
 
   def buildJavaClient(): JClient = {
-    val connection = Connection.newClientHandler4Java(host,
-                                                      port,
-                                                      tokenProvider,
-                                                      securedConnection,
-                                                      verifySSlCertificate)
+    val connection =
+      Connection.newClientHandler4Java(host, port, tokenProvider, securedConnection, verifySSlCertificate)
     new JClientImpl(connection)
   }
 

@@ -23,7 +23,9 @@ object HttpFactory {
   def withUrl(url: String, params: Option[StreamParameters]) = {
     val paramsList = withQueryParams(params)
     val urlParams =
-      if (!paramsList.isEmpty) paramsList.mkString("?", "&", "") else ""
+      if (!paramsList.isEmpty)
+        paramsList.mkString("?", "&", "")
+      else ""
     url + urlParams
   }
 
@@ -41,11 +43,10 @@ object HttpFactory {
     HttpRequest(uri = url, method = httpMethod).withHeaders(allHeaders)
   }
 
-  def withHttpRequestAndPayload(
-      url: String,
-      entity: String,
-      httpMethod: HttpMethod,
-      tokenProvider: Option[TokenProvider]): HttpRequest = {
+  def withHttpRequestAndPayload(url: String,
+                                entity: String,
+                                httpMethod: HttpMethod,
+                                tokenProvider: Option[TokenProvider]): HttpRequest = {
     val request = HttpRequest(uri = url, method = httpMethod)
     tokenProvider match {
       case None =>
@@ -64,9 +65,7 @@ object HttpFactory {
                       cursor: Option[Cursor],
                       flowId: Option[String],
                       tokenProvider: Option[TokenProvider]): HttpRequest = {
-    val customHeaders = withDefaultHeaders(cursor, flowId) :+ RawHeader(
-          "Accept",
-          "application/x-json-stream")
+    val customHeaders = withDefaultHeaders(cursor, flowId) :+ RawHeader("Accept", "application/x-json-stream")
     val allHeaders = tokenProvider match {
       case None => customHeaders
       case Some(token) =>
@@ -78,39 +77,31 @@ object HttpFactory {
   private def withQueryParams(params: Option[StreamParameters]): Seq[String] = {
     params match {
       case Some(
-          StreamParameters(_,
-                           batchLimit,
-                           streamLimit,
-                           batchFlushTimeout,
-                           streamTimeout,
-                           streamKeepAliveLimit,
-                           _)) =>
-        val parameters = List(
-            ("batch_limit", batchLimit),
-            ("stream_limit", streamLimit), //
-            ("batch_flush_timeout", batchFlushTimeout),
-            ("stream_timeout", streamTimeout), //
-            ("stream_keep_alive_limit", streamKeepAliveLimit))
-        for { (key, optional) <- parameters; value <- optional } yield
-          (key + "=" + value)
+          StreamParameters(_, batchLimit, streamLimit, batchFlushTimeout, streamTimeout, streamKeepAliveLimit, _)) =>
+        val parameters = List(("batch_limit", batchLimit),
+                              ("stream_limit", streamLimit), //
+                              ("batch_flush_timeout", batchFlushTimeout),
+                              ("stream_timeout", streamTimeout), //
+                              ("stream_keep_alive_limit", streamKeepAliveLimit))
+        for {
+          (key, optional) <- parameters; value <- optional
+        } yield (key + "=" + value)
       case None => Nil
     }
   }
 
-  private def withDefaultHeaders(cursor: Option[Cursor],
-                                 flowId: Option[String]): Seq[HttpHeader] = {
+  private def withDefaultHeaders(cursor: Option[Cursor], flowId: Option[String]): Seq[HttpHeader] = {
     val nakadiCursor = cursor match {
-      case Some(value)
-          if Option(value.partition).isDefined && Option(value.offset).isDefined =>
+      case Some(value) if Option(value.partition).isDefined && Option(value.offset).isDefined =>
         ("X-Nakadi-Cursors",
-         Some(
-             "[{\"partition\":\"" + value.partition + "\", \"offset\": \"" + value.offset + "\"}]"))
+         Some("[{\"partition\":\"" + value.partition + "\", \"offset\": \"" + value.offset + "\"}]"))
       case None =>
         ("X-Nakadi-Cursors", None)
     }
     val parameters = List(nakadiCursor, ("X-Flow-Id", flowId))
-    for { (key, optional) <- parameters; value <- optional } yield
-      RawHeader(key, value)
+    for {
+      (key, optional) <- parameters; value <- optional
+    } yield RawHeader(key, value)
   }
 
 }

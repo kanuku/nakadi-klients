@@ -25,8 +25,8 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
   import SupervisingActor._
   import Preconditions._
   private var subscriptions: Map[SubscriptionKey, SubscriptionEntry] = Map() //EventTypeName+Partition
-  private var cursors: Map[SubscriptionKey, Option[Cursor]] = Map()
-  private var actors: Map[String, SubscriptionKey] = Map()
+  private var cursors: Map[SubscriptionKey, Option[Cursor]]          = Map()
+  private var actors: Map[String, SubscriptionKey]                   = Map()
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   def addCursor(key: SubscriptionKey, cursor: Option[Cursor]): Unit = {
@@ -57,7 +57,8 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
 
   private def removeCursor(key: SubscriptionKey): Unit =
     cursors.get(key) match {
-      case None => logger.warn(s"Cursor subscription for $key not found!")
+      case None =>
+        logger.warn(s"Cursor subscription for $key not found!")
       case Some(cursor) =>
         cursors = cursors - (key)
         logger.info(s"Removed cursor [$cursor] with subscription [$key]!")
@@ -66,12 +67,10 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
   private def removeSubscriptionKey(actor: ActorRef): Unit =
     actors.get(actor.path.toString()) match {
       case None =>
-        logger.warn(
-            s"SubscriptionKey for actor [${actor.path.toString()}] not found!")
+        logger.warn(s"SubscriptionKey for actor [${actor.path.toString()}] not found!")
       case Some(key) =>
         actors = actors - actor.path.toString()
-        logger.info(
-            s"Removed subscriptionKey [$key] for actor [${actor.path.toString()}]!")
+        logger.info(s"Removed subscriptionKey [$key] for actor [${actor.path.toString()}]!")
     }
 
   def entry(key: SubscriptionKey): Option[SubscriptionEntry] = {
@@ -90,9 +89,7 @@ class SubscriptionHolderImpl extends SubscriptionHolder {
   }
 
   def cursorByActor(actor: ActorRef): Option[Cursor] = {
-    actors
-      .get(actor.path.toString())
-      .flatMap(x => cursors.get(x).flatMap(a => a))
+    actors.get(actor.path.toString()).flatMap(x => cursors.get(x).flatMap(a => a))
   }
 
 }

@@ -25,64 +25,61 @@ object ModelConverter {
       None
     }
 
-  def toScalaCursor(in: JCursor): Option[Cursor] = Option(in) match {
-    case None => None
-    case Some(c) => Some(Cursor(c.getPartition, c.getOffset))
-  }
+  def toScalaCursor(in: JCursor): Option[Cursor] =
+    Option(in) match {
+      case None => None
+      case Some(c) =>
+        Some(Cursor(c.getPartition, c.getOffset))
+    }
 
-  def toScalaStreamParameters(
-      in: Optional[JStreamParameters]): Option[StreamParameters] =
+  def toScalaStreamParameters(in: Optional[JStreamParameters]): Option[StreamParameters] =
     if (in.isPresent()) {
       toScalaStreamParameters(in.get)
     } else {
       None
     }
 
-  def toScalaStreamParameters(
-      in: JStreamParameters): Option[StreamParameters] = Option(in) match {
-    case None => None
-    case Some(c) =>
-      Some(
-          StreamParameters(
-              cursor = toScalaCursor(c.getCursor),
-              batchLimit = toOption(c.getBatchLimit),
-              streamLimit = toOption(c.getStreamLimit),
-              batchFlushTimeout = toOption(c.getBatchFlushTimeout),
-              streamTimeout = toOption(c.getStreamTimeout),
-              streamKeepAliveLimit = toOption(c.getStreamKeepAliveLimit),
-              flowId = toOption(c.getFlowId)))
-  }
+  def toScalaStreamParameters(in: JStreamParameters): Option[StreamParameters] =
+    Option(in) match {
+      case None => None
+      case Some(c) =>
+        Some(
+            StreamParameters(cursor = toScalaCursor(c.getCursor),
+                             batchLimit = toOption(c.getBatchLimit),
+                             streamLimit = toOption(c.getStreamLimit),
+                             batchFlushTimeout = toOption(c.getBatchFlushTimeout),
+                             streamTimeout = toOption(c.getStreamTimeout),
+                             streamKeepAliveLimit = toOption(c.getStreamKeepAliveLimit),
+                             flowId = toOption(c.getFlowId)))
+    }
 
   def toJavaCursor(in: Cursor): JCursor = in match {
     case Cursor(partition, offset) =>
       new JCursor(partition, offset)
     case null => null
   }
-  def toJavaCursor(in: Option[Cursor]): Optional[JCursor] = in match {
-    case Some(Cursor(partition, offset)) =>
-      Optional.of(new JCursor(partition, offset))
-    case None => Optional.empty()
-  }
+  def toJavaCursor(in: Option[Cursor]): Optional[JCursor] =
+    in match {
+      case Some(Cursor(partition, offset)) =>
+        Optional.of(new JCursor(partition, offset))
+      case None => Optional.empty()
+    }
 
   def toScalaCursor[T <: JEvent](in: JEventStreamBatch[T]): Option[Cursor] =
     Option(in) match {
-      case None => None
+      case None     => None
       case Some(in) => toScalaCursor(in.getCursor)
     }
 
-  def toJavaEvents[T <: JEvent](
-      in: JEventStreamBatch[T]): Option[java.util.List[T]] = Option(in) match {
-    case None => None
+  def toJavaEvents[T <: JEvent](in: JEventStreamBatch[T]): Option[java.util.List[T]] = Option(in) match {
+    case None     => None
     case Some(in) => Option(in.getEvents)
   }
 
   def toJavaClientError(error: Option[ClientError]): Optional[JClientError] =
     error match {
       case Some(ClientError(msg, httpStatusCodeOpt, exceptionOpt)) =>
-        Optional.of(
-            new JClientError(msg,
-                             toOptional(httpStatusCodeOpt),
-                             toOptional(exceptionOpt)))
+        Optional.of(new JClientError(msg, toOptional(httpStatusCodeOpt), toOptional(exceptionOpt)))
       case None => Optional.empty()
     }
 

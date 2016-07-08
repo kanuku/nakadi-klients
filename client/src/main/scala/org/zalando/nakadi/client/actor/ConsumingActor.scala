@@ -52,34 +52,22 @@ class ConsumingActor(subscription: SubscriptionKey, handler: EventHandler)
   override def receive: Receive = {
     case OnNext(msg: ByteString) =>
       val message = msg.utf8String
-      log.info("Event - prevCursor [{}] - [{}] - msg [{}]",
-               lastCursor,
-               subscription,
-               message)
+      log.info("Event - prevCursor [{}] - [{}] - msg [{}]", lastCursor, subscription, message)
       handler.handleOnReceive(subscription.toString(), message) match {
         case Right(cursor) =>
           lastCursor = Some(cursor)
           context.parent ! OffsetMsg(cursor, subscription)
-        case Left(error) => log.error(error.error.getMessage)
+        case Left(error) =>
+          log.error(error.error.getMessage)
       }
     case OnError(err: Throwable) =>
-      log.error("onError - cursor [{}] - [{}] - error [{}]",
-                lastCursor,
-                subscription,
-                err.getMessage)
+      log.error("onError - cursor [{}] - [{}] - error [{}]", lastCursor, subscription, err.getMessage)
       context.stop(self)
     case OnComplete =>
-      log.info("onComplete - connection closed by server - cursor [{}] - [{}]",
-               lastCursor,
-               subscription)
-      context.parent ! UnsubscribeMsg(subscription.eventTypeName,
-                                      subscription.partition,
-                                      handler.id())
+      log.info("onComplete - connection closed by server - cursor [{}] - [{}]", lastCursor, subscription)
+      context.parent ! UnsubscribeMsg(subscription.eventTypeName, subscription.partition, handler.id())
     case Terminated =>
-      log.info(
-          "Received Terminated msg - subscription [{}] with listener-id [{}] ",
-          subscription,
-          handler.id())
+      log.info("Received Terminated msg - subscription [{}] with listener-id [{}] ", subscription, handler.id())
       context.stop(self)
     case a =>
       log.error("Could not handle message: [{}]", a)

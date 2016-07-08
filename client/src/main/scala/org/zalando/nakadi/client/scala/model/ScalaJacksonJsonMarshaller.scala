@@ -25,21 +25,29 @@ object ScalaJacksonJsonMarshaller {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   // All TypeReferences
-  implicit def problemTR: TypeReference[Problem] = new TypeReference[Problem] {}
+  implicit def problemTR: TypeReference[Problem] =
+    new TypeReference[Problem] {}
   implicit val metricsTR: TypeReference[Metrics] = new TypeReference[Metrics] {}
-  implicit def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
-  implicit def cursorTR: TypeReference[Cursor] = new TypeReference[Cursor] {}
-  implicit def eventTypeSchemaTR: TypeReference[EventTypeSchema] = new TypeReference[EventTypeSchema] {}
-  implicit def partitionResolutionStrategyTR: TypeReference[PartitionStrategy.Value] = new TypeReference[PartitionStrategy.Value] {}
-  implicit def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy.Value] = new TypeReference[EventEnrichmentStrategy.Value] {}
-  implicit def eventTypeCategoryTR: TypeReference[EventTypeCategory.Value] = new TypeReference[EventTypeCategory.Value] {}
+  implicit def partitionTR: TypeReference[Partition] =
+    new TypeReference[Partition] {}
+  implicit def cursorTR: TypeReference[Cursor] =
+    new TypeReference[Cursor] {}
+  implicit def eventTypeSchemaTR: TypeReference[EventTypeSchema] =
+    new TypeReference[EventTypeSchema] {}
+  implicit def partitionResolutionStrategyTR: TypeReference[PartitionStrategy.Value] =
+    new TypeReference[PartitionStrategy.Value] {}
+  implicit def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy.Value] =
+    new TypeReference[EventEnrichmentStrategy.Value] {}
+  implicit def eventTypeCategoryTR: TypeReference[EventTypeCategory.Value] =
+    new TypeReference[EventTypeCategory.Value] {}
   implicit def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] =
     new TypeReference[DataChangeEventQualifier] {}
   implicit def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] =
     new TypeReference[EventTypeStatistics] {}
   implicit def eventTypeTR: TypeReference[EventType] =
     new TypeReference[EventType] {}
-  implicit def eventTR: TypeReference[Event] = new TypeReference[Event] {}
+  implicit def eventTR: TypeReference[Event] =
+    new TypeReference[Event] {}
   implicit def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] =
     new TypeReference[EventStreamBatch[_]] {}
 
@@ -70,9 +78,11 @@ object ScalaJacksonJsonMarshaller {
       }
     }
 
-  implicit def serializer[T]: Serializer[T] = new Serializer[T] {
-    def to(from: T): String = defaultObjectMapper.writeValueAsString(from)
-  }
+  implicit def serializer[T]: Serializer[T] =
+    new Serializer[T] {
+      def to(from: T): String =
+        defaultObjectMapper.writeValueAsString(from)
+    }
 
   implicit def deserializer[T](implicit expectedType: TypeReference[T]): Deserializer[T] =
     new Deserializer[T] {
@@ -100,7 +110,7 @@ object ScalaJacksonJsonMarshaller {
                                          beanOrClass: AnyRef,
                                          propertyName: String): Boolean = {
         logger.warn(
-          s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
+            s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
         true
       }
     })

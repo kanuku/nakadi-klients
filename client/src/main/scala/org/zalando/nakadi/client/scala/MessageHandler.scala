@@ -26,29 +26,27 @@ case class ErrorResult(error: Throwable)
   */
 trait EventHandler {
   def id(): String
-  def handleOnReceive(eventTypeName: String,
-                      msg: String): Either[ErrorResult, Cursor]
+  def handleOnReceive(eventTypeName: String, msg: String): Either[ErrorResult, Cursor]
   def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit
-  def handleOnError(eventTypeName: String,
-                    msg: Option[String],
-                    exception: Throwable)
+  def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable)
 }
 
-class ScalaEventHandlerImpl[S <: Event](des: Deserializer[EventStreamBatch[S]],
-                                        listener: Listener[S])
+class ScalaEventHandlerImpl[S <: Event](des: Deserializer[EventStreamBatch[S]], listener: Listener[S])
     extends EventHandler {
   private val log = LoggerFactory.getLogger(this.getClass)
-  private def createException(msg: String) = new IllegalStateException(msg)
+  private def createException(msg: String) =
+    new IllegalStateException(msg)
   checkArgument(listener != null, "Listener must not be null", null)
   checkArgument(des != null, "Deserializer must not be null", null)
 
   def id: String = listener.id
 
-  def handleOnReceive(eventTypeName: String,
-                      msg: String): Either[ErrorResult, Cursor] = {
+  def handleOnReceive(eventTypeName: String, msg: String): Either[ErrorResult, Cursor] = {
     Try(des.from(msg)) match {
-      case Success(EventStreamBatch(cursor, None)) => Right(cursor)
-      case Success(EventStreamBatch(cursor, Some(Nil))) => Right(cursor)
+      case Success(EventStreamBatch(cursor, None)) =>
+        Right(cursor)
+      case Success(EventStreamBatch(cursor, Some(Nil))) =>
+        Right(cursor)
       case Success(EventStreamBatch(cursor, Some(events))) =>
         listener.onReceive(eventTypeName, cursor, events)
         Right(cursor)
@@ -63,10 +61,8 @@ class ScalaEventHandlerImpl[S <: Event](des: Deserializer[EventStreamBatch[S]],
 
   }
 
-  def handleOnError(eventTypeName: String,
-                    msg: Option[String],
-                    exception: Throwable) = {
-    val errorMsg = if (msg.isDefined) msg.get else exception.getMessage
+  def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable) = {
+    val errorMsg    = if (msg.isDefined) msg.get else exception.getMessage
     val clientError = Some(ClientError(errorMsg, exception = Some(exception)))
     listener.onError(errorMsg, clientError)
   }
@@ -74,25 +70,21 @@ class ScalaEventHandlerImpl[S <: Event](des: Deserializer[EventStreamBatch[S]],
     listener.onSubscribed(endpoint, cursor)
 
 }
-class JavaEventHandlerImpl[J <: JEvent](
-    des: Deserializer[JEventStreamBatch[J]],
-    listener: JListener[J])
+class JavaEventHandlerImpl[J <: JEvent](des: Deserializer[JEventStreamBatch[J]], listener: JListener[J])
     extends EventHandler {
   private val log = LoggerFactory.getLogger(this.getClass)
-  private def createException(msg: String) = new IllegalStateException(msg)
+  private def createException(msg: String) =
+    new IllegalStateException(msg)
   checkArgument(listener != null, "Listener must not be null", null)
   checkArgument(des != null, "Deserializer must not be null", null)
 
   def id: String = listener.getId
 
-  def handleOnReceive(eventTypeName: String,
-                      msg: String): Either[ErrorResult, Cursor] = {
+  def handleOnReceive(eventTypeName: String, msg: String): Either[ErrorResult, Cursor] = {
     Try(des.from(msg)) match {
-      case Success(eventBatch)
-          if (eventBatch.getEvents != null && !eventBatch.getEvents
-                .isEmpty()) =>
+      case Success(eventBatch) if (eventBatch.getEvents != null && !eventBatch.getEvents.isEmpty()) =>
         val Some(sCursor: Cursor) = toScalaCursor(eventBatch.getCursor)
-        val jcursor: JCursor = eventBatch.getCursor
+        val jcursor: JCursor      = eventBatch.getCursor
         listener.onReceive(eventTypeName, jcursor, eventBatch.getEvents)
         Right(sCursor)
       case Success(eventBatch) =>
@@ -108,10 +100,8 @@ class JavaEventHandlerImpl[J <: JEvent](
     }
   }
 
-  def handleOnError(eventTypeName: String,
-                    msg: Option[String],
-                    exception: Throwable) = {
-    val errorMsg = if (msg.isDefined) msg.get else exception.getMessage
+  def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable) = {
+    val errorMsg    = if (msg.isDefined) msg.get else exception.getMessage
     val clientError = Some(ClientError(errorMsg, exception = Some(exception)))
     listener.onError(errorMsg, toJavaClientError(clientError))
   }

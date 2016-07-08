@@ -23,22 +23,32 @@ import com.fasterxml.jackson.databind.JavaType
 object JavaJacksonJsonMarshaller {
   val logger = LoggerFactory.getLogger(this.getClass)
   // All TypeReferences
-  def problemTR: TypeReference[Problem]     = new TypeReference[Problem]   {}
-  def metricsTR: TypeReference[Metrics]     = new TypeReference[Metrics]   {}
-  def partitionTR: TypeReference[Partition] = new TypeReference[Partition] {}
-  def cursorTR: TypeReference[Cursor]       = new TypeReference[Cursor]    {}
+  def problemTR: TypeReference[Problem] =
+    new TypeReference[Problem] {}
+  def metricsTR: TypeReference[Metrics] =
+    new TypeReference[Metrics] {}
+  def partitionTR: TypeReference[Partition] =
+    new TypeReference[Partition] {}
+  def cursorTR: TypeReference[Cursor] =
+    new TypeReference[Cursor] {}
   def eventTypeSchemaTR: TypeReference[EventTypeSchema] =
     new TypeReference[EventTypeSchema] {}
   def eventTypeCategoryTR: TypeReference[EventTypeCategory] =
     new TypeReference[EventTypeCategory] {}
-  def partitionResolutionStrategyTR: TypeReference[PartitionStrategy]   = new TypeReference[PartitionStrategy]       {}
-  def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy] = new TypeReference[EventEnrichmentStrategy] {}
+  def partitionResolutionStrategyTR: TypeReference[PartitionStrategy] =
+    new TypeReference[PartitionStrategy] {}
+  def eventEnrichmentStrategyTR: TypeReference[EventEnrichmentStrategy] =
+    new TypeReference[EventEnrichmentStrategy] {}
   def dataChangeEventQualifierTR: TypeReference[DataChangeEventQualifier] =
     new TypeReference[DataChangeEventQualifier] {}
-  def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] = new TypeReference[EventTypeStatistics] {}
-  def eventTypeTR: TypeReference[EventType]                     = new TypeReference[EventType]           {}
-  def eventTR: TypeReference[Event]                             = new TypeReference[Event]               {}
-  def eventStreamBatchTR: TypeReference[EventStreamBatch[_]]    = new TypeReference[EventStreamBatch[_]] {}
+  def eventTypeStatisticsTR: TypeReference[EventTypeStatistics] =
+    new TypeReference[EventTypeStatistics] {}
+  def eventTypeTR: TypeReference[EventType] =
+    new TypeReference[EventType] {}
+  def eventTR: TypeReference[Event] =
+    new TypeReference[Event] {}
+  def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] =
+    new TypeReference[EventStreamBatch[_]] {}
 
   def eventMetadataTR: TypeReference[EventMetadata] =
     new TypeReference[EventMetadata] {}
@@ -69,7 +79,8 @@ object JavaJacksonJsonMarshaller {
     }
 
   def serializer[T]: Serializer[T] = new Serializer[T] {
-    def to(from: T): String = defaultObjectMapper.writeValueAsString(from)
+    def to(from: T): String =
+      defaultObjectMapper.writeValueAsString(from)
   }
 
   def deserializer[T](expectedType: TypeReference[T]): Deserializer[T] =
