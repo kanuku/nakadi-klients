@@ -33,7 +33,7 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
     metricsOpt.isDefined shouldBe true
     val Some(metrics) = metricsOpt
     println(metrics)
-    metrics.version shouldNot be (null)
+    metrics.version shouldNot be(null)
     metrics.gauges.size should be > 0
   }
 
@@ -45,18 +45,19 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
     val Some(eventTypes) = eventTypesOpt
     eventTypes.size should (equal(0) or (be > 0))
   }
-  
-//  "GET /registry/partitions-strategies" in {
-//    val result = Await.result(client.getPartitioningStrategies(), 10.seconds)
-//    result.isRight shouldBe true
-//  }
-  
-//  "GET /registry/enrichment-strategies" in {
-//      val result = Await.result(client.getEnrichmentStrategies(), 10.seconds)
-//              result.isRight shouldBe true
-//  }
-//  
-  
+
+  "GET /registry/partitions-strategies" in {
+    val result = Await.result(client.getPartitioningStrategies(), 10.seconds)
+    result.isRight shouldBe true
+  }
+
+  "GET /registry/enrichment-strategies" in {
+    val result = Await.result(client.getEnrichmentStrategies(), 10.seconds)
+    result.isRight shouldBe true
+    val Right(strategies)=result
+   strategies.isDefined shouldBe true
+   
+  }
 
 }
 

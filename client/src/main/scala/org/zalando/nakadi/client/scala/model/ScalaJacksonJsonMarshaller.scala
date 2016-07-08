@@ -5,8 +5,8 @@ import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.core.Version
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.DeserializationFeature
@@ -15,11 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler
+import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.fasterxml.jackson.module.scala.IteratorModule
-import com.fasterxml.jackson.module.scala.OptionModule
-import com.fasterxml.jackson.module.scala.SeqModule
-import com.fasterxml.jackson.module.scala.MapModule
 
 object ScalaJacksonJsonMarshaller {
   val logger = LoggerFactory.getLogger(this.getClass)
@@ -69,6 +66,7 @@ object ScalaJacksonJsonMarshaller {
     new TypeReference[Seq[EventType]] {}
   implicit def listOfPartitionTR: TypeReference[Seq[Partition]] =
     new TypeReference[Seq[Partition]] {}
+  implicit def listOfStringsTR: TypeReference[Seq[String]] = new TypeReference[Seq[String]] {}
 
   implicit def optionalDeserializer[T](implicit expectedType: TypeReference[T]): Deserializer[Option[T]] =
     new Deserializer[Option[T]] {
@@ -89,30 +87,37 @@ object ScalaJacksonJsonMarshaller {
       def from(from: String): T =
         defaultObjectMapper.readValue[T](from, expectedType)
     }
-
-  lazy val defaultObjectMapper: ObjectMapper = new ObjectMapper() {
-    private val module = new OptionModule with MapModule with SeqModule with IteratorModule
-
-    this.registerModule(module)
-
-  } //
-    .registerModule(new DefaultScalaModule)
-    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-    .configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true)
-    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
-    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-    .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
-    .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
-    .addHandler(new DeserializationProblemHandler() {
-      override def handleUnknownProperty(ctxt: DeserializationContext,
-                                         jp: JsonParser,
-                                         deserializer: JsonDeserializer[_],
-                                         beanOrClass: AnyRef,
-                                         propertyName: String): Boolean = {
-        logger.warn(
-            s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
-        true
+  
+  
+  def deserializer[T, B](expectedType: TypeReference[T], tranformer: T => B): Deserializer[B] =
+    new Deserializer[B] {
+      def from(from: String): B = {
+        tranformer(defaultObjectMapper.readValue[T](from, expectedType))
       }
-    })
+
+    }
+
+  lazy val defaultObjectMapper: ObjectMapper = {
+    val scalaModule = new DefaultScalaModule
+    new ObjectMapper()
+      .registerModule(scalaModule)
+      .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+      .configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true)
+      .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
+      .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+      .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
+      .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
+      .addHandler(new DeserializationProblemHandler() {
+        override def handleUnknownProperty(ctxt: DeserializationContext,
+                                           jp: JsonParser,
+                                           deserializer: JsonDeserializer[_],
+                                           beanOrClass: AnyRef,
+                                           propertyName: String): Boolean = {
+          logger.warn(
+            s"unknown property occurred in JSON representation: [beanOrClass=$beanOrClass, property=$propertyName]")
+          true
+        }
+      })
+  }
 
 }

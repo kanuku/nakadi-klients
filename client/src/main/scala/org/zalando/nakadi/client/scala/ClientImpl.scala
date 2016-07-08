@@ -29,6 +29,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategyType
+import org.zalando.nakadi.client.scala.model.PartitionStrategyType
 
 class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSet: String = "UTF-8") extends Client {
   import Uri._
@@ -52,7 +53,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
 
   def getEventType(name: String): Future[Either[ClientError, Option[EventType]]] = {
     logFutureEither(
-        connection.get(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToEither(in)(deserializer(eventTypeTR))))
+      connection.get(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToEither(in)(deserializer(eventTypeTR))))
   }
 
   def updateEventType(name: String, eventType: EventType): Future[Option[ClientError]] = {
@@ -68,30 +69,43 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
                                 events: Seq[T],
                                 ser: Serializer[Seq[T]]): Future[Option[ClientError]] = {
     logFutureOption(
-        connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
+      connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
   }
   def publishEvents[T <: Event](eventTypeName: String, events: Seq[T]): Future[Option[ClientError]] = {
     logFutureOption(
-        connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
+      connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
   }
 
   def getPartitions(name: String): Future[Either[ClientError, Option[Seq[Partition]]]] = {
     logFutureEither(
-        connection
-          .get(URI_PARTITIONS_BY_EVENT_TYPE.format(name))
-          .flatMap(in => mapToEither(in)(deserializer(listOfPartitionTR))))
+      connection
+        .get(URI_PARTITIONS_BY_EVENT_TYPE.format(name))
+        .flatMap(in => mapToEither(in)(deserializer(listOfPartitionTR))))
   }
 
-  def getEnrichmentStrategies(): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.Value]]]] = {
+
+  def getPartitioningStrategies(): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]] ={
+     val transformer = getTranformer(PartitionStrategy)
     logFutureEither(
-        connection
-          .get(URI_ENRICHMENT_STRATEGIES)
-          .flatMap(mapToEither(_)(deserializer(listOfEventEnrichmentStrategyTR))))
+      connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfStringsTR,transformer))))
   }
 
-  def getPartitioningStrategies(): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]] =
+  
+  private def getTranformer(enum:Enumeration)={
+    (in:Seq[String]) =>  {
+      in.map { x => enum.withName(x) }
+    }
+  }
+  
+  def getEnrichmentStrategies(): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.EventEnrichmentStrategy]]]] = {
+    val tranformer = getTranformer(EventEnrichmentStrategy)
     logFutureEither(
-        connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfPartitionStrategyTR))))
+      connection
+        .get(URI_ENRICHMENT_STRATEGIES)
+        .flatMap(mapToEither(_)(deserializer(listOfStringsTR, tranformer))))
+  }
+
+  
 
   def stop(): Option[ClientError] = {
     materializer.shutdown()
@@ -107,7 +121,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
 
   }
   def subscribe[T <: Event](eventTypeName: String, params: StreamParameters, listener: Listener[T])(
-      implicit des: Deserializer[EventStreamBatch[T]]): Option[ClientError] =
+    implicit des: Deserializer[EventStreamBatch[T]]): Option[ClientError] =
     (eventTypeName, params, listener) match {
 
       case (_, _, listener) if listener == null =>
@@ -121,12 +135,12 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
       case (eventType, StreamParameters(cursor, _, _, _, _, _, _), listener) if Option(eventType).isDefined =>
         val url = URI_EVENTS_OF_EVENT_TYPE.format(eventType)
         logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} - url {}",
-                     listener.id,
-                     cursor,
-                     params,
-                     eventType,
-                     url)
-        val finalUrl                   = withUrl(url, Some(params))
+          listener.id,
+          cursor,
+          params,
+          eventType,
+          url)
+        val finalUrl = withUrl(url, Some(params))
         val eventHandler: EventHandler = new ScalaEventHandlerImpl(des, listener)
         subscriber.subscribe(eventTypeName, finalUrl, cursor, eventHandler)
     }
@@ -159,7 +173,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   }
 
   private def mapToEither[T](response: HttpResponse)(
-      implicit deserializer: Deserializer[T]): Future[Either[ClientError, Option[T]]] = {
+    implicit deserializer: Deserializer[T]): Future[Either[ClientError, Option[T]]] = {
     logger.debug("received [response={}]", response)
     response match {
       case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
@@ -196,15 +210,17 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         logger.info(s"Success. http-status: ${status.intValue()}")
         response.entity.toStrict(10.second).map { body =>
           logger.debug("Success - http-status: %s, body:[%s]".format(status.intValue().toString(),
-                                                                     body.data.decodeString(charSet)))
+            body.data.decodeString(charSet)))
         }
         Future.successful(None)
       case status if (status.isRedirection()) =>
         val msg = s"Redirection - http-status: ${status.intValue()}, reason[${status.reason()}]"
         logger.info(msg)
         response.entity.toStrict(10.second).map { body =>
-          logger.debug(s"Redirection - http-status: ${status.intValue().toString()}, reason[${status
-            .reason()}], body:[${body.data.decodeString(charSet)}]")
+          logger.debug(s"Redirection - http-status: ${status.intValue().toString()}, reason[${
+            status
+              .reason()
+          }], body:[${body.data.decodeString(charSet)}]")
         }
         Future.successful(Option(ClientError(msg, Some(status.intValue()))))
       case status if (status.isFailure()) =>

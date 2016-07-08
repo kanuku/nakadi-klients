@@ -22,7 +22,6 @@ import org.zalando.nakadi.client.Serializer
 class SerializerDeserializerTest extends WordSpec with Matchers with AkkaConfig {
 import ScalaJacksonJsonMarshaller._
   import TestScalaEntity._
-
   "When an entity(scala object) is marshalled and unmarshalled it" should {
     val testName = "always result in the same entity"
     s"$testName(eventMetadata)" in {

@@ -80,7 +80,8 @@ public class ClientImpl implements Client {
     }
 
     @Override
-    public <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events, Serializer<List<T>> serializer) {
+    public <T extends Event> Future<Void> publishEvents(String eventTypeName, List<T> events,
+            Serializer<List<T>> serializer) {
         return handler.post(Uri.getEventStreamingUri(eventTypeName), events, serializer);
     }
 
@@ -111,13 +112,17 @@ public class ClientImpl implements Client {
     }
 
     @Override
-    public <T extends Event> Optional<ClientError> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, Deserializer<EventStreamBatch<T>> deserializer) {
-        return handler.subscribe(eventTypeName, Uri.getEventStreamingUri(eventTypeName), parameters, listener, deserializer);
+    public <T extends Event> Optional<ClientError> subscribe(String eventTypeName, StreamParameters parameters,
+            Listener<T> listener, Deserializer<EventStreamBatch<T>> deserializer) {
+        return handler.subscribe(eventTypeName, Uri.getEventStreamingUri(eventTypeName), parameters, listener,
+                deserializer);
     }
 
     @Override
-    public <T extends Event> Optional<ClientError> subscribe(String eventTypeName, StreamParameters parameters, Listener<T> listener, TypeReference<EventStreamBatch<T>> typeRef) {
-        return handler.subscribe(eventTypeName, Uri.getEventStreamingUri(eventTypeName), parameters, listener, SerializationUtils.withCustomDeserializer(typeRef));
+    public <T extends Event> Optional<ClientError> subscribe(String eventTypeName, StreamParameters parameters,
+            Listener<T> listener, TypeReference<EventStreamBatch<T>> typeRef) {
+        return handler.subscribe(eventTypeName, Uri.getEventStreamingUri(eventTypeName), parameters, listener,
+                SerializationUtils.withCustomDeserializer(typeRef));
     }
 
     @Override
