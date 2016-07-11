@@ -19,11 +19,48 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
   import MySimpleEvent._
 
   val client = ClientFactory.getScalaClient()
-  val nrOfEvents = 45
-  val listener = new SimpleEventListener()
+  val eventGenerator = new DefaultMySimpleEventGenerator() {
+    def eventTypeId = s"ClientIntegrationTest-Scala"
+  }
 
   override def afterAll {
     client.stop()
+  }
+
+  "POST/GET/DELETE /event-types" in {
+    val eventType = eventGenerator.eventType
+    //POST
+    val creationResult = Await.result(client.createEventType(eventType), 10.seconds)
+    creationResult shouldBe None
+
+    //GET
+    var eventClientResult = Await.result(client.getEventType(eventType.name), 10.seconds)
+    eventClientResult.isRight shouldBe true
+    var Right(eventTypeOpt) = eventClientResult
+    eventTypeOpt.isDefined shouldBe true
+    val Some(eventTypeResult) = eventTypeOpt
+
+    //    Compare EventType
+    eventType.category shouldBe eventTypeResult.category
+    eventType.dataKeyFields shouldBe List()
+    eventType.name shouldBe eventTypeResult.name
+    eventType.owningApplication shouldBe eventTypeResult.owningApplication
+    eventType.partitionStrategy shouldBe eventTypeResult.partitionStrategy
+    eventType.schema shouldBe eventTypeResult.schema
+    eventType.statistics shouldBe eventTypeResult.statistics
+    eventType.enrichmentStrategies shouldBe eventTypeResult.enrichmentStrategies
+    eventType.partitionKeyFields shouldBe eventTypeResult.partitionKeyFields
+
+    //DELETE
+    val deletedResult = Await.result(client.deleteEventType(eventType.name), 10.seconds)
+    deletedResult.isEmpty shouldBe true
+
+    //GET
+    eventClientResult = Await.result(client.getEventType(eventType.name), 10.seconds)
+    eventClientResult.isRight shouldBe true
+
+    eventClientResult.right.get.isDefined shouldBe false
+
   }
 
   "GET /metrics" in {
@@ -54,9 +91,8 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
   "GET /registry/enrichment-strategies" in {
     val result = Await.result(client.getEnrichmentStrategies(), 10.seconds)
     result.isRight shouldBe true
-    val Right(strategies)=result
-   strategies.isDefined shouldBe true
-   
+    val Right(strategies) = result
+    strategies.isDefined shouldBe true
   }
 
 }

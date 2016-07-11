@@ -12,17 +12,17 @@ import scala.util.Try
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
-import org.zalando.nakadi.client.java.model.{Event => JEvent}
-import org.zalando.nakadi.client.scala.model.{Cursor => ScalaCursor}
-import org.zalando.nakadi.client.scala.{ClientImpl => SClientImpl}
-import org.zalando.nakadi.client.java.model.{EventStreamBatch => JEventStreamBatch}
-import org.zalando.nakadi.client.java.{StreamParameters => JStreamParameters}
-import org.zalando.nakadi.client.java.{Listener => JListener}
+import org.zalando.nakadi.client.java.model.{ Event => JEvent }
+import org.zalando.nakadi.client.scala.model.{ Cursor => ScalaCursor }
+import org.zalando.nakadi.client.scala.{ ClientImpl => SClientImpl }
+import org.zalando.nakadi.client.java.model.{ EventStreamBatch => JEventStreamBatch }
+import org.zalando.nakadi.client.java.{ StreamParameters => JStreamParameters }
+import org.zalando.nakadi.client.java.{ Listener => JListener }
 import org.zalando.nakadi.client.scala.Connection
 import org.zalando.nakadi.client.scala.EmptyScalaEvent
 import org.zalando.nakadi.client.scala.EventHandler
 import org.zalando.nakadi.client.scala.HttpFactory
-import org.zalando.nakadi.client.scala.{StreamParameters => ScalaStreamParameters}
+import org.zalando.nakadi.client.scala.{ StreamParameters => ScalaStreamParameters }
 import org.zalando.nakadi.client.utils.FutureConversions
 import org.zalando.nakadi.client.utils.ModelConverter
 
@@ -40,8 +40,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 /**
-  * Handler for mapping(Java<->Scala) and handling http calls and listener subscriptions for the Java API.
-  */
+ * Handler for mapping(Java<->Scala) and handling http calls and listener subscriptions for the Java API.
+ */
 trait JavaClientHandler {
   def deserialize[T](response: HttpResponse, des: Deserializer[T]): Future[Optional[T]]
   def get[T](endpoint: String, des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
@@ -49,11 +49,12 @@ trait JavaClientHandler {
              headers: Seq[HttpHeader],
              des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
+  def delete[T](endpoint: String): java.util.concurrent.Future[Void]
   def subscribe[T <: JEvent](
-      eventTypeName: String,
-      endpoint: String,
-      parameters: JStreamParameters,
-      listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]]): Optional[ClientError]
+    eventTypeName: String,
+    endpoint: String,
+    parameters: JStreamParameters,
+    listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]]): Optional[ClientError]
   def unsubscribe[T <: JEvent](eventTypeName: String, partition: Optional[String], listener: JListener[T])
   def stop(): Unit
 
@@ -87,9 +88,9 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
              headers: Seq[HttpHeader],
              des: Deserializer[T]): java.util.concurrent.Future[Optional[T]] = {
     FutureConversions.fromFuture2Future(
-        connection
-          .executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, connection.tokenProvider, None))
-          .flatMap(deserialize(_, des)))
+      connection
+        .executeCall(withHttpRequest(endpoint, HttpMethods.GET, headers, connection.tokenProvider, None))
+        .flatMap(deserialize(_, des)))
   }
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void] = {
     val entity = serializer.to(model)
@@ -98,6 +99,10 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
     val result = connection
       .executeCall(withHttpRequestAndPayload(endpoint, serialize(model), HttpMethods.POST, connection.tokenProvider))
       .flatMap(response(_))
+    FutureConversions.fromOption2Void(result)
+  }
+  def delete[T](endpoint: String): java.util.concurrent.Future[Void]={
+    val result = connection.delete(endpoint) .flatMap(response(_))
     FutureConversions.fromOption2Void(result)
   }
 
@@ -131,9 +136,9 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
                              listener: JListener[T])(implicit des: Deserializer[JEventStreamBatch[T]]) = {
     import ModelConverter._
     val params: Option[ScalaStreamParameters] = toScalaStreamParameters(parameters)
-    val eventHandler: EventHandler            = new JavaEventHandlerImpl(des, listener)
-    val finalUrl                              = withUrl(endpoint, params)
-    val res                                   = subscriber.subscribe(eventTypeName, finalUrl, getCursor(params), eventHandler)
+    val eventHandler: EventHandler = new JavaEventHandlerImpl(des, listener)
+    val finalUrl = withUrl(endpoint, params)
+    val res = subscriber.subscribe(eventTypeName, finalUrl, getCursor(params), eventHandler)
     toJavaClientError(res)
   }
 
@@ -149,13 +154,13 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
   private def getCursor(params: Option[ScalaStreamParameters]): Option[ScalaCursor] =
     params match {
       case Some(
-          ScalaStreamParameters(cursor,
-                                batchLimit,
-                                streamLimit,
-                                batchFlushTimeout,
-                                streamTimeout,
-                                streamKeepAliveLimit,
-                                flowId)) =>
+        ScalaStreamParameters(cursor,
+          batchLimit,
+          streamLimit,
+          batchFlushTimeout,
+          streamTimeout,
+          streamKeepAliveLimit,
+          flowId)) =>
         cursor
       case None => None
     }

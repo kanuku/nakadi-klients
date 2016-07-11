@@ -66,7 +66,7 @@ public class ClientImpl implements Client {
 
     @Override
     public Future<Void> deleteEventType(String eventTypeName) {
-        throw new NotImplementedException();
+        return handler.delete(Uri.getEventTypeByName(eventTypeName));
     }
 
     @Override
