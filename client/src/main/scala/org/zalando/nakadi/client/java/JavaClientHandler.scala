@@ -38,6 +38,7 @@ import org.zalando.nakadi.client.scala.ScalaEventHandlerImpl
 import org.zalando.nakadi.client.scala.JavaEventHandlerImpl
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import akka.http.scaladsl.model.HttpMethod
 
 /**
  * Handler for mapping(Java<->Scala) and handling http calls and listener subscriptions for the Java API.
@@ -49,6 +50,7 @@ trait JavaClientHandler {
              headers: Seq[HttpHeader],
              des: Deserializer[T]): java.util.concurrent.Future[Optional[T]]
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
+  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void]
   def delete[T](endpoint: String): java.util.concurrent.Future[Void]
   def subscribe[T <: JEvent](
     eventTypeName: String,
@@ -93,16 +95,22 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
         .flatMap(deserialize(_, des)))
   }
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void] = {
+    executeMethod(endpoint, model, HttpMethods.POST)
+  }
+
+  def executeMethod[T](endpoint: String, model: T, httpMethod: HttpMethod)(implicit serializer: Serializer[T]) = {
     val entity = serializer.to(model)
-    logger.info("Posting to endpoint {}", endpoint)
-    logger.debug("Data to post {}", entity)
+    logger.info(s"Calling ${endpoint} with ${httpMethod} and ${entity}")
     val result = connection
-      .executeCall(withHttpRequestAndPayload(endpoint, serialize(model), HttpMethods.POST, connection.tokenProvider))
+      .executeCall(withHttpRequestAndPayload(endpoint, serialize(model), httpMethod, connection.tokenProvider))
       .flatMap(response(_))
     FutureConversions.fromOption2Void(result)
   }
-  def delete[T](endpoint: String): java.util.concurrent.Future[Void]={
-    val result = connection.delete(endpoint) .flatMap(response(_))
+  def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): java.util.concurrent.Future[Void] = {
+    executeMethod(endpoint, model, HttpMethods.PUT)
+  }
+  def delete[T](endpoint: String): java.util.concurrent.Future[Void] = {
+    val result = connection.delete(endpoint).flatMap(response(_))
     FutureConversions.fromOption2Void(result)
   }
 
@@ -116,6 +124,7 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
   private def response[T](response: HttpResponse): Future[Option[String]] =
     response match {
       case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
+        logger.debug("Call succeeded: {}",response)
         Try(Unmarshal(entity).to[String]) match {
           case Success(result) => result.map(Option(_))
           case Failure(error) =>
@@ -123,6 +132,7 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
         }
 
       case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>
+        logger.warn("Call failed: {}",response)
         Unmarshal(entity).to[String].map { x =>
           val msg = "http-stats(%s) - %s - problem: %s ".format(status.intValue(), x, status.defaultMessage())
           logger.warn(msg)

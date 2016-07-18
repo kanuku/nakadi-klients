@@ -61,7 +61,7 @@ public class ClientImpl implements Client {
 
     @Override
     public Future<Void> updateEventType(String eventTypeName, EventType eventType) {
-        throw new NotImplementedException();
+       return handler.put(Uri.getEventTypeByName(eventTypeName), eventType, eventTypeSerializer);
     }
 
     @Override

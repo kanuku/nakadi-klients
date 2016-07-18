@@ -147,16 +147,17 @@ sealed class ConnectionImpl(val host: String,
   def put[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
     val entity = serializer.to(model)
     logger.info(s"Put: $endpoint - Data: $entity")
-    executeCall(withHttpRequest(endpoint, HttpMethods.PUT, Nil, tokenProvider, None))
+    executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.PUT, tokenProvider))
   }
 
   def post[T](endpoint: String, model: T)(implicit serializer: Serializer[T]): Future[HttpResponse] = {
     val entity = serializer.to(model)
-    logger.info(s"Put: $endpoint - Data: $entity")
+    logger.info(s"Post: $endpoint - Data: $entity")
     executeCall(withHttpRequestAndPayload(endpoint, entity, HttpMethods.POST, tokenProvider))
   }
 
   def executeCall(request: HttpRequest): Future[HttpResponse] = {
+    logger.debug("executingCall {}", request)
     val response: Future[HttpResponse] = Source.single(request).via(requestFlow).runWith(Sink.head)(materializer())
     logError(response)
     response

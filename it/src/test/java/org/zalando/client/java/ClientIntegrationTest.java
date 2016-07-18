@@ -8,18 +8,19 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import org.junit.After;
 import org.junit.Test;
 import org.zalando.nakadi.client.java.Client;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
+import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
 import org.zalando.nakadi.client.java.model.EventType;
+import org.zalando.nakadi.client.java.model.EventTypeSchema;
+import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 import org.zalando.nakadi.client.java.model.Metrics;
 import org.zalando.nakadi.client.java.test.event.generator.EventGenerator;
 import org.zalando.nakadi.client.java.test.event.simple.MySimpleEventGenerator;
-import org.zalando.nakadi.client.java.test.event.simple.SimpleEventListener;
 import org.zalando.nakadi.client.scala.ClientFactory;
 
 public class ClientIntegrationTest {
@@ -31,19 +32,19 @@ public class ClientIntegrationTest {
     }
 
     @Test
-    public void postGetDeleteEventTypes() throws InterruptedException, ExecutionException {
+    public void createEventTypes() throws InterruptedException, ExecutionException {
         EventGenerator gen = new MySimpleEventGenerator()//
-        .withEventTypeId("ClientIntegrationTest-Java-postGetDeleteEventTypes").build();
+                .withEventTypeId("ClientIntegrationTest-Java-postGetDeleteEventTypes").build();
         EventType originalEventType = gen.getEventType();
-        
-        //POST
+
+        // POST
         client.createEventType(originalEventType).get();
-        
-        //GET
+
+        // GET
         Optional<EventType> eventTypeResult = client.getEventType(originalEventType.getName()).get();
-        assertTrue("Created Event should be returned",eventTypeResult.isPresent());
-        EventType eventType=eventTypeResult.get();
-        
+        assertTrue("Created Event should be returned", eventTypeResult.isPresent());
+        EventType eventType = eventTypeResult.get();
+
         assertEquals(eventType.getCategory(), originalEventType.getCategory());
         assertEquals(eventType.getDataKeyFields(), originalEventType.getDataKeyFields());
         assertEquals(eventType.getName(), originalEventType.getName());
@@ -53,17 +54,94 @@ public class ClientIntegrationTest {
         assertEquals(eventType.getSchema().getSchema(), originalEventType.getSchema().getSchema());
         assertEquals(eventType.getSchema().getType(), originalEventType.getSchema().getType());
         assertEquals(eventType.getStatistics(), originalEventType.getStatistics());
-   
-        //DELETE
-        Void result = client.deleteEventType(originalEventType.getName()).get();
-        
-        //GET
-         eventTypeResult = client.getEventType(originalEventType.getName()).get();
-        assertFalse("Created Event should NOT be returned",eventTypeResult.isPresent());
-        
-        
+
     }
-    
+
+    @Test
+    public void updateEventTypes() throws InterruptedException, ExecutionException {
+        EventGenerator gen = new MySimpleEventGenerator()//
+                .withEventTypeId("ClientIntegrationTest-Java-postGetDeleteEventTypes").build();
+        EventType originalEventType = gen.getEventType();
+
+        // POST
+        client.createEventType(originalEventType).get();
+
+        // GET
+        Optional<EventType> eventTypeResult = client.getEventType(originalEventType.getName()).get();
+        assertTrue("Created Event should be returned", eventTypeResult.isPresent());
+        EventType eventType = eventTypeResult.get();
+
+        assertEquals(eventType.getCategory(), originalEventType.getCategory());
+        assertEquals(eventType.getDataKeyFields(), originalEventType.getDataKeyFields());
+        assertEquals(eventType.getName(), originalEventType.getName());
+        assertEquals(eventType.getOwningApplication(), originalEventType.getOwningApplication());
+        assertEquals(eventType.getPartitionKeyFields(), originalEventType.getPartitionKeyFields());
+        assertEquals(eventType.getPartitionStrategy(), originalEventType.getPartitionStrategy());
+        assertEquals(eventType.getSchema().getSchema(), originalEventType.getSchema().getSchema());
+        assertEquals(eventType.getSchema().getType(), originalEventType.getSchema().getType());
+        assertEquals(eventType.getStatistics(), originalEventType.getStatistics());
+
+        String name = eventType.getName();
+        String owningApplication = "owningApplication";
+        EventTypeCategory category = eventType.getCategory();
+        List<EventEnrichmentStrategy> enrichmentStrategies = eventType.getEnrichmentStrategies();
+        PartitionStrategy partitionStrategy = eventType.getPartitionStrategy();
+        EventTypeSchema schema = eventType.getSchema();
+        List<String> dataKeyFields = eventType.getDataKeyFields();
+        List<String> partitionKeyFields = eventType.getPartitionKeyFields();
+        EventTypeStatistics statistics = eventType.getStatistics();
+        EventType changedEventType = new EventType(name, owningApplication, category, enrichmentStrategies,
+                partitionStrategy, schema, dataKeyFields, partitionKeyFields, statistics);
+
+        // Update
+        client.updateEventType(originalEventType.getName(), changedEventType).get();
+        Thread.sleep(3000);
+        // GET
+        eventTypeResult = client.getEventType(originalEventType.getName()).get();
+        assertTrue("Created Event should NOT be returned", eventTypeResult.isPresent());
+        assertEquals(eventTypeResult.get().getCategory(), originalEventType.getCategory());
+        assertEquals(eventTypeResult.get().getDataKeyFields(), originalEventType.getDataKeyFields());
+        assertEquals(eventTypeResult.get().getName(), originalEventType.getName());
+        assertEquals(eventTypeResult.get().getOwningApplication(), changedEventType.getOwningApplication());
+        assertEquals(eventTypeResult.get().getPartitionKeyFields(), originalEventType.getPartitionKeyFields());
+        assertEquals(eventTypeResult.get().getPartitionStrategy(), originalEventType.getPartitionStrategy());
+        assertEquals(eventTypeResult.get().getSchema().getSchema(), originalEventType.getSchema().getSchema());
+        assertEquals(eventTypeResult.get().getSchema().getType(), originalEventType.getSchema().getType());
+        assertEquals(eventTypeResult.get().getStatistics(), originalEventType.getStatistics());
+
+    }
+
+    @Test
+    public void deleteEventTypes() throws InterruptedException, ExecutionException {
+        EventGenerator gen = new MySimpleEventGenerator()//
+                .withEventTypeId("ClientIntegrationTest-Java-postGetDeleteEventTypes").build();
+        EventType originalEventType = gen.getEventType();
+
+        // POST
+        client.createEventType(originalEventType).get();
+
+        // GET
+        Optional<EventType> eventTypeResult = client.getEventType(originalEventType.getName()).get();
+        assertTrue("Created Event should be returned", eventTypeResult.isPresent());
+        EventType eventType = eventTypeResult.get();
+
+        assertEquals(eventType.getCategory(), originalEventType.getCategory());
+        assertEquals(eventType.getDataKeyFields(), originalEventType.getDataKeyFields());
+        assertEquals(eventType.getName(), originalEventType.getName());
+        assertEquals(eventType.getOwningApplication(), originalEventType.getOwningApplication());
+        assertEquals(eventType.getPartitionKeyFields(), originalEventType.getPartitionKeyFields());
+        assertEquals(eventType.getPartitionStrategy(), originalEventType.getPartitionStrategy());
+        assertEquals(eventType.getSchema().getSchema(), originalEventType.getSchema().getSchema());
+        assertEquals(eventType.getSchema().getType(), originalEventType.getSchema().getType());
+        assertEquals(eventType.getStatistics(), originalEventType.getStatistics());
+
+        // DELETE
+        Void result = client.deleteEventType(originalEventType.getName()).get();
+
+        // GET
+        eventTypeResult = client.getEventType(originalEventType.getName()).get();
+        assertFalse("Created Event should NOT be returned", eventTypeResult.isPresent());
+    }
 
     @Test
     public void getMetrics() throws InterruptedException, ExecutionException {
