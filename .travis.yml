@@ -1,0 +1,22 @@
+language: scala
+scala:
+   - 2.11.8
+
+env:
+  - DOCKER_IP=127.0.0.1
+
+jdk:
+  - oraclejdk8
+
+before_install:
+  - sudo rm /usr/local/bin/docker-compose
+  - curl --verbos -L https://github.com/docker/compose/releases/download/1.6.1/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+
+before_script:
+  - sudo /etc/init.d/postgresql stop
+  - curl https://raw.githubusercontent.com/zalando/reactive-nakadi/master/src/it/resources/nakadi.sh | bash
+
+script:
+  - sbt clean test
