@@ -66,11 +66,8 @@ class ConsumingActor(subscription: SubscriptionKey, handler: EventHandler)
     case OnComplete =>
       log.info("onComplete - connection closed by server - cursor [{}] - [{}]", lastCursor, subscription)
       context.parent ! UnsubscribeMsg(subscription.eventTypeName, subscription.partition, handler.id())
-    case Terminated =>
-      log.info("Received Terminated msg - subscription [{}] with listener-id [{}] ", subscription, handler.id())
-      context.stop(self)
     case a =>
-      log.error("Could not handle message: [{}]", a)
+      log.error("Could not handle unknown msg: [{}] - subscription [{}] with listener-id [{}] ", a, subscription, handler.id())
       context.stop(self)
   }
 
