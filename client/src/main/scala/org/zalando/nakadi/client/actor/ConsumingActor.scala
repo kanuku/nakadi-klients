@@ -52,7 +52,7 @@ class ConsumingActor(subscription: SubscriptionKey, handler: EventHandler)
   override def receive: Receive = {
     case OnNext(msg: ByteString) =>
       val message = msg.utf8String
-      log.info("Event - prevCursor [{}] - [{}] - msg [{}]", lastCursor, subscription, message)
+      log.debug("Event - prevCursor [{}] - [{}] - msg [{}]", lastCursor, subscription, message)
       handler.handleOnReceive(subscription.toString(), message) match {
         case Right(cursor) =>
           lastCursor = Some(cursor)

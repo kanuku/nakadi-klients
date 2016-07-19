@@ -61,18 +61,18 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
 
   def receive: Receive = {
     case OffsetMsg(cursor, subKey) =>
-      log.info("Received cursor [{}] - subKey [{}]", cursor, subKey)
+      log.debug("Received cursor [{}] - subKey [{}]", cursor, subKey)
       subscriptions.addCursor(subKey, Some(cursor))
-    case subscrition: SubscribeMsg =>
+    case subscription: SubscribeMsg =>
       val before = subscriptions.size
-      subscribe(subscrition)
+      subscribe(subscription)
       val after = subscriptions.size
-      log.info(s"SubscribeMsg - nr of subscriptions before [$before] - after [$after]")
+      log.debug(s"SubscribeMsg - nr of subscriptions before [$before] - after [$after]")
     case unsubscription: UnsubscribeMsg =>
       val before = subscriptions.size
       unsubscribe(unsubscription)
       val after = subscriptions.size
-      log.info(s"UnsubscribeMsg - nr of subscriptions before [$before] - after [$after]")
+      log.debug(s"UnsubscribeMsg - nr of subscriptions before [$before] - after [$after]")
     case Terminated(terminatedActor) =>
       log.info(s"Actor [{}] terminated", terminatedActor.path.name)
       subscriptions.entryByActor(terminatedActor) match {
