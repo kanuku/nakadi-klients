@@ -9,7 +9,7 @@ public class ClientError {
 
 	/**
 	 * @param msg
-	 *            - Message containing information about the Error
+	 *            - Description of the Error
 	 * @param status
 	 *            - An Http Status, indicating the result of a failed Http
 	 *            connection attempt.
@@ -26,7 +26,7 @@ public class ClientError {
 
 	/**
 	 * @param msg
-	 *            - Message containing information about the Error
+	 *            - Description of the Error
 	 * @param status
 	 *            - An Http Status, indicating the result of a failed Http
 	 *            connection attempt.
@@ -41,7 +41,7 @@ public class ClientError {
 
 	/**
 	 * @param msg
-	 *            - Message containing information about the Error
+	 *            - Description of the Error
 	 */
 	public ClientError(String msg) {
 		this.msg = msg;
