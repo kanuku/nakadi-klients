@@ -121,7 +121,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
           logger.error(s"http-status: ${x.status.intValue().toString()}, reason[${x.status
             .reason()}], body:[${body.data.decodeString("UTF-8")}]")
         }
-        false
+        true // Must return true otherwise reconnection will leave Actors in the unknown...
       }
     }.map(_.entity.withSizeLimit(Long.MaxValue).dataBytes.via(delimiterFlow))
 
