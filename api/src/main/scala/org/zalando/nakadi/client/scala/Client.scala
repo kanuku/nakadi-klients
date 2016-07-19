@@ -7,6 +7,7 @@ import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client._
 import com.fasterxml.jackson.core.`type`.TypeReference
 
+
 case class ClientError(msg: String, status: Option[Integer] = None, exception: Option[Throwable] = None)
 
 trait Client {
@@ -157,6 +158,6 @@ trait Client {
     */
   def unsubscribe[T <: Event](eventTypeName: String,
                               partition: Option[String],
-                              listener: Listener[T]): Future[Option[ClientError]]
+                              listener: Listener[T]): Option[ClientError]
 
 }

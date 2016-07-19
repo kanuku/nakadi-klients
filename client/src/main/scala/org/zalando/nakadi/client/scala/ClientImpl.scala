@@ -147,9 +147,8 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
 
   def unsubscribe[T <: Event](eventTypeName: String,
                               partition: Option[String],
-                              listener: Listener[T]): Future[Option[ClientError]] = {
+                              listener: Listener[T]): Option[ClientError] = {
     subscriber.unsubscribe(eventTypeName, partition, listener.id)
-    Future.successful(None)
   }
 
   //####################
