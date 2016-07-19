@@ -7,13 +7,42 @@ public class ClientError {
 	private final Optional<Integer> status;
 	private final Optional<Throwable> exception;
 
+	/**
+	 * @param msg
+	 *            - Message containing information about the Error
+	 * @param status
+	 *            - An Http Status, indicating the result of a failed Http
+	 *            connection attempt.
+	 * @param exception
+	 *            - An exception if there was one.
+	 */
 	public ClientError(String msg, Optional<Integer> status,
 			Optional<Throwable> exception) {
+
 		this.msg = msg;
 		this.status = status;
 		this.exception = exception;
 	}
 
+	/**
+	 * @param msg
+	 *            - Message containing information about the Error
+	 * @param status
+	 *            - An Http Status, indicating the result of a failed Http
+	 *            connection attempt.
+	 * @param exception
+	 *            - An exception if there was one.
+	 */
+	public ClientError(String msg, Integer status, Throwable exception) {
+		this.msg = msg;
+		this.status = Optional.of(status);
+		this.exception = Optional.of(exception);
+	}
+
+	/**
+	 * @param msg
+	 *            - Message containing information about the Error
+	 */
 	public ClientError(String msg) {
 		this.msg = msg;
 		this.status = Optional.empty();
@@ -32,42 +61,41 @@ public class ClientError {
 		return exception;
 	}
 
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((msg == null) ? 0 : msg.hashCode());
-        result = prime * result + ((status == null) ? 0 : status.hashCode());
-        return result;
-    }
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((msg == null) ? 0 : msg.hashCode());
+		result = prime * result + ((status == null) ? 0 : status.hashCode());
+		return result;
+	}
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        ClientError other = (ClientError) obj;
-        if (msg == null) {
-            if (other.msg != null)
-                return false;
-        } else if (!msg.equals(other.msg))
-            return false;
-        if (status == null) {
-            if (other.status != null)
-                return false;
-        } else if (!status.equals(other.status))
-            return false;
-        return true;
-    }
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ClientError other = (ClientError) obj;
+		if (msg == null) {
+			if (other.msg != null)
+				return false;
+		} else if (!msg.equals(other.msg))
+			return false;
+		if (status == null) {
+			if (other.status != null)
+				return false;
+		} else if (!status.equals(other.status))
+			return false;
+		return true;
+	}
 
-    @Override
-    public String toString() {
-        return "ClientError [msg=" + msg + ", status=" + status + ", exception=" + exception + "]";
-    }
-	
-	
+	@Override
+	public String toString() {
+		return "ClientError [msg=" + msg + ", status=" + status
+				+ ", exception=" + exception + "]";
+	}
 
 }
