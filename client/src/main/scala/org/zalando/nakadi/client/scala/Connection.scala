@@ -56,10 +56,7 @@ trait Connection {
 /**
   * Companion object with factory methods.
   */
-object Connection {
-  val RECEIVE_BUFFER_SIZE = 10240
-  val EVENT_DELIMITER     = "\n"
-
+object Connection { 
   /**
     * Creates a new SSL context for usage with connections based on the HTTPS protocol.
     */
