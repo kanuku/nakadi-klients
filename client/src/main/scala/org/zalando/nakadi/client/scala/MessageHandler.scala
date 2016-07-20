@@ -28,7 +28,7 @@ trait EventHandler {
   def id(): String
   def handleOnReceive(eventTypeName: String, msg: String): Either[ErrorResult, Cursor]
   def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit
-  def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable)
+  def handleOnError(eventTypeName: String, msg: Option[String], exception: Option[Throwable])
 }
 
 class ScalaEventHandlerImpl[S <: Event](des: Deserializer[EventStreamBatch[S]], listener: Listener[S])
@@ -61,9 +61,9 @@ class ScalaEventHandlerImpl[S <: Event](des: Deserializer[EventStreamBatch[S]], 
 
   }
 
-  def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable) = {
-    val errorMsg    = if (msg.isDefined) msg.get else exception.getMessage
-    val clientError = Some(ClientError(errorMsg, exception = Some(exception)))
+  def handleOnError(eventTypeName: String, msg: Option[String], exception: Option[Throwable]) = {
+    val errorMsg    = if (msg.isDefined) msg.get else if(exception.isDefined) exception.get.getMessage else ""
+    val clientError = Some(ClientError(errorMsg, exception = exception))
     listener.onError(errorMsg, clientError)
   }
   def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit =
@@ -100,9 +100,9 @@ class JavaEventHandlerImpl[J <: JEvent](des: Deserializer[JEventStreamBatch[J]],
     }
   }
 
-  def handleOnError(eventTypeName: String, msg: Option[String], exception: Throwable) = {
-    val errorMsg    = if (msg.isDefined) msg.get else exception.getMessage
-    val clientError = Some(ClientError(errorMsg, exception = Some(exception)))
+  def handleOnError(eventTypeName: String, msg: Option[String], exception: Option[Throwable]) = {
+    val errorMsg    = if (msg.isDefined) msg.get else if(exception.isDefined) exception.get.getMessage else ""
+    val clientError = Some(ClientError(errorMsg, None, exception))
     listener.onError(errorMsg, toJavaClientError(clientError))
   }
   def handleOnSubscribed(endpoint: String, cursor: Option[Cursor]): Unit = {

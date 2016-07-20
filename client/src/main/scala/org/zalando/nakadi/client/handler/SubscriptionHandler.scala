@@ -81,7 +81,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
       .via(requestCreator(url))
       .via(connection.requestFlow())
       .buffer(RECEIVE_BUFFER_SIZE, OverflowStrategy.backpressure)
-      .via(requestRenderer(eventHandler))
+      .via(requestRenderer(url, eventHandler))
       .withAttributes(ActorAttributes.supervisionStrategy(decider()))
 
     //create the pipeline
@@ -94,7 +94,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
       case Success(requestSource) ⇒
       case Failure(e) ⇒
         val msg = "An exception occurred: " + e.getMessage
-        eventHandler.handleOnError(url, Some(msg), e)
+        eventHandler.handleOnError(url, Some(msg), Some(e))
         logger.error(msg + e)
         connection
           .actorSystem()
@@ -111,15 +111,16 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
   private def requestCreator(url: String): Flow[Option[Cursor], HttpRequest, NotUsed] =
     Flow[Option[Cursor]].map(withHttpRequest(url, _, None, connection.tokenProvider))
 
-  private def requestRenderer(handler: EventHandler): Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
+  private def requestRenderer(url:String, handler: EventHandler): Flow[HttpResponse, Source[ByteString, Any], NotUsed] =
     Flow[HttpResponse].filter { x =>
       if (x.status.isSuccess()) {
         logger.info("Connection established with success!")
         x.status.isSuccess()
       } else {
         x.entity.toStrict(10.second).map { body =>
-          logger.error(s"http-status: ${x.status.intValue().toString()}, reason[${x.status
-            .reason()}], body:[${body.data.decodeString("UTF-8")}]")
+          val msg = s"http-status: ${x.status.intValue().toString()}, reason[${x.status.reason()}], body:[${body.data.decodeString("UTF-8")}]"
+          logger.error(msg) 
+          handler.handleOnError(null, Some(msg), None)
         }
         true // Must return true otherwise reconnection will leave Actors in the unknown...
       }
