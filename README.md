@@ -8,7 +8,7 @@ Please note that the client provides a Scala as well as a Java interface.
 
 ## Note
 
-* The new client (version >= '2.0.0') is still in development and not production ready.
+* The new client has pre-released versions that can be found [here](https://github.com/zalando/nakadi-klients/releases).
 * The new client documentation can be found in the [wiki](https://github.com/zalando/nakadi-klients/wiki).
 
 
