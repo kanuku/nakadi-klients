@@ -6,6 +6,8 @@ env:
   DOCKER_IP: 127.0.0.1
   DOCKER_COMPOSE_VERSION: 1.7.1
   DOCKER_ENGINE_VERSION: 1.11.1
+  matrix:
+    - DOCKER_IP=127.0.0.1
 
 jdk:
   - openjdk8
@@ -35,3 +37,6 @@ before_script:
 
 script:
   - sbt clean test
+
+after_script:
+  - bash ./it/src/main/resources/nakadi.sh stop
