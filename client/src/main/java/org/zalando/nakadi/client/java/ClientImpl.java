@@ -16,9 +16,6 @@ import org.zalando.nakadi.client.java.model.Metrics;
 import org.zalando.nakadi.client.java.model.Partition;
 import org.zalando.nakadi.client.java.utils.SerializationUtils;
 import org.zalando.nakadi.client.utils.Uri;
-
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
