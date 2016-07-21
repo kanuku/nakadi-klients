@@ -6,15 +6,21 @@ FAIL="\033[31m"
 RESET="\033[0m"
 
 GIT=`which git`
+DOCKER_COMPOSE=`which docker-compose`
 DIRECTORY=/tmp/nakadi
 REPO="https://github.com/zalando/nakadi"
 NAKADI_PORT="8080"
-NAKADI_ALIVE_TIMEOUT=120
+NAKADI_ALIVE_TIMEOUT=240
 
 function validate {
 
     [ -z "$DOCKER_IP" ] && {
         echo -e "You need to set DOCKER_IP env variable ${FAIL}✗${RESET}"
+        exit 1;
+    }
+
+    [ "$DOCKER_COMPOSE" = "" ] && {
+        echo -e "You need to install docker-compose ${FAIL}✗${RESET}"
         exit 1;
     }
 
@@ -41,14 +47,16 @@ function start_nakadi {
     $GIT clone $REPO $DIRECTORY
     echo -e "Cloned Nakadi to ${DIRECTORY} ${OK}✔${RESET}"
 
-    echo -n "Editing config $DIRECTORY/src/main/resources/application.yml... "
-    sed  -i "" "s/localhost:5432/$DOCKER_IP:5432/g" $DIRECTORY/src/main/resources/application.yml
+    echo -n "Editing some configs in $DIRECTORY... "
+    sed  -i "" "s/localhost/$DOCKER_IP/g" $DIRECTORY/build.gradle
+    sed  -i "" "s/localhost/$DOCKER_IP/g" $DIRECTORY/docker-compose.yml
+    sed  -i "" "s/localhost/$DOCKER_IP/g" $DIRECTORY/src/main/resources/application.yml
     echo -e "Done! ${OK}✔${RESET}"
 
     echo -n "Building Nakadi... "
-    export PUBLISH_NAKADI_PORT="-p $NAKADI_PORT:$NAKADI_PORT"
     cd $DIRECTORY/
-    ./gradlew startNakadi
+    ./gradlew assemble
+    $DOCKER_COMPOSE up -d
     cd -
 
     echo -n "Waiting on Nakadi to start (Polling http://$DOCKER_IP:8080/health) "
@@ -62,13 +70,14 @@ function start_nakadi {
             exit 1;
         }
     done;
+
     echo -e "Nakadi started ${OK}✔${RESET}"
 }
 
 function stop_nakadi {
     echo -n "Stopping Nakadi... "
     cd $DIRECTORY/
-    ./gradlew stopAndRemoveDockerContainer
+    $DOCKER_COMPOSE down
     cd -
     rm -rf $DIRECTORY/
     echo -e "Nakadi stopped ${OK}✔${RESET}"
