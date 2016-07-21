@@ -31,7 +31,7 @@ before_install:
 
 before_script:
   - sudo /etc/init.d/postgresql stop
-  - bash .it/src/main/resources/nakadi.sh
+  - bash /it/src/main/resources/nakadi.sh
 
 script:
   - sbt clean test
