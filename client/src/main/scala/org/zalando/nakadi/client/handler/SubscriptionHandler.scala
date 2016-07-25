@@ -99,7 +99,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
         connection
           .actorSystem()
           .scheduler
-          .scheduleOnce(Conf.retryTimeout.seconds)(stopActor(consumingActor)) //TODO: Make it configurable
+          .scheduleOnce(Conf.retryTimeout.seconds)(stopActor(consumingActor))
     }
   }
 
