@@ -16,38 +16,28 @@ import scala.language.implicitConversions
 *     because the Scala version has '.toSeconds' but Java version doesn't. AKa110216
 */
 object Conf {
-  private
-  val root = ConfigFactory.load.getConfig("nakadi.client")
+  private val root = ConfigFactory.load.getConfig("nakadi.client")
 
   // Typesafe Config is Java/Scala compatible and thus stores durations as 'java.time.Duration'.
   // See -> http://stackoverflow.com/questions/32076311/converting-java-to-scala-durations
   //
-  private implicit
-  def convDuration(v: java.time.Duration) = scala.concurrent.duration.Duration.fromNanos(v.toNanos)
-
-  val noListenerReconnectDelay: Duration = root.getDuration("noListenerReconnectDelay")
-  val pollParallelism = root.getInt("pollParallelism")
-  val receiveBufferSize = root.getMemorySize("receiveBufferSize")
-
-
-  val defaultBatchFlushTimeout: Duration = root.getDuration("defaultBatchFlushTimeout")
-  val defaultBatchLimit = root.getInt("defaultBatchLimit")
-  val defaultStreamLimit = root.getInt("defaultStreamLimit")
-
-  class cSupervisor(cfg: Config) {
-    val maxNrOfRetries= cfg.getInt("maxNrOfRetries")
-    val withinTimeRange: Duration = cfg.getDuration("withinTimeRange")
-
-    val resolveActorTimeout = Timeout( cfg.getDuration("resolveActorTimeout") )
+  private implicit def convDuration(v: java.time.Duration) = scala.concurrent.duration.Duration.fromNanos(v.toNanos)
+  
+  
+  val receiveBufferSize = root.getInt("receiveBufferSize")
+  val retryTimeout = root.getInt("retryTimeout")
+  
+  def validateConfigurations(){
+    val msg = "%s must be configured in reference.conf file !"
+    if(receiveBufferSize<0){
+      throw new IllegalStateException(receiveBufferSize.formatted("Size of receive buffer(receiveBufferSize)"));
+    }
+    if(retryTimeout<0){
+      throw new IllegalStateException(receiveBufferSize.formatted("Retry timeout(retryTimeout)"));
+    }
+      
   }
-  val supervisor= new cSupervisor( root.getConfig("supervisor") )
+  
+  validateConfigurations()
 
-  // ^^^ new entries above, please ^^^
-
-  // Note: If we need to check config value ranges or consistency between multiple values, here's the place.
-  //      Just throw an exception if something's not right.
-  //
-  if (false) {
-    throw new RuntimeException( "Bad config: ..." )
-  }
 }

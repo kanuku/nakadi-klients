@@ -31,6 +31,7 @@ import akka.stream.scaladsl.Framing
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
+import org.zalando.nakadi.client.utils.Conf
 
 trait SubscriptionHandler {
 
@@ -54,7 +55,6 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
   private val supervisingActor = connection.actorSystem
     .actorOf(Props(classOf[SupervisingActor], connection, this), "SupervisingActor" + System.currentTimeMillis())
 
-  private val RECEIVE_BUFFER_SIZE = 40960
   private val EVENT_DELIMITER     = "\n"
 
   val logger = LoggerFactory.getLogger(this.getClass)
@@ -80,7 +80,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
     val requestFlow = Flow[Option[Cursor]]
       .via(requestCreator(url))
       .via(connection.requestFlow())
-      .buffer(RECEIVE_BUFFER_SIZE, OverflowStrategy.backpressure)
+      .buffer(Conf.receiveBufferSize, OverflowStrategy.backpressure)
       .via(requestRenderer(url, eventHandler))
       .withAttributes(ActorAttributes.supervisionStrategy(decider()))
 
@@ -99,7 +99,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
         connection
           .actorSystem()
           .scheduler
-          .scheduleOnce(5.seconds)(stopActor(consumingActor)) //TODO: Make it configurable
+          .scheduleOnce(Conf.retryTimeout.seconds)(stopActor(consumingActor)) //TODO: Make it configurable
     }
   }
 
@@ -129,5 +129,5 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
   private def delimiterFlow =
     Flow[ByteString].via(
         Framing
-          .delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = RECEIVE_BUFFER_SIZE, allowTruncation = true))
+          .delimiter(ByteString(EVENT_DELIMITER), maximumFrameLength = Conf.receiveBufferSize, allowTruncation = true))
 }
