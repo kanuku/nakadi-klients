@@ -6,6 +6,7 @@ import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client._
 import com.fasterxml.jackson.core.`type`.TypeReference
+import java.util.UUID
 
 
 case class ClientError(msg: String, status: Option[Integer] = None, exception: Option[Throwable] = None)
@@ -159,5 +160,27 @@ trait Client {
   def unsubscribe[T <: Event](eventTypeName: String,
                               partition: Option[String],
                               listener: Listener[T]): Option[ClientError]
+
+
+  /********************************
+   * High Level API
+   ********************************/
+
+
+   /**
+    * GET /subscriptions/{subscription_id}/events
+    *
+    * Starts a new stream for reading events from this subscription. The data will be automatically rebalanced
+    * between streams of one subscription. The minimal consumption unit is a partition, so it is possible to start as
+    * many streams as the total number of partitions in event-types of this subscription. The rebalance currently
+    * only operates with the number of partitions so the amount of data in event-types/partitions is not considered
+    * during autorebalance.
+    * The position of the consumption is managed by Nakadi. The client is required to commit the cursors he gets in
+    * a stream. This also depends on the `commit_mode` parameter that is set for the stream.
+    *
+    * @param subscriptionId Id of subscription
+    * @param streamParameters stream parameters for subscriptions
+    */
+  def subscribe[T <: Event](subscriptionId: UUID, streamParameters: SubscriptionStreamParameters,  listener: Listener[T])
 
 }
