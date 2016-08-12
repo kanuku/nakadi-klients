@@ -8,12 +8,23 @@ case class StreamParameters(cursor: Option[Cursor] = None,
                             batchFlushTimeout: Option[Integer] = None,
                             streamTimeout: Option[Integer] = None,
                             streamKeepAliveLimit: Option[Integer] = None,
-                            flowId: Option[String] = None)
+                            flowId: Option[String] = None) {
+  def toQueryParamsMap(): Map[String, String] = {
+    val parameters = List(
+      ("batch_limit", batchLimit),
+      ("stream_limit", streamLimit),
+      ("batch_flush_timeout", batchFlushTimeout),
+      ("stream_timeout", streamTimeout), //
+      ("stream_keep_alive_limit", streamKeepAliveLimit)
+    )
+
+    (for {(key, optional) <- parameters; value <- optional} yield (key -> value.toString)).toMap
+  }
+}
 
 
 /**
   * Stream parameters for the interaction with `/subscriptions` endpoint
-  *
   *
   * @param commitTimeout  The amount of time allowed between commits. If no commit is performed within this amount of time
   *                       the connection will be closed from Nakadi side. Specified in seconds. Default is 30
@@ -40,4 +51,20 @@ case class SubscriptionStreamParameters( commitTimeout: Option[Int] = Some(30),
                                          batchFlushTimeout: Option[Integer] = None,
                                          streamTimeout: Option[Integer] = None,
                                          streamKeepAliveLimit: Option[Integer] = None,
-                                         flowId: Option[String] = None)
+                                         flowId: Option[String] = None) {
+
+  def toQueryParamsMap(): Map[String, String] = {
+    val parameters = List(
+      ("commit_timeout", commitTimeout),
+      ("window_size", windowSize),
+      ("commit_mode", commitMode),
+      ("batch_limit", batchLimit),
+      ("stream_limit", streamLimit),
+      ("batch_flush_timeout", batchFlushTimeout),
+      ("stream_timeout", streamTimeout), //
+      ("stream_keep_alive_limit", streamKeepAliveLimit)
+    )
+
+    (for {(key, optional) <- parameters; value <- optional} yield (key -> value.toString)).toMap
+  }
+}

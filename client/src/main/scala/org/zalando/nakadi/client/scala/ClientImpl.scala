@@ -1,5 +1,7 @@
 package org.zalando.nakadi.client.scala
 
+import java.util.UUID
+
 import scala.Left
 import scala.Right
 import scala.concurrent.Await
@@ -7,7 +9,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationInt
-
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
@@ -21,9 +22,7 @@ import org.zalando.nakadi.client.scala.model.Metrics
 import org.zalando.nakadi.client.scala.model.Partition
 import org.zalando.nakadi.client.scala.model.PartitionStrategy
 import org.zalando.nakadi.client.utils.Uri
-
 import com.fasterxml.jackson.core.`type`.TypeReference
-
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.unmarshalling.Unmarshal
@@ -125,11 +124,11 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
     (eventTypeName, params, listener) match {
 
       case (_, _, listener) if listener == null =>
-        logger.info("listener is null")
+        logger.warn("listener is null")
         Some(ClientError("Listener may not be empty(null)!", None))
 
       case (eventType, _, _) if Option(eventType).isEmpty || eventType == "" =>
-        logger.info("eventType is null")
+        logger.warn("eventType is null")
         Some(ClientError("Eventype may not be empty(null)!", None))
 
       case (eventType, StreamParameters(cursor, _, _, _, _, _, _), listener) if Option(eventType).isDefined =>
@@ -140,7 +139,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
           params,
           eventType,
           url)
-        val finalUrl = withUrl(url, Some(params))
+        val finalUrl = withUrl(url, params.toQueryParamsMap())
         val eventHandler: EventHandler = new ScalaEventHandlerImpl(des, listener)
         subscriber.subscribe(eventTypeName, finalUrl, cursor, eventHandler)
     }
@@ -149,6 +148,47 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
                               partition: Option[String],
                               listener: Listener[T]): Option[ClientError] = {
     subscriber.unsubscribe(eventTypeName, partition, listener.id)
+  }
+
+  //####################
+  //# High Level API
+  //####################
+
+  def subscribe[T <: Event](subscriptionId: UUID,
+                            streamParameters: SubscriptionStreamParameters,
+                            listener: Listener[T])
+                          (implicit des: Deserializer[EventStreamBatch[T]]): Option[ClientError] = {
+
+    (subscriptionId, streamParameters, listener) match {
+      case (subscriptionId, _, _) if subscriptionId == null =>
+        logger.warn("subscriptionId is null")
+        Some(ClientError("SubscriptionId may not be empty(null)!", None))
+
+      case (_, _, listener) if listener == null =>
+        logger.warn("listener is null")
+        Some(ClientError("Listener may not be empty(null)!", None))
+
+
+      case (subscriptionId, SubscriptionStreamParameters(_,_,_, _, _, _, _, _, _), listener) if Option(subscriptionId).isDefined =>
+        val url = Uri.URI_SUBSCRIPTION_TO_EVENT_STREAM(subscriptionId.toString)
+
+        logger.debug("Subscribing [listener={}, subscriptionId={}, parameters={}, url={}]",
+          listener.id,
+          subscriptionId,
+          streamParameters,
+          url
+        )
+
+
+      val finalUrl = withUrl(url, streamParameters.toQueryParamsMap())
+      val eventHandler: EventHandler = new ScalaEventHandlerImpl(des, listener)
+
+
+
+      subscriber.subscribe(eventTypeName, finalUrl, cursor, eventHandler)
+
+    }
+
   }
 
   //####################
