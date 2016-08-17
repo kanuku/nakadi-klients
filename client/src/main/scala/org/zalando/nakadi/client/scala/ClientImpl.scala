@@ -154,6 +154,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   //# High Level API
   //####################
 
+
   def subscribe[T <: Event](subscriptionId: UUID,
                             streamParameters: SubscriptionStreamParameters,
                             listener: Listener[T])
@@ -183,10 +184,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
       val finalUrl = withUrl(url, streamParameters.toQueryParamsMap())
       val eventHandler: EventHandler = new ScalaEventHandlerImpl(des, listener)
 
-
-
-      subscriber.subscribe(eventTypeName, finalUrl, cursor, eventHandler)
-
+      subscriber.subscribe(subscriptionId.toString, finalUrl, None, eventHandler)
     }
 
   }
@@ -272,5 +270,4 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         }
     }
   }
-
 }

@@ -6,7 +6,7 @@ import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client._
 import com.fasterxml.jackson.core.`type`.TypeReference
-import java.util.UUID
+import _root_.java.util.UUID
 
 
 case class ClientError(msg: String, status: Option[Integer] = None, exception: Option[Throwable] = None)
@@ -181,6 +181,7 @@ trait Client {
     * @param subscriptionId Id of subscription
     * @param streamParameters stream parameters for subscriptions
     */
-  def subscribe[T <: Event](subscriptionId: UUID, streamParameters: SubscriptionStreamParameters,  listener: Listener[T])
+  def subscribe[T <: Event](subscriptionId: UUID, streamParameters: SubscriptionStreamParameters,  listener: Listener[T])(
+     implicit des: Deserializer[EventStreamBatch[T]]): Option[ClientError]
 
 }
