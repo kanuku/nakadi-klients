@@ -31,4 +31,6 @@ object Uri {
   /*High Level API*/
   final def URI_SUBSCRIPTION_TO_EVENT_STREAM(subscriptionId: String) =
     s"/subscriptions/$subscriptionId/events"
+
+  val URI_SUBSCRIPTION = "/subscriptions/"
 }

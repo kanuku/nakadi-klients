@@ -43,9 +43,9 @@ case class StreamParameters(cursor: Option[Cursor] = None,
   *                      required from client side to commit. Be aware that with this commit mode loosing of some events is very
   *                      probable. So you should know what you are doing if you use autocommit.
   */
-case class SubscriptionStreamParameters( commitTimeout: Option[Int] = Some(30),
-                                         windowSize: Option[Int] = Some(1000),
-                                         commitMode: Option[String] = Some("commit_at_will"),
+case class SubscriptionStreamParameters( commitTimeout: Option[Int] = None,
+                                         windowSize: Option[Int] = None,
+                                         commitMode: Option[String] = None,
                                          batchLimit: Option[Integer] = None,
                                          streamLimit: Option[Integer] = None,
                                          batchFlushTimeout: Option[Integer] = None,

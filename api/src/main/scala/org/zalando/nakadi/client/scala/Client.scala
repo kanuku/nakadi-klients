@@ -181,7 +181,32 @@ trait Client {
     * @param subscriptionId Id of subscription
     * @param streamParameters stream parameters for subscriptions
     */
-  def subscribe[T <: Event](subscriptionId: UUID, streamParameters: SubscriptionStreamParameters,  listener: Listener[T])(
-     implicit des: Deserializer[EventStreamBatch[T]]): Option[ClientError]
+  def subscribe[T <: Event](subscriptionId: UUID, streamParameters: SubscriptionStreamParameters,  listener: Listener[T])
+                           (implicit des: Deserializer[EventStreamBatch[T]]): Option[ClientError]
+
+
+  /**
+   * Creates a subscription for EventTypes. The subscription is needed to be able to consume events from EventTypes in
+   * a high level way when Nakadi stores the offsets and manages the rebalancing of consuming clients. The subscription
+   * is identified by its key parameters (owning_application, event_types, consumer_group). If this endpoint is invoked
+   * several times with the same key subscription properties in body (order of even_types is not important) -
+   * the subscription will be created only once and for all other calls it will just return the subscription
+   * that was already created.
+   *
+   * @param subscription  Subscription is a high level consumption unit. Subscriptions allow applications to easily scale
+   *                      the number of clients by managing consumed event offsets and distributing load between
+   *                      instances. The key properties that identify subscription are 'owning_application',
+   *                      'event_types' and 'consumer_group'. It's not possible to have two different subscriptions with
+   *                      these properties being the same.
+   *
+   * @return either an error which was reported from the Nakadi endpoint in order to initialize a subscription OR
+    *        the initial subscription data enriched with data about the newly created susbcription
+   */
+  def initSubscription(subscription: Subscription, ser: Serializer[Subscription])
+                      (implicit des: Deserializer[Subscription]): Future[Either[ClientError, Option[Subscription]]]
+  def initSubscription(subscription: Subscription): Future[Either[ClientError, Option[Subscription]]]
+
+
+
 
 }

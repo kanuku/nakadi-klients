@@ -13,22 +13,13 @@ import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.Deserializer
 import org.zalando.nakadi.client.Serializer
 import org.zalando.nakadi.client.handler.SubscriptionHandler
-import org.zalando.nakadi.client.scala.model.Event
-import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
-import org.zalando.nakadi.client.scala.model.EventStreamBatch
-import org.zalando.nakadi.client.scala.model.EventType
-import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
-import org.zalando.nakadi.client.scala.model.Metrics
-import org.zalando.nakadi.client.scala.model.Partition
-import org.zalando.nakadi.client.scala.model.PartitionStrategy
+import org.zalando.nakadi.client.scala.model._
 import org.zalando.nakadi.client.utils.Uri
 import com.fasterxml.jackson.core.`type`.TypeReference
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
-import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategyType
-import org.zalando.nakadi.client.scala.model.PartitionStrategyType
 
 class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSet: String = "UTF-8") extends Client {
   import Uri._
@@ -269,5 +260,47 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
           Option(ClientError(msg, Some(status.intValue())))
         }
     }
+  }
+
+  /**
+    * Creates a subscription for EventTypes. The subscription is needed to be able to consume events from EventTypes in
+    * a high level way when Nakadi stores the offsets and manages the rebalancing of consuming clients. The subscription
+    * is identified by its key parameters (owning_application, event_types, consumer_group). If this endpoint is invoked
+    * several times with the same key subscription properties in body (order of even_types is not important) -
+    * the subscription will be created only once and for all other calls it will just return the subscription
+    * that was already created.
+    *
+    * @param subscription Subscription is a high level consumption unit. Subscriptions allow applications to easily scale
+    *                     the number of clients by managing consumed event offsets and distributing load between
+    *                     instances. The key properties that identify subscription are 'owning_application',
+    *                     'event_types' and 'consumer_group'. It's not possible to have two different subscriptions with
+    *                     these properties being the same.
+    * @return either an error which was reported from the Nakadi endpoint in order to initialize a subscription OR
+    *         the initial subscription data enriched with data about the newly created susbcription
+    */
+  override def initSubscription(subscription: Subscription, ser: Serializer[Subscription])
+                               (implicit des: Deserializer[Subscription]): Future[Either[ClientError, Option[Subscription]]] = {
+
+    if(subscription == null) {
+      logger.warn("Subscription is null")
+      Future.successful(Left(ClientError("Subscription must not be null!", None)))
+    }
+    else if (ser == null) {
+      logger.warn("Serializer is null")
+      Future.successful(Left(ClientError("Serializer must not be null!", None)))
+    }
+    else if(des == null) {
+      logger.warn("Deserializer is null")
+      Future.successful(Left(ClientError("Deserializer must not be null!", None)))
+    }
+    else {
+      logFutureEither(
+        connection.post(URI_SUBSCRIPTION, subscription).flatMap(in => mapToEither(in))
+      )
+    }
+  }
+
+  override def initSubscription(subscription: Subscription): Future[Either[ClientError, Option[Subscription]]] = {
+    initSubscription(subscription, serializer[Subscription])(deserializer(subscriptionTR))
   }
 }
