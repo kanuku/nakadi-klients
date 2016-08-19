@@ -11,7 +11,7 @@ import org.zalando.nakadi.client.scala.model.{Cursor, EventStreamBatch, Subscrip
 import scala.util.{Failure, Success}
 
 
-class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
+class EventCounterListener(val id: String, val subscriptionId: UUID , val client: Client) extends Listener[MeetingsEvent] {
   val log = LoggerFactory.getLogger(this.getClass)
   private var eventCount: AtomicLong = new AtomicLong(0);
   private var callerCount: AtomicLong = new AtomicLong(0);
@@ -27,7 +27,10 @@ class EventCounterListener(val id: String) extends Listener[MeetingsEvent] {
     log.debug(s"Has a total of $eventCount events")
     log.info(s"Processed cursor $cursor")
 
+    log.info(s"committing [cursor=$cursor]")
+    client.commitCursor(subscriptionId, List(cursor))
   }
+
   def onSubscribed(endpoint: String, cursor: Option[Cursor]): Unit = {
     log.debug("########## onSubscribed ############")
     log.debug("Endpoint " + endpoint)
@@ -61,14 +64,15 @@ object SubscriptionIT {
           received match{
             case Some(sub) =>
 
-              val listener = new EventCounterListener("Test")
-
               val Some(subscriptionId) = sub.id
+              val listener = new EventCounterListener("Test", subscriptionId, client)
+
               client.subscribe(
                 subscriptionId,
                 SubscriptionStreamParameters(),
                 listener
               )
+
             case None =>
               println("did not receive anything  :-( ")
           }

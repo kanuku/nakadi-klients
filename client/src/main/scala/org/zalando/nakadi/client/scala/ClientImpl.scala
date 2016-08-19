@@ -192,6 +192,8 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         Left(ClientError(msg, None))
     }
   }
+
+
   private def logFutureOption(future: Future[Option[ClientError]]): Future[Option[ClientError]] = {
     future recover {
       case e: Throwable =>
@@ -199,6 +201,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         Option(ClientError(msg, None))
     }
   }
+
 
   private def mapToEither[T](response: HttpResponse)(
     implicit deserializer: Deserializer[T]): Future[Either[ClientError, Option[T]]] = {
@@ -231,6 +234,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         }
     }
   }
+
 
   private[client] def mapToOption[T](response: HttpResponse): Future[Option[ClientError]] = {
     response.status match {
@@ -295,12 +299,38 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
     }
     else {
       logFutureEither(
-        connection.post(URI_SUBSCRIPTION, subscription).flatMap(in => mapToEither(in))
+        connection.post(URI_SUBSCRIPTION, subscription)(ser).flatMap(in => mapToEither(in))
       )
     }
   }
 
-  override def initSubscription(subscription: Subscription): Future[Either[ClientError, Option[Subscription]]] = {
+
+  override def initSubscription(subscription: Subscription): Future[Either[ClientError, Option[Subscription]]] =
     initSubscription(subscription, serializer[Subscription])(deserializer(subscriptionTR))
+
+
+  def commitCursor(subscriptionId: UUID, cursors: List[Cursor], ser: Serializer[List[Cursor]]): Future[Option[ClientError]]= {
+    if(subscriptionId == null) {
+      logger.warn("Subscription is null")
+      Future.successful(Some(ClientError("Subscription must not be null!", None)))
+    }
+    else if(cursors == null || cursors.isEmpty) {
+      logger.warn("list of cursors to be committed is null or empty")
+      Future.successful(Some(ClientError("List of cursors to be committed must not be null or empty!", None)))
+    }
+    else if (ser == null) {
+      logger.warn("Serializer is null")
+      Future.successful(Some(ClientError("Serializer must not be null!", None)))
+    }
+    else {
+      logFutureOption(
+        connection.put(URI_SUBSCRIPTION_CURSOR_COMMIT(subscriptionId.toString), cursors)(ser).flatMap(in => mapToOption(in))
+      )
+    }
   }
+
+
+  def commitCursor(subscriptionId: UUID, cursors: List[Cursor]): Future[Option[ClientError]] =
+    commitCursor(subscriptionId, cursors, serializer[List[Cursor]])
+
 }

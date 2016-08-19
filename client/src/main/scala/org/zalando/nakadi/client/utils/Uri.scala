@@ -33,4 +33,7 @@ object Uri {
     s"/subscriptions/$subscriptionId/events"
 
   val URI_SUBSCRIPTION = "/subscriptions/"
+
+  final def URI_SUBSCRIPTION_CURSOR_COMMIT(subscriptionId: String) =
+    s"/subscriptions/$subscriptionId/cursors"
 }

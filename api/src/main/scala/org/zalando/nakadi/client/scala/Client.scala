@@ -207,6 +207,16 @@ trait Client {
   def initSubscription(subscription: Subscription): Future[Either[ClientError, Option[Subscription]]]
 
 
+  /**
+    *  Commit soffsets of the subscription. The behavior of commit is specific to commit_mode parameter of the
+    *  client stream (please see details in subscription streaming endpoint specification)
+    *[
+    * @param subscriptionId  id of the subscription
+    * @param cursors  recently received cursors to be commited
+    */
+  def commitCursor(subscriptionId: UUID, cursors: List[Cursor]): Future[Option[ClientError]]
+  def commitCursor(subscriptionId: UUID, cursors: List[Cursor], ser: Serializer[List[Cursor]]): Future[Option[ClientError]]
+
 
 
 }
