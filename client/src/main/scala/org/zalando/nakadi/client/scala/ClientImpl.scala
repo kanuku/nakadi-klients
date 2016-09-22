@@ -69,7 +69,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
                                 events: Seq[T],
                                 ser: Serializer[Seq[T]]): Future[Option[ClientError]] = {
     logFutureOption(
-      connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events).flatMap(in => mapToOption(in)))
+      connection.post(URI_EVENTS_OF_EVENT_TYPE.format(eventTypeName), events)(ser).flatMap(in => mapToOption(in)))
   }
   def publishEvents[T <: Event](eventTypeName: String, events: Seq[T]): Future[Option[ClientError]] = {
     logFutureOption(

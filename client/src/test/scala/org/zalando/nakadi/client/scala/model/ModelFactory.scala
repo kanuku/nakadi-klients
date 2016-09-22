@@ -70,3 +70,4 @@ object ModelFactory {
       randomUUID()), //dataKeyFields
     Option(newEventTypeStatistics))
 }
+case class MySimpleEvent(orderId: String) extends Event
