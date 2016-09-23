@@ -59,6 +59,7 @@ class ConsumingActor(subscription: SubscriptionKey, handler: EventHandler)
           context.parent ! OffsetMsg(cursor, subscription)
         case Left(error) =>
           log.error(error.error.getMessage)
+          context.stop(self)
       }
     case OnError(err: Throwable) =>
       log.error("onError - cursor [{}] - [{}] - error [{}]", lastCursor, subscription, err.getMessage)
