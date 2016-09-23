@@ -1,5 +1,6 @@
 package org.zalando.nakadi.client.scala
 
+
 import scala.concurrent.Future
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
@@ -28,7 +29,7 @@ import org.zalando.nakadi.client.utils.Uri
 import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
 import org.zalando.nakadi.client.handler.SubscriptionHandler
 import org.mockito.ArgumentCaptor
-import org.zalando.nakadi.client.Deserializer
+import org.zalando.nakadi.client.{Serializer, Deserializer}
 
 class ScalaClientTest extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter {
   import ScalaJacksonJsonMarshaller._
@@ -53,6 +54,20 @@ class ScalaClientTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(connection.get(anyString)).thenReturn(futureResponse)
       val result = Await.result(client.getEventType(eventTypeName), 5.seconds)
       result shouldBe Right(None)
+    }
+    "Serializer work when publishing events" in {
+      val headers = Nil
+      val entity = HttpEntity(ContentTypes.`application/json`, "{}")
+      val response = new HttpResponse(StatusCodes.OK, headers, entity, HttpProtocols.`HTTP/1.1`)
+      val futureResponse = Future.successful(response)
+      val serializer = new Serializer[Seq[MySimpleEvent]] {
+        override def to(from: Seq[MySimpleEvent]): String = from.map(x =>
+          s"""{"order_number":"${x.orderId}}""".stripMargin).mkString("[",",","]")
+      }
+      val event = MySimpleEvent("test")
+      when(connection.post("/event-types/EventTypeName/events",Seq(event))(serializer)).thenReturn(futureResponse)
+      val result = Await.result(client.publishEvents(eventTypeName,Seq(event),serializer), 5.seconds)
+      result shouldBe None
     }
 
     "Pass the streamParameters correctly to the subscriptionHandler" in {
