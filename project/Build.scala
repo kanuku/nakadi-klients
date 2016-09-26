@@ -62,7 +62,7 @@ lazy val client = withDefaults(
     .settings(
         name := projectName,
         organization := "org.zalando.nakadi.client",
-        version := "2.0",
+        version := "2.0.1",
         crossPaths := false,
         scalaVersion := "2.11.8",
         findbugsReportType := Some(ReportType.FancyHtml),
