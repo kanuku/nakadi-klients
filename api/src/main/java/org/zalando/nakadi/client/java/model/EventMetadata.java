@@ -77,6 +77,7 @@ public class EventMetadata {
         return eid;
     }
 
+    @JsonProperty("event_type")
     public String getEventTypeName() {
         return eventTypeName;
     }
