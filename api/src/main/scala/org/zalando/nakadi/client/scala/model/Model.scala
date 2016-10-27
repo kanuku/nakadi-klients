@@ -135,7 +135,7 @@ case class EventType(
     schema: EventTypeSchema,
     dataKeyFields: Seq[String],
     partitionKeyFields: Seq[String],
-    @JsonProperty("default_statistics") statistics: Option[EventTypeStatistics])
+    @JsonProperty("default_statistic") statistics: Option[EventTypeStatistics])
 
 /**
   * The schema for an EventType, expected to be a json schema in yaml
