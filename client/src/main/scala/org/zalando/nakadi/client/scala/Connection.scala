@@ -154,7 +154,7 @@ sealed class ConnectionImpl(val host: String,
   }
 
   def executeCall(request: HttpRequest): Future[HttpResponse] = {
-    logger.debug("executingCall {}", request)
+    logger.debug("executingCall {}", request.method)
     val response: Future[HttpResponse] = Source.single(request).via(requestFlow).runWith(Sink.head)(materializer())
     logError(response)
     response
