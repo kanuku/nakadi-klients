@@ -1,39 +1,22 @@
 package org.zalando.nakadi.client.scala
 
 import org.zalando.nakadi.client.utils.ClientBuilder
-import java.util.function.Supplier
 
 object ClientFactory {
-  import sys.process._
-  import scala.language.postfixOps
-  def OAuth2Token(): Option[() => String] =
-    Option(() => "*")
-  def getJavaClient() =
-    builder().buildJavaClient();
+  def OAuth2Token(): Option[() => String] = Option(() => System.getProperty("OAUTH2_ACCESS_TOKENS", null));
+  def getJavaClient() = builder().buildJavaClient();
+  def host() = System.getProperty("NAKADI_HOST", "localhost")
+  def port() = System.getProperty("NAKADI_PORT", "8080").toInt
+  def verifySSLCertificate() = System.getProperty("NAKADI_VERIFY_SSL_CERTIFICATE", "false").toBoolean
+  def securedConnection() = System.getProperty("NAKADI_SECURED_CONNECTION", "false").toBoolean
 
   def getScalaClient() = builder().build()
 
   private def builder() = {
-    //    useSandbox()
-    //        useStaging()
-    useLocal()
-  }
-  private def useLocal() = {
     new ClientBuilder() //
-      .withHost("localhost") //
-      .withPort(8080) //
-      .withSecuredConnection(false) // s
-      .withVerifiedSslCertificate(false) // s
-  }
-  private def useSandbox() = {
-    ClientBuilder()
-      .withHost("nakadi-sandbox.aruha-test.zalan.do")
-      .withPort(443)
-      .withSecuredConnection(true) //s
-      .withVerifiedSslCertificate(false) //s
-      .withTokenProvider(ClientFactory.OAuth2Token())
-  }
-  private def useStaging() = {
-    useSandbox().withHost("nakadi-staging.aruha-test.zalan.do")
+      .withHost(host()) //
+      .withPort(port()) //
+      .withSecuredConnection(securedConnection()) // s
+      .withVerifiedSslCertificate(verifySSLCertificate()) // s
   }
 }

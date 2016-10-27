@@ -1,20 +1,20 @@
 package org.zalando.nakadi.client.scala
 
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
 import org.zalando.nakadi.client.scala.model.Cursor
-import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
+import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
+import org.zalando.nakadi.client.scala.model.PartitionStrategy
+import org.zalando.nakadi.client.scala.model.EventTypeStatistics
 import org.zalando.nakadi.client.scala.model.PartitionStrategyType
+import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.test.factory.EventIntegrationHelper
 import org.zalando.nakadi.client.scala.test.factory.events.MySimpleEvent
 import org.zalando.nakadi.client.scala.test.factory.events.SimpleEventListener
-import org.zalando.nakadi.client.scala.model.PartitionStrategy
-import org.scalatest.BeforeAndAfterAll
-import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
 
 class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
-  import org.scalatest.Matchers._
   import ClientFactory._
   import ScalaJacksonJsonMarshaller._
   import MySimpleEvent._
@@ -48,6 +48,7 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
     val listener = new SimpleEventListener()
 
     it.createEventType() shouldBe true
+    Thread.sleep(2000)
     val events = it.publishEvents(nrOfEvents)
     client.subscribe(eventGenerator.eventTypeName, StreamParameters(cursor = cursor), listener)
     val receivedEvents = listener.waitToReceive(nrOfEvents)
@@ -120,6 +121,38 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfterAll {
     eventType.statistics shouldBe it.eventType.statistics
     eventType.enrichmentStrategies shouldBe it.eventType.enrichmentStrategies
     eventType.partitionKeyFields shouldBe it.eventType.partitionKeyFields
+  }
+  "Validate created EventType wiht Statistics" in {
+      val eventGenerator = new DefaultMySimpleEventGenerator() {
+          def eventTypeId = s"SimpleEventIntegrationTest-Validate-Created-EventType"
+          override def statistics: Option[EventTypeStatistics] = Option(EventTypeStatistics(2400, 20240, 4, 4))
+      }
+      val it = new EventIntegrationHelper(eventGenerator, client)
+      
+      it.createEventType() shouldBe true
+      
+      Thread.sleep(5000)
+      
+      val optionalOfCreatedEventType = it.getEventType()
+      
+      optionalOfCreatedEventType.isDefined shouldBe true
+      
+      val Some(eventType) = optionalOfCreatedEventType
+      eventType.category shouldBe it.eventType.category
+      eventType.dataKeyFields shouldBe null
+      eventType.name shouldBe it.eventType.name
+      eventType.owningApplication shouldBe it.eventType.owningApplication
+      eventType.partitionStrategy shouldBe it.eventType.partitionStrategy
+      eventType.schema shouldBe it.eventType.schema
+      eventType.statistics shouldBe it.eventType.statistics
+      eventType.enrichmentStrategies shouldBe it.eventType.enrichmentStrategies
+      eventType.partitionKeyFields shouldBe it.eventType.partitionKeyFields
+      eventType.statistics should not be null 
+      eventType.statistics.get.messageSize shouldBe it.eventType.statistics.get.messageSize
+      eventType.statistics.get.messagesPerMinute shouldBe it.eventType.statistics.get.messagesPerMinute
+      eventType.statistics.get.readParallelism shouldBe it.eventType.statistics.get.readParallelism
+      eventType.statistics.get.writeParallelism shouldBe it.eventType.statistics.get.writeParallelism
+      
   }
 
   "Validate nr of partitions after Creation of EventType" in {

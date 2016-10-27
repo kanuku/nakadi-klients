@@ -1,7 +1,6 @@
 package org.zalando.client.java;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +15,7 @@ import org.zalando.nakadi.client.java.model.Cursor;
 import org.zalando.nakadi.client.java.model.Event;
 import org.zalando.nakadi.client.java.model.EventStreamBatch;
 import org.zalando.nakadi.client.java.model.EventType;
+import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 import org.zalando.nakadi.client.java.test.event.generator.EventGenerator;
 import org.zalando.nakadi.client.java.test.event.generator.EventIntegrationHelper;
 import org.zalando.nakadi.client.java.test.event.simple.MySimpleEvent;
@@ -58,7 +58,7 @@ public class SimpleEventTest {
                 .withEventTypeId("SimpleEventTest-validatePublishedNrOfEvents").build();
         EventIntegrationHelper it = new EventIntegrationHelper(gen, client);
         assertTrue("EventType should be created", it.createEventType());
-        Thread.sleep(1000);// Creation can take time.
+        Thread.sleep(5000);// Creation can take time.
         Optional<EventType> eventTypeOpt = it.getEventType();
         assertTrue("Did not return the eventType", eventTypeOpt.isPresent());
         List<Event> createdEvents = it.publishEvents(nrOfEvents);
@@ -133,7 +133,46 @@ public class SimpleEventTest {
         assertEquals(eventType.getPartitionStrategy(), originalEventType.getPartitionStrategy());
         assertEquals(eventType.getSchema().getSchema(), originalEventType.getSchema().getSchema());
         assertEquals(eventType.getSchema().getType(), originalEventType.getSchema().getType());
-        assertEquals(eventType.getStatistics(), originalEventType.getStatistics());
+        assertNull(eventType.getStatistics());
+    }
+    @Test
+    public void validateCreatedEventTypeWithStatistics() throws InterruptedException {
+        Integer messagesPerMinute = 2400;
+        Integer messageSize = 20240;
+        Integer readParallelism = 8;
+        Integer writeParallelism = 7;
+        EventGenerator gen = new MySimpleEventGenerator(){
+            @Override
+          public EventTypeStatistics getStatistics() {
+            return new EventTypeStatistics(messagesPerMinute, messageSize, readParallelism, writeParallelism);
+          }
+        }
+        .withEventTypeId("SimpleEventTest-validateCreatedEventType").build();
+        EventIntegrationHelper it = new EventIntegrationHelper(gen, client);
+        assertTrue("EventType should be created", it.createEventType());
+        Thread.sleep(1000);// Creation can take time.
+        Optional<EventType> eventTypeOpt = it.getEventType();
+        assertTrue("Did not return the eventType", eventTypeOpt.isPresent());
+        
+        EventType originalEventType = it.getEventType().get();
+        EventType eventType = eventTypeOpt.get();
+        assertEquals(eventType.getCategory(), originalEventType.getCategory());
+        assertEquals(eventType.getDataKeyFields(), originalEventType.getDataKeyFields());
+        assertEquals(eventType.getName(), originalEventType.getName());
+        assertEquals(eventType.getOwningApplication(), originalEventType.getOwningApplication());
+        assertEquals(eventType.getPartitionKeyFields(), originalEventType.getPartitionKeyFields());
+        assertEquals(eventType.getPartitionStrategy(), originalEventType.getPartitionStrategy());
+        assertEquals(eventType.getSchema().getSchema(), originalEventType.getSchema().getSchema());
+        assertEquals(eventType.getSchema().getType(), originalEventType.getSchema().getType());
+        assertNotNull(eventType.getStatistics());
+        assertEquals(messageSize, originalEventType.getStatistics().getMessageSize());
+        assertEquals(messagesPerMinute, originalEventType.getStatistics().getMessagesPerMinute());
+        assertEquals(readParallelism, originalEventType.getStatistics().getReadParallelism());
+        assertEquals(writeParallelism, originalEventType.getStatistics().getWriteParallelism());
+        assertEquals(eventType.getStatistics().getMessageSize(), originalEventType.getStatistics().getMessageSize());
+        assertEquals(eventType.getStatistics().getMessagesPerMinute(), originalEventType.getStatistics().getMessagesPerMinute());
+        assertEquals(eventType.getStatistics().getReadParallelism(), originalEventType.getStatistics().getReadParallelism());
+        assertEquals(eventType.getStatistics().getWriteParallelism(), originalEventType.getStatistics().getWriteParallelism());
     }
 
     @Test
