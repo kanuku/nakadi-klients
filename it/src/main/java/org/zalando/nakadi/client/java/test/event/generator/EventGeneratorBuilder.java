@@ -19,7 +19,7 @@ public abstract class EventGeneratorBuilder {
     private Event newEvent;
     private String schemaDefinition;
     private EventType eventType = null;
-    private String owner = "Nakadi-klients(java-integration-test-suite)";
+    private String owner = "stups_Nakadi-klients(java-integration-test-suite)";
     private EventTypeCategory category = EventTypeCategory.UNDEFINED;
     private List<EventEnrichmentStrategy> enrichmentStrategies = Collections.emptyList();
     private PartitionStrategy partitionStrategy = PartitionStrategy.RANDOM;

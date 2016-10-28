@@ -63,7 +63,7 @@ trait EventGenerator {
   /**
     * Returns the owningApplication value. Default  = "Nakadi-klients(integration-test-suite)"
     */
-  def owner: String = "Nakadi-klients(integration-test-suite)"
+  def owner: String = "stups_Nakadi-klients(integration-test-suite)"
 
   /**
     * Returns the category value. Default = UNDEFINED

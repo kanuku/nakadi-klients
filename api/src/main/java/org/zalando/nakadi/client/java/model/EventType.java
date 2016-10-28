@@ -56,7 +56,7 @@ public class EventType {
     public EventType(@JsonProperty("name") String name, @JsonProperty("owning_application") String owningApplication, @JsonProperty("category") EventTypeCategory category,
             @JsonProperty("enrichment_strategies") List<EventEnrichmentStrategy> enrichmentStrategies,
             @JsonProperty("partition_strategy") PartitionStrategy partitionStrategy, @JsonProperty("schema") EventTypeSchema schema, @JsonProperty("data_key_fields") List<String> dataKeyFields,
-            @JsonProperty("partition_key_fields") List<String> partitionKeyFields, @JsonProperty("default_statistics") EventTypeStatistics statistics) {
+            @JsonProperty("partition_key_fields") List<String> partitionKeyFields, @JsonProperty("default_statistic") EventTypeStatistics statistics) {
         this.name = name;
         this.owningApplication = owningApplication;
         this.category = category;
@@ -109,7 +109,7 @@ public class EventType {
     public List<String> getPartitionKeyFields() {
         return unmodifiableList(partitionKeyFields);
     }
-
+    @JsonProperty("default_statistic") 
     public EventTypeStatistics getStatistics() {
         return statistics;
     }
