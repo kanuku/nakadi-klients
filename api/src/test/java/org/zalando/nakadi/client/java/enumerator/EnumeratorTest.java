@@ -58,5 +58,11 @@ public class EnumeratorTest {
             assertEquals("SchemaType ", Optional.of(e), (e.withName(e.name())));
         }
     }
+    @Test
+    public void testCompatibilityMode() {
+    	for (CompatibilityMode e : CompatibilityMode.values()) {
+    		assertEquals("CompatibilityMode ", Optional.of(e), (e.withName(e.name())));
+    	}
+    }
 
 }

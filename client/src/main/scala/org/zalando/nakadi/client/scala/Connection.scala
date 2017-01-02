@@ -34,6 +34,8 @@ import javax.net.ssl.X509TrustManager
 import akka.http.scaladsl.model.{HttpHeader, HttpMethod, HttpMethods, HttpResponse, MediaRange}
 import org.zalando.nakadi.client.handler.SubscriptionHandlerImpl
 import akka.stream.Supervision
+import scala.util.Success
+import scala.util.Failure
 
 sealed trait EmptyJavaEvent  extends JEvent
 sealed trait EmptyScalaEvent extends Event
@@ -57,6 +59,7 @@ trait Connection {
   * Companion object with factory methods.
   */
 object Connection { 
+  private val log = LoggerFactory.getLogger(this.getClass)
   /**
     * Creates a new SSL context for usage with connections based on the HTTPS protocol.
     */
@@ -83,6 +86,13 @@ object Connection {
                 securedConnection: Boolean,
                 verifySSlCertificate: Boolean): Client = {
     val connection = new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate)
+    log.info("Connection: {}",tokenProvider.get())
+    log.info("##########")
+    log.info("##########")
+    log.info("##########")
+    log.info("##########")
+    log.info("##########")
+    log.info("##########")
     new ClientImpl(connection, new SubscriptionHandlerImpl(connection))
   }
 
@@ -92,6 +102,9 @@ object Connection {
                             securedConnection: Boolean,
                             verifySSlCertificate: Boolean): JavaClientHandler = {
     val connection = new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate)
+    
+    
+
     new JavaClientHandlerImpl(connection, new SubscriptionHandlerImpl(connection))
   }
 }
@@ -156,6 +169,11 @@ sealed class ConnectionImpl(val host: String,
   def executeCall(request: HttpRequest): Future[HttpResponse] = {
     logger.debug("executingCall {}", request.method)
     val response: Future[HttpResponse] = Source.single(request).via(requestFlow).runWith(Sink.head)(materializer())
+    response onComplete {
+      case Failure(t) => 
+        logger.error(s"Failed to execute method:${request.method} URL: ${request._2} Error: {}", t.getMessage)
+      case Success(_) =>
+    }
     logError(response)
     response
   }
@@ -163,7 +181,7 @@ sealed class ConnectionImpl(val host: String,
   private def logError(future: Future[Any]) {
     future recover {
       case e: Throwable =>
-        logger.error("Failed to call endpoint with: ", e.getMessage)
+        logger.error("Failed to call endpoint with: ", e.getCause.getMessage)
     }
   }
 

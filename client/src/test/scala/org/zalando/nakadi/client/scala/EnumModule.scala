@@ -25,6 +25,7 @@ import org.zalando.nakadi.client.scala.model.ScalaJacksonJsonMarshaller
 import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
 import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategyType
 
+trait B
 //case object EnumModule extends SimpleModule() {
 //  //  addSerializer(ser)
 //}

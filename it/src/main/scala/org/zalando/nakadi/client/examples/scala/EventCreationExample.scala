@@ -1,7 +1,6 @@
 package org.zalando.nakadi.client.examples.scala
 
 import org.zalando.nakadi.client.scala.Client
-import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.scala.model.Event
 import org.zalando.nakadi.client.scala.model.EventType
 import org.zalando.nakadi.client.scala.model.EventTypeCategory
@@ -13,6 +12,7 @@ import org.zalando.nakadi.client.utils.ClientBuilder
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.collection.mutable.ListBuffer
+import org.zalando.nakadi.client.scala.ClientFactory
 
 object EventCreationExample extends App {
 
@@ -20,7 +20,7 @@ object EventCreationExample extends App {
 
   import org.zalando.nakadi.client.utils.ClientBuilder
   import org.zalando.nakadi.client.scala.Client
-  val client: Client = ClientFactory.getScalaClient()
+  val client: Client = ClientFactory.buildScalaClient()
 
   // 2. Create a simple Meeting Event class
   case class MeetingsEvent(date: String, topic: String) extends Event

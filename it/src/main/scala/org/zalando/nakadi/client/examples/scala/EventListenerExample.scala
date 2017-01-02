@@ -1,6 +1,5 @@
 package org.zalando.nakadi.client.examples.scala
 
-import org.zalando.nakadi.client.scala.ClientFactory
 import org.zalando.nakadi.client.utils.ClientBuilder
 import org.zalando.nakadi.client.scala.Client
 import org.zalando.nakadi.client.scala._
@@ -51,7 +50,7 @@ object EventListenerExample extends App {
   /**
     * Create our client
     */
-  val client: Client = ClientFactory.getScalaClient()
+  val client: Client = ClientFactory.buildScalaClient()
 
   /**
     * Initialize our Listener

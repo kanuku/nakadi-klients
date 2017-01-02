@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,10 +22,10 @@ import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 import org.zalando.nakadi.client.java.model.Metrics;
 import org.zalando.nakadi.client.java.test.event.generator.EventGenerator;
 import org.zalando.nakadi.client.java.test.event.simple.MySimpleEventGenerator;
-import org.zalando.nakadi.client.scala.ClientFactory;
+import org.zalando.nakadi.client.utils.ClientBuilder;
 
 public class ClientIntegrationTest {
-    private Client client = ClientFactory.getJavaClient();
+    private Client client = new ClientBuilder().buildJavaClient();
 
     @After
     public void shutdown() throws InterruptedException, ExecutionException {
@@ -160,6 +161,7 @@ public class ClientIntegrationTest {
         assertTrue(events.size() >= 0);
     }
 
+    
     @Test
     public void getEnrichmentStrategies() throws InterruptedException, ExecutionException {
         Optional<List<EventEnrichmentStrategy>> result = client.getEnrichmentStrategies().get();
@@ -174,6 +176,11 @@ public class ClientIntegrationTest {
         assertTrue(result.isPresent());
         List<PartitionStrategy> partitioningStrategies = result.get();
         assertTrue("PartitionStrategy", partitioningStrategies.size() == 3);
+    }
+    
+    @Test
+    public void getCompabilityMode()throws InterruptedException, ExecutionException {
+    	fail();
     }
 
 }

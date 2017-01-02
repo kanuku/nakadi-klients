@@ -7,17 +7,18 @@ import org.zalando.nakadi.client.scala.ClientImpl
 import org.zalando.nakadi.client.scala.Connection
 import java.util.function.Supplier
 import com.google.common.base.Preconditions._
+import org.slf4j.LoggerFactory
 
 object ClientBuilder {
 
   def apply(host: String = null,
-            port: Int = DEFAULT_PORT,
+            port: Int = DEFAULT_PORT.toInt,
             tokenProvider: Option[() => String] = None,
             securedConnection: Boolean = true,
             verifySSlCertificate: Boolean = true) =
     new ClientBuilder(host, port, tokenProvider, securedConnection, verifySSlCertificate)
 
-  private val DEFAULT_PORT = 443
+  private val DEFAULT_PORT = "443"
 }
 
 class ClientBuilder private (host: String = null, //
@@ -25,8 +26,14 @@ class ClientBuilder private (host: String = null, //
                              tokenProvider: Option[() => String] = None, //
                              securedConnection: Boolean = true, //
                              verifySSlCertificate: Boolean = true) {
+  private val log = LoggerFactory.getLogger(this.getClass)
   def this() =
-    this(null, ClientBuilder.DEFAULT_PORT, None, true, true)
+    this(System.getProperty("NAKADI_HOST", "nakadi-staging.aruha-test.zalan.do")// Host
+        , System.getProperty("NAKADI_PORT", ClientBuilder.DEFAULT_PORT).toInt // Port
+        ,None // TokenProvider 
+        ,System.getProperty("NAKADI_VERIFY_SSL_CERTIFICATE", "true").toBoolean // verifySSLCertificate
+        ,  System.getProperty("NAKADI_SECURED_CONNECTION", "true").toBoolean) // securedConnection
+        
   def withHost(host: String): ClientBuilder =
     new ClientBuilder(checkNotNull(host), port, tokenProvider, securedConnection, verifySSlCertificate)
 
@@ -51,8 +58,9 @@ class ClientBuilder private (host: String = null, //
   def withVerifiedSslCertificate(verifySSlCertificate: Boolean = true): ClientBuilder =
     new ClientBuilder(host, port, tokenProvider, securedConnection, checkNotNull(verifySSlCertificate))
 
-  def build(): Client =
-    Connection.newClient(host, port, tokenProvider, securedConnection, verifySSlCertificate)
+  def build(): Client ={
+    log.info(s"host:$host, port:$port, tokenProvider:$tokenProvider, securedConnection:$securedConnection, verifySSlCertificate:$verifySSlCertificate")
+    Connection.newClient(host, port, tokenProvider, securedConnection, verifySSlCertificate)}
 
   def buildJavaClient(): JClient = {
     val connection =

@@ -9,6 +9,7 @@ import org.zalando.nakadi.client.java.StreamParameters;
 import org.zalando.nakadi.client.java.model.Cursor;
 import org.zalando.nakadi.client.java.model.EventStreamBatch;
 import org.zalando.nakadi.client.scala.ClientFactory;
+import org.zalando.nakadi.client.utils.ClientBuilder;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
@@ -23,7 +24,7 @@ public class EventListenerExample {
 		/**
 		 * Create client
 		 */
-		final Client client = ClientFactory.getJavaClient();
+		final Client client = new ClientBuilder().buildJavaClient();
 
 		/**
 		 * Initialize our Listener

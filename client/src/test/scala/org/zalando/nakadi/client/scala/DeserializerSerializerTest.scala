@@ -9,6 +9,9 @@ import org.zalando.nakadi.client.utils.AkkaConfig
 import org.zalando.nakadi.client.utils.TestJsonEntity
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.Materializer
+
+
+trait A
 /*import spray.json.JsonFormat
 import org.zalando.nakadi.client.scala.model.JacksonJsonMarshaller
 

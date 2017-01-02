@@ -17,12 +17,13 @@ import org.zalando.nakadi.client.java.test.event.dce.payment.PaymentEventGenerat
 import org.zalando.nakadi.client.java.test.event.generator.EventGenerator;
 import org.zalando.nakadi.client.java.test.event.generator.EventIntegrationHelper;
 import org.zalando.nakadi.client.scala.ClientFactory;
+import org.zalando.nakadi.client.utils.ClientBuilder;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
 public class PaymentCreatedDataChangeEventTest {
 
-    private Client client = ClientFactory.getJavaClient();;
+    private Client client = new ClientBuilder().buildJavaClient();
 
     private TypeReference<EventStreamBatch<DataChangeEvent<PaymentCreated>>> typeRef = new TypeReference<EventStreamBatch<DataChangeEvent<PaymentCreated>>>() {
     };

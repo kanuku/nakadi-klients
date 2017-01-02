@@ -93,7 +93,7 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client)
     }
 
   private def executeCall[T](call: => Future[T]): T = {
-    Await.result(call, 10.second)
+    Await.result(call, 15.second)
   }
 
 }
