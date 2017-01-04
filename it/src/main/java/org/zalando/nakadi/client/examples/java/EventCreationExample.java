@@ -16,7 +16,6 @@ import org.zalando.nakadi.client.java.model.EventTypeSchema;
 import org.zalando.nakadi.client.java.model.EventTypeStatistics;
 import org.zalando.nakadi.client.java.utils.SerializationUtils;
 import org.zalando.nakadi.client.scala.ClientFactory;
-import org.zalando.nakadi.client.utils.ClientBuilder;
 
 import com.google.common.collect.Lists;
 
@@ -85,7 +84,7 @@ public class EventCreationExample {
 		/**
 		 * Create client
 		 */
-		final Client client = new ClientBuilder().buildJavaClient();
+		final Client client = ClientFactory.buildJavaClient();
 
 		/**
 		 * nakadi needs to know what kind of Json-schema you are going to send to

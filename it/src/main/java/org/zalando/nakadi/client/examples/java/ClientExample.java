@@ -9,10 +9,8 @@ import java.util.function.Consumer;
 import org.zalando.nakadi.client.java.Client;
 import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.scala.ClientFactory;
-import org.zalando.nakadi.client.utils.ClientBuilder;
 
 public class ClientExample {
-	private static final String token = "";
 
 	private static <T> Optional<List<T>> unwrap(
 			Future<Optional<List<T>>> result)
@@ -22,12 +20,7 @@ public class ClientExample {
 
 	public static void main(String[] args) throws InterruptedException,
 			ExecutionException {
-		final Client client = new ClientBuilder()//
-				.withHost("nakadi-sandbox.aruha-test.zalan.do")//
-				.withSecuredConnection(true) // s
-				.withVerifiedSslCertificate(false) // s
-				.withTokenProvider4Java(() -> token)//
-				.buildJavaClient();
+		final Client client = ClientFactory.buildJavaClient();
 
 		Future<Optional<List<EventType>>> result = client
 				.getEventTypes();

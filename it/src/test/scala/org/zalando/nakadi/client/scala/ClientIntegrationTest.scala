@@ -1,29 +1,19 @@
 package org.zalando.nakadi.client.scala
-import org.scalatest.Matchers
-import org.scalatest.WordSpec
-import org.zalando.nakadi.client.scala.model.Cursor
-import org.zalando.nakadi.client.scala.model.PartitionStrategyType
-import org.zalando.nakadi.client.scala.test.factory.EventIntegrationHelper
-import org.zalando.nakadi.client.scala.test.factory.events.MySimpleEvent
-import org.zalando.nakadi.client.scala.test.factory.events.SimpleEventListener
-import org.zalando.nakadi.client.scala.model.PartitionStrategy
-import org.scalatest.BeforeAndAfter
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
+
 import org.scalatest.BeforeAndAfterAll
-import scala.util.Random
-import sun.security.provider.certpath.CertId
+import org.scalatest.Matchers
+import org.scalatest.WordSpec
 import org.zalando.nakadi.client.scala.model.CompatibilityMode
-import org.zalando.nakadi.client.utils.ClientBuilder
 
 class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAll {
+  import org.zalando.nakadi.client.scala.test.factory.events.MySimpleEvent._
 
-  import org.scalatest.Matchers._
-  import MySimpleEvent._
-
-  val client = new ClientBuilder().withHost("https://nakadi-staging.aruha-test.zalan.do").build()
+  private val client = ClientFactory.buildScalaClient()
 
   override def afterAll {
+    ClientFactory.deleteEventTypesThatStartWith("ClientIntegrationTest")
     client.stop()
   }
 
@@ -37,24 +27,23 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
     creationResult shouldBe None
 
     //GET
-    {
-      val eventClientResult = Await.result(client.getEventType(eventType.name), 10.seconds)
-      eventClientResult.isRight shouldBe true
-      val Right(eventTypeOpt) = eventClientResult
-      eventTypeOpt.isDefined shouldBe true
-      val Some(eventTypeResult) = eventTypeOpt
+    val eventClientResult = Await.result(client.getEventType(eventType.name), 10.seconds)
+    eventClientResult.isRight shouldBe true
+    val Right(eventTypeOpt) = eventClientResult
+    eventTypeOpt.isDefined shouldBe true
+    val Some(eventTypeResult) = eventTypeOpt
 
-      //    Compare EventType
-      eventType.category shouldBe eventTypeResult.category
-      eventType.dataKeyFields shouldBe List()
-      eventType.name shouldBe eventTypeResult.name
-      eventType.owningApplication shouldBe eventTypeResult.owningApplication
-      eventType.partitionStrategy shouldBe eventTypeResult.partitionStrategy
-      eventType.schema shouldBe eventTypeResult.schema
-      eventType.statistics shouldBe eventTypeResult.statistics
-      eventType.enrichmentStrategies shouldBe eventTypeResult.enrichmentStrategies
-      eventType.partitionKeyFields shouldBe eventTypeResult.partitionKeyFields
-    }
+    //    Compare EventType
+    eventType.category shouldBe eventTypeResult.category
+    eventType.dataKeyFields shouldBe List()
+    eventType.name shouldBe eventTypeResult.name
+    eventType.owningApplication shouldBe eventTypeResult.owningApplication
+    eventType.partitionStrategy shouldBe eventTypeResult.partitionStrategy
+    eventType.schema shouldBe eventTypeResult.schema
+    eventType.statistics shouldBe eventTypeResult.statistics
+    eventType.enrichmentStrategies shouldBe eventTypeResult.enrichmentStrategies
+    eventType.partitionKeyFields shouldBe eventTypeResult.partitionKeyFields
+    eventType.compatibilityMode shouldBe eventTypeResult.compatibilityMode
   }
   "update an existing eventType" in {
     val eventGenerator = new DefaultMySimpleEventGenerator() {
@@ -89,10 +78,10 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
     createdEvent.statistics shouldBe eventType.statistics
     createdEvent.enrichmentStrategies shouldBe eventType.enrichmentStrategies
     createdEvent.partitionKeyFields shouldBe eventType.partitionKeyFields
-//    createdEvent.compatibilityMode shouldBe CompatibilityMode.COMPATIBLE
+    createdEvent.compatibilityMode shouldBe eventType.compatibilityMode
 
     //UPDATE
-    val changedEventType = eventType.copy(owningApplication = "Nakadi-klients(integration-test-suite)2", enrichmentStrategies = List())//, compatibilityMode = Some(CompatibilityMode.FIXED))
+    val changedEventType = eventType.copy(owningApplication = "Nakadi-klients(integration-test-suite)2", enrichmentStrategies = List(), compatibilityMode = Some(CompatibilityMode.FIXED))
     eventType.owningApplication should not be changedEventType.owningApplication
 
     val updateResult = Await.result(client.updateEventType(eventType.name, changedEventType), 10.seconds)
@@ -118,7 +107,7 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
     changedEventType.statistics shouldBe eventTypeResult.statistics
     changedEventType.enrichmentStrategies shouldBe eventTypeResult.enrichmentStrategies
     changedEventType.partitionKeyFields shouldBe eventTypeResult.partitionKeyFields
-//    changedEventType.compatibilityMode shouldBe CompatibilityMode.FIXED
+    changedEventType.compatibilityMode shouldBe changedEventType.compatibilityMode
 
   }
 

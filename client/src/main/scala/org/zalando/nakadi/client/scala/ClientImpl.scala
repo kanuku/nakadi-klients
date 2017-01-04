@@ -108,6 +108,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   
 
   def stop(): Option[ClientError] = {
+    logger.info("Shutting down the client")
     materializer.shutdown()
     val result = Await.ready(connection.actorSystem().terminate(), Duration.Inf)
     None
@@ -155,7 +156,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   //#  HELPER METHODS  #
   //####################
 
-  private def logFutureEither[A, T](future: Future[Either[ClientError, T]]): Future[Either[ClientError, T]] = {
+  private def logFutureEither[TA, TB](future: Future[Either[ClientError, TB]]): Future[Either[ClientError, TB]] = {
     future recover {
       case e: Throwable =>
         val msg = s"An unexpected error occured: ${e.getMessage}"

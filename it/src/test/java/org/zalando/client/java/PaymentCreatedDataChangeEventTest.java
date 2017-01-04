@@ -9,24 +9,18 @@ import java.util.concurrent.ExecutionException;
 import org.junit.After;
 import org.junit.Test;
 import org.zalando.nakadi.client.java.Client;
-import org.zalando.nakadi.client.java.model.DataChangeEvent;
-import org.zalando.nakadi.client.java.model.EventStreamBatch;
 import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.test.event.dce.payment.PaymentCreated;
 import org.zalando.nakadi.client.java.test.event.dce.payment.PaymentEventGenerator;
 import org.zalando.nakadi.client.java.test.event.generator.EventGenerator;
 import org.zalando.nakadi.client.java.test.event.generator.EventIntegrationHelper;
 import org.zalando.nakadi.client.scala.ClientFactory;
-import org.zalando.nakadi.client.utils.ClientBuilder;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 
 public class PaymentCreatedDataChangeEventTest {
 
-    private Client client = new ClientBuilder().buildJavaClient();
+    private Client client = ClientFactory.buildJavaClient();
 
-    private TypeReference<EventStreamBatch<DataChangeEvent<PaymentCreated>>> typeRef = new TypeReference<EventStreamBatch<DataChangeEvent<PaymentCreated>>>() {
-    };
+//    private TypeReference<EventStreamBatch<DataChangeEvent<PaymentCreated>>> typeRef = new TypeReference<EventStreamBatch<DataChangeEvent<PaymentCreated>>>() {
+//    };
 
     @After
     public void shutdown() throws InterruptedException, ExecutionException {

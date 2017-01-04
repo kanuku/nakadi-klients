@@ -17,22 +17,18 @@ import org.scalatest.BeforeAndAfter
 import org.slf4j.LoggerFactory
 
 class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfter with BeforeAndAfterAll {
-   private val log = LoggerFactory.getLogger(ClientFactory.getClass)
   import ClientFactory._
   import ScalaJacksonJsonMarshaller._
   import MySimpleEvent._
 
-  val client = ClientFactory.buildScalaClient()
-  var itEvent:EventIntegrationHelper = null
+  private val client = ClientFactory.buildScalaClient()
+  private var itEvent:EventIntegrationHelper = null
   
-  val nrOfEvents = 5
+  val nrOfEvents = 45
 
   after{
-    log.info("deleting event:"+ itEvent.eventType.name)
-//    itEvent.deleteEventType() match {
-//      case true => log.info("Managed to delete eventType:"+itEvent.eventType.name)
-//      case false => log.info("Failedto delete eventType:"+itEvent.eventType.name)
-//    }
+    
+    itEvent.deleteEventType()
   }
   override def afterAll {
         client.stop()

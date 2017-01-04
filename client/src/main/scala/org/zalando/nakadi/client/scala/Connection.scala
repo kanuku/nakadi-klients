@@ -86,13 +86,6 @@ object Connection {
                 securedConnection: Boolean,
                 verifySSlCertificate: Boolean): Client = {
     val connection = new ConnectionImpl(host, port, tokenProvider, securedConnection, verifySSlCertificate)
-    log.info("Connection: {}",tokenProvider.get())
-    log.info("##########")
-    log.info("##########")
-    log.info("##########")
-    log.info("##########")
-    log.info("##########")
-    log.info("##########")
     new ClientImpl(connection, new SubscriptionHandlerImpl(connection))
   }
 

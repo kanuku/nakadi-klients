@@ -63,6 +63,7 @@ class ClientBuilder private (host: String = null, //
     Connection.newClient(host, port, tokenProvider, securedConnection, verifySSlCertificate)}
 
   def buildJavaClient(): JClient = {
+    log.info(s"host:$host, port:$port, tokenProvider:$tokenProvider, securedConnection:$securedConnection, verifySSlCertificate:$verifySSlCertificate")
     val connection =
       Connection.newClientHandler4Java(host, port, tokenProvider, securedConnection, verifySSlCertificate)
     new JClientImpl(connection)

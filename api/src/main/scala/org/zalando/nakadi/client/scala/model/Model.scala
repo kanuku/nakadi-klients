@@ -5,28 +5,28 @@ import scala.collection.JavaConversions._
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import com.fasterxml.jackson.core.`type`.TypeReference
 
-//object EventType {
-//  def apply(
-//    name: String, //
-//    owningApplication: String, //
-//    category: EventTypeCategory.Value, //
-//    enrichmentStrategies: Seq[EventEnrichmentStrategy.Value], //
-//    partitionStrategy: Option[PartitionStrategy.Value], //
-//    schema: EventTypeSchema, //
-//    dataKeyFields: Seq[String], //
-//    partitionKeyFields: Seq[String], //
-//    statistics: Option[EventTypeStatistics]) = new EventType(
-//    name, //
-//    owningApplication, //
-//    category, //
-//    enrichmentStrategies, //
-//    partitionStrategy, //
-//    schema, //
-//    dataKeyFields, //
-//    partitionKeyFields, //
-//    statistics,
-//    None)
-//}
+object EventType {
+  def apply(
+    name: String, //
+    owningApplication: String, //
+    category: EventTypeCategory.Value, //
+    enrichmentStrategies: Seq[EventEnrichmentStrategy.Value], //
+    partitionStrategy: Option[PartitionStrategy.Value], //
+    schema: EventTypeSchema, //
+    dataKeyFields: Seq[String], //
+    partitionKeyFields: Seq[String], //
+    statistics: Option[EventTypeStatistics]) = new EventType(
+    name, //
+    owningApplication, //
+    category, //
+    enrichmentStrategies, //
+    partitionStrategy, //
+    schema, //
+    dataKeyFields, //
+    partitionKeyFields, //
+    statistics,
+    None)
+}
 
 // Updated untill commit 57cace5
 
@@ -157,9 +157,9 @@ case class EventType(
   schema: EventTypeSchema,
   dataKeyFields: Seq[String],
   partitionKeyFields: Seq[String],
-  @JsonProperty("default_statistic") statistics: Option[EventTypeStatistics]
-  //@JsonScalaEnumeration(classOf[CompatibilityModeType]) compatibilityMode: Option[CompatibilityMode.Value]
-  )/*{
+  @JsonProperty("default_statistic") statistics: Option[EventTypeStatistics],
+  @JsonScalaEnumeration(classOf[CompatibilityModeType]) compatibilityMode: Option[CompatibilityMode.Value]
+  ){
   def this(
     name: String, //
     owningApplication: String, //
@@ -180,7 +180,7 @@ case class EventType(
     partitionKeyFields, //
     statistics,
     None)
-}*/
+}
 
 /**
  * The schema for an EventType, expected to be a json schema in yaml
