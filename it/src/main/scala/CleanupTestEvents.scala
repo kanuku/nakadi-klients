@@ -1,31 +1,34 @@
-package org.zalando.nakadi.client.scala
+
+
+
 
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
-
 import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.scala.model.EventType
+import org.zalando.nakadi.client.scala.Client
+import org.zalando.nakadi.client.scala.ClientFactory
 
-object CleanupTestEvents extends App {
-  private val log = LoggerFactory.getLogger(ClientFactory.getClass)
+object CleanupCreatedTestEventTypes extends App {
+//  private val log = LoggerFactory.getLogger(ClientFactory.getClass)
 
   deleteAllEventsCreatedByClientIntegrationTests()
 
   def deleteAllEventsCreatedByClientIntegrationTests() = {
     val eventNames = List("SimpleEvent", "ClientIntegrationTest", "PaymentCreatedDataChangeEventTest")
     val client = ClientFactory.buildScalaClient()
-    val eventsOnNakadi = Await.result(client.getEventTypes(), 5.second)
+    val eventsOnNakadi = Await.result(client.getEventTypes(), 25.second)
     val filteredEvents = eventsOnNakadi match {
       case Right(Some(events)) if !events.isEmpty=>
-        events.foreach(p=>println(">>"+p.owningApplication))
         val result = events.filter(p=> eventNames.exists(s =>p.name.startsWith(s)) && shouldBeRemoved(p.owningApplication) ||shouldBeRemoved(p.owningApplication) )
+        println("######################### Number of filtered events to be deleted: "+result.size)
         Try(deleteEventTypesThatStartWith(result, client))
       case left =>
-        log.info("Something went wrong: {}", left)
+        println("######################### Something went wrong: "+left)
         Nil
     }
+    println("######################### Stopping the client")
     client.stop()
 
   }
@@ -33,11 +36,11 @@ object CleanupTestEvents extends App {
   def shouldBeRemoved(owningApplication:String)=(owningApplication!=null&&owningApplication.toLowerCase().contains("nakadi-klients"))
 
   private def deleteEventTypesThatStartWith(events: Seq[EventType], client: Client) = {
-    log.info("######################### Start deleting {} events",events.size)
+    println("######################### Start deleting "+events.size+" events")
          events.map { event =>
-          log.info("######################### Deleting event name: {} owningApplication: " + event.owningApplication, event.name)
-          Await.result(client.deleteEventType(event.name), 5.second)
+          println("######################### Deleting event name: "+event.owningApplication+" owningApplication: " +  event.name)
+          Await.result(client.deleteEventType(event.name), 10.second)
         }
-    log.info("######################### Finished deleting events")
+    println("######################### Finished deleting events")
   }
 }
