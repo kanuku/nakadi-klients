@@ -28,10 +28,10 @@ class ClientBuilder private (host: String = null, //
                              verifySSlCertificate: Boolean = true) {
   private val log = LoggerFactory.getLogger(this.getClass)
   def this() =
-    this(System.getProperty("NAKADI_HOST", "nakadi-staging.aruha-test.zalan.do")// Host
+    this(System.getProperty("NAKADI_HOST", "localhost")// Host
         , System.getProperty("NAKADI_PORT", ClientBuilder.DEFAULT_PORT).toInt // Port
         ,None // TokenProvider 
-        ,System.getProperty("NAKADI_VERIFY_SSL_CERTIFICATE", "true").toBoolean // verifySSLCertificate
+        ,System.getProperty("NAKADI_VERIFY_SSL_CERTIFICATE", "false").toBoolean // verifySSLCertificate
         ,  System.getProperty("NAKADI_SECURED_CONNECTION", "true").toBoolean) // securedConnection
         
   def withHost(host: String): ClientBuilder =

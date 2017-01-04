@@ -14,7 +14,6 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
   private val client = ClientFactory.buildScalaClient()
 
   override def afterAll {
-    ClientFactory.deleteEventTypesThatStartWith("ClientIntegrationTest")
     client.stop()
   }
 
@@ -83,7 +82,7 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
     createdEvent.compatibilityMode shouldBe eventType.compatibilityMode
 
     //UPDATE
-    val changedEventType = eventType.copy(owningApplication = "Nakadi-klients(integration-test-suite)2", enrichmentStrategies = List(), compatibilityMode = Some(CompatibilityMode.FIXED))
+    val changedEventType = eventType.copy(owningApplication = "Nakadi-klients(integration-test)", enrichmentStrategies = List())
     eventType.owningApplication should not be changedEventType.owningApplication
 
     val updateResult = Await.result(client.updateEventType(eventType.name, changedEventType), 10.seconds)

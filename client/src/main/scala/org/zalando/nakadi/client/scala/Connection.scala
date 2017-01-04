@@ -117,7 +117,7 @@ sealed class ConnectionImpl(val host: String,
   type HttpFlow[T]   = Flow[(HttpRequest, T), (Try[HttpResponse], T), HostConnectionPool]
   type StepResult[T] = (T, Option[String])
 
-  implicit val actorSystem = ActorSystem("Nakadi-Client-Connections")
+  implicit val actorSystem = ActorSystem("Nakadi-Client-Connections-"+System.currentTimeMillis())
 
   def materializer(decider: Supervision.Decider): ActorMaterializer = {
     ActorMaterializer(ActorMaterializerSettings(actorSystem).withSupervisionStrategy(decider))

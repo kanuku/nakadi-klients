@@ -54,7 +54,7 @@ trait EventGenerator {
                   schemaType, //
                   dataKeyFields, //
                   partitionKeyFields, //
-                  statistics)
+                  statistics, Some(CompatibilityMode.COMPATIBLE))
 
   //####################################################################
   //            METHODS WITH DEFAULTS

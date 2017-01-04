@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.List;
 import java.util.Optional;
@@ -94,8 +93,9 @@ public class ClientIntegrationTest {
         List<String> dataKeyFields = eventType.getDataKeyFields();
         List<String> partitionKeyFields = eventType.getPartitionKeyFields();
         EventTypeStatistics statistics = eventType.getStatistics();
+        CompatibilityMode compatibilityMode = eventType.getCompatibilityMode();
         EventType changedEventType = new EventType(name, owningApplication, category, enrichmentStrategies,
-                partitionStrategy, schema, dataKeyFields, partitionKeyFields, statistics, CompatibilityMode.FIXED);
+                partitionStrategy, schema, dataKeyFields, partitionKeyFields, statistics, compatibilityMode);
 
         // Update
         client.updateEventType(originalEventType.getName(), changedEventType).get();
@@ -141,7 +141,7 @@ public class ClientIntegrationTest {
         assertEquals(eventType.getStatistics(), originalEventType.getStatistics());
 
         // DELETE
-        Void result = client.deleteEventType(originalEventType.getName()).get();
+        client.deleteEventType(originalEventType.getName()).get();
 
         // GET
         eventTypeResult = client.getEventType(originalEventType.getName()).get();
@@ -182,9 +182,4 @@ public class ClientIntegrationTest {
         assertTrue("PartitionStrategy", partitioningStrategies.size() == 3);
     }
     
-    @Test
-    public void getCompabilityMode()throws InterruptedException, ExecutionException {
-    	fail();
-    }
-
 }

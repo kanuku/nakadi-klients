@@ -32,7 +32,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * 
  */
 public enum CompatibilityMode {
-    FIXED("fixed"), //
+    FORWARD("forward"), //
     NONE("none"), //
     COMPATIBLE("compatible");
 

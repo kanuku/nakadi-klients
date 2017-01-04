@@ -37,8 +37,6 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client)
 
   def deleteEventType() = {
     log.warn("deleting event:"+ eventType.name)
-    val deleteEventsAfterTest = System.getProperty("DELETE_EVENTS_AFTER_TEST", "true").toBoolean
-    if (deleteEventsAfterTest) {
       (wasItsuccessfull(executeCall(client.deleteEventType(eventType.name)),
         "deleteEventType")) match {
           case true =>
@@ -48,7 +46,6 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client)
             log.info("Failedto delete eventType:" + eventType.name)
             false
         }
-    }
   }
 
   def publishEvents(nrOfEvents: Int): Seq[Event] = {

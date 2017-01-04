@@ -339,9 +339,10 @@ class SchemaTypeType extends TypeReference[SchemaType.type]
  */
 case object CompatibilityMode extends Enumeration {
   type CompatibilityMode = Value
-  val FIXED = Value("fixed")
+  val FORWARD = Value("forward")
   val NONE = Value("none")
   val COMPATIBLE = Value("compatible")
+  
 }
 class CompatibilityModeType extends TypeReference[CompatibilityMode.type]
 

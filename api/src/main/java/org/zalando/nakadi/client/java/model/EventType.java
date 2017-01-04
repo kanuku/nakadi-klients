@@ -37,43 +37,74 @@ public class EventType {
      * @param category
      *            Defines the category of this EventType.
      * @param enrichmentStrategies
-     *            Determines the enrichment to be performed on an Event upon reception.
+     *            Determines the enrichment to be performed on an Event upon
+     *            reception.
      * @param partitionStrategy
-     *            Determines how the assignment of the event to a Partition should be handled.
+     *            Determines how the assignment of the event to a Partition
+     *            should be handled.
      * @param schema
-     *            The schema for this EventType. This is expected to be a json schema in yaml format (other formats
-     *            might be added in the future).
+     *            The schema for this EventType. This is expected to be a json
+     *            schema in yaml format (other formats might be added in the
+     *            future).
      * @param dataKeyFields
-     *            Indicators of the path of the properties that constitute the primary key (identifier) of the data
-     *            within this Event.
+     *            Indicators of the path of the properties that constitute the
+     *            primary key (identifier) of the data within this Event.
      * @param partitioningKeyFields
-     *            Indicator of the field used for guaranteeing the ordering of Events of this type (used by the
-     *            PartitionResolutionStrategy).
+     *            Indicator of the field used for guaranteeing the ordering of
+     *            Events of this type (used by the PartitionResolutionStrategy).
      * @param statistics
-     *            Statistics of this EventType used for optimization purposes. Internal use of these values might change
-     *            over time. (TBD: measured statistics).
+     *            Statistics of this EventType used for optimization purposes.
+     *            Internal use of these values might change over time. (TBD:
+     *            measured statistics).
      *
      */
-    public EventType(@JsonProperty("name") String name, @JsonProperty("owning_application") String owningApplication, @JsonProperty("category") EventTypeCategory category,
-            @JsonProperty("enrichment_strategies") List<EventEnrichmentStrategy> enrichmentStrategies,
-            @JsonProperty("partition_strategy") PartitionStrategy partitionStrategy, @JsonProperty("schema") EventTypeSchema schema, @JsonProperty("data_key_fields") List<String> dataKeyFields,
-            @JsonProperty("partition_key_fields") List<String> partitionKeyFields, @JsonProperty("default_statistic") EventTypeStatistics statistics) {
-        this(name,owningApplication, category,enrichmentStrategies,
-                partitionStrategy, schema, dataKeyFields,
-                 partitionKeyFields, statistics,
-                null
-                );
+    public EventType(String name, String owningApplication, EventTypeCategory category, List<EventEnrichmentStrategy> enrichmentStrategies,
+            PartitionStrategy partitionStrategy, EventTypeSchema schema, List<String> dataKeyFields, List<String> partitionKeyFields,
+            EventTypeStatistics statistics) {
+        this(name, owningApplication, category, enrichmentStrategies, partitionStrategy, schema, dataKeyFields, partitionKeyFields,
+                statistics, null);
     }
-    
-    
-    
+
+    /**
+     * An event type defines the schema and its runtime properties.
+     * 
+     * @param name
+     * @param owningApplication
+     *            Indicator of the Application owning this `EventType`.
+     * @param category
+     *            Defines the category of this EventType.
+     * @param enrichmentStrategies
+     *            Determines the enrichment to be performed on an Event upon
+     *            reception.
+     * @param partitionStrategy
+     *            Determines how the assignment of the event to a Partition
+     *            should be handled.
+     * @param schema
+     *            The schema for this EventType. This is expected to be a json
+     *            schema in yaml format (other formats might be added in the
+     *            future).
+     * @param dataKeyFields
+     *            Indicators of the path of the properties that constitute the
+     *            primary key (identifier) of the data within this Event.
+     * @param partitioningKeyFields
+     *            Indicator of the field used for guaranteeing the ordering of
+     *            Events of this type (used by the PartitionResolutionStrategy).
+     * @param statistics
+     *            Statistics of this EventType used for optimization purposes.
+     *            Internal use of these values might change over time. (TBD:
+     *            measured statistics).
+     * @param compatibilityMode
+     *
+     */
     @JsonCreator
-    public EventType(@JsonProperty("name") String name, @JsonProperty("owning_application") String owningApplication, @JsonProperty("category") EventTypeCategory category,
+    public EventType(@JsonProperty("name") String name, @JsonProperty("owning_application") String owningApplication,
+            @JsonProperty("category") EventTypeCategory category,
             @JsonProperty("enrichment_strategies") List<EventEnrichmentStrategy> enrichmentStrategies,
-            @JsonProperty("partition_strategy") PartitionStrategy partitionStrategy, @JsonProperty("schema") EventTypeSchema schema, @JsonProperty("data_key_fields") List<String> dataKeyFields,
-            @JsonProperty("partition_key_fields") List<String> partitionKeyFields, @JsonProperty("default_statistic") EventTypeStatistics statistics,
-            @JsonProperty("compatibility_mode") CompatibilityMode compatibilityMode
-            ) {
+            @JsonProperty("partition_strategy") PartitionStrategy partitionStrategy, @JsonProperty("schema") EventTypeSchema schema,
+            @JsonProperty("data_key_fields") List<String> dataKeyFields,
+            @JsonProperty("partition_key_fields") List<String> partitionKeyFields,
+            @JsonProperty("default_statistic") EventTypeStatistics statistics,
+            @JsonProperty("compatibility_mode") CompatibilityMode compatibilityMode) {
         this.name = name;
         this.owningApplication = owningApplication;
         this.category = category;
@@ -95,46 +126,56 @@ public class EventType {
         }
     }
 
+    @JsonProperty("name")
     public String getName() {
         return name;
     }
 
+    @JsonProperty("owning_application")
     public String getOwningApplication() {
         return owningApplication;
     }
 
+    @JsonProperty("category")
     public EventTypeCategory getCategory() {
         return category;
     }
 
-
+    @JsonProperty("enrichment_strategies")
     public List<EventEnrichmentStrategy> getEnrichmentStrategies() {
         return unmodifiableList(enrichmentStrategies);
     }
 
+    @JsonProperty("partition_strategy")
     public PartitionStrategy getPartitionStrategy() {
         return partitionStrategy;
     }
 
+    @JsonProperty("schema")
     public EventTypeSchema getSchema() {
         return schema;
     }
 
+    @JsonProperty("data_key_fields")
     public List<String> getDataKeyFields() {
         return unmodifiableList(dataKeyFields);
     }
 
+    @JsonProperty("partition_key_fields")
     public List<String> getPartitionKeyFields() {
         return unmodifiableList(partitionKeyFields);
     }
-    @JsonProperty("default_statistic") 
+
+    @JsonProperty("default_statistic")
     public EventTypeStatistics getStatistics() {
         return statistics;
     }
-    
+
+    @JsonProperty("compatibility_mode")
     public CompatibilityMode getCompatibilityMode() {
         return compatibilityMode;
     }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -151,6 +192,7 @@ public class EventType {
         result = prime * result + ((statistics == null) ? 0 : statistics.hashCode());
         return result;
     }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -203,6 +245,7 @@ public class EventType {
             return false;
         return true;
     }
+
     @Override
     public String toString() {
         return "EventType [name=" + name + ", owningApplication=" + owningApplication + ", category=" + category + ", enrichmentStrategies="
@@ -210,7 +253,5 @@ public class EventType {
                 + dataKeyFields + ", partitionKeyFields=" + partitionKeyFields + ", statistics=" + statistics + ", compatibilityMode="
                 + compatibilityMode + "]";
     }
-      
-
 
 }

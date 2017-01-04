@@ -26,10 +26,7 @@ class SimpleEventTest extends WordSpec with Matchers with BeforeAndAfter with Be
   
   val nrOfEvents = 45
 
-  after{
-    
-    itEvent.deleteEventType()
-  }
+   
   override def afterAll {
         client.stop()
   }
