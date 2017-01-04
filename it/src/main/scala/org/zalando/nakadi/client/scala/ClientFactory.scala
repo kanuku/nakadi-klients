@@ -11,11 +11,11 @@ import com.google.common.base.Strings
 object ClientFactory {
 
   private val log = LoggerFactory.getLogger(ClientFactory.getClass)
-  System.setProperty("NAKADI_HOST", "nakadi-staging.aruha-test.zalan.do")
-  System.setProperty("DELETE_EVENTS_AFTER_TEST", "true")
-  System.setProperty("NAKADI_SECURED_CONNECTION", "true")
-  System.setProperty("NAKADI_PORT", "443")
-  System.setProperty("OAUTH2_ACCESS_TOKENS", "f62a1c16-ab65-4127-bc44-eaa2ffa1f64e")
+//  System.setProperty("NAKADI_HOST", "")
+//  System.setProperty("DELETE_EVENTS_AFTER_TEST", "true")
+//  System.setProperty("NAKADI_SECURED_CONNECTION", "true")
+//  System.setProperty("NAKADI_PORT", "443")
+//  System.setProperty("OAUTH2_ACCESS_TOKENS", "")
 
   def OAuth2Token(): Option[() => String] = Option(System.getProperty("OAUTH2_ACCESS_TOKENS", null)) match {
     case None        => null

@@ -6,10 +6,11 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
 import org.zalando.nakadi.client.scala.model.CompatibilityMode
+import org.slf4j.LoggerFactory
 
 class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAll {
   import org.zalando.nakadi.client.scala.test.factory.events.MySimpleEvent._
-
+  private val log = LoggerFactory.getLogger(this.getClass)
   private val client = ClientFactory.buildScalaClient()
 
   override def afterAll {
@@ -28,6 +29,7 @@ class ClientIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAl
 
     //GET
     val eventClientResult = Await.result(client.getEventType(eventType.name), 10.seconds)
+    log.info("Result: ",eventClientResult)
     eventClientResult.isRight shouldBe true
     val Right(eventTypeOpt) = eventClientResult
     eventTypeOpt.isDefined shouldBe true
