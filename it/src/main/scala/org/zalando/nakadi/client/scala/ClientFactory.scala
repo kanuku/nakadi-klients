@@ -12,7 +12,7 @@ object ClientFactory {
 //  System.setProperty("NAKADI_PORT", "443")
 //  System.setProperty("OAUTH2_ACCESS_TOKENS", "yourToken")
 
-  def OAuth2Token(): Option[() => String] = Option(System.getProperty("OAUTH2_ACCESS_TOKENS", null)) match {
+  def OAuth2Token(): Option[() => String] = Option(System.getProperty("NAKADI_OAUTH2_TOKEN", null)) match {
     case None                                        => null
     case Some(token) if Strings.isNullOrEmpty(token) => null
     case Some(token)                                 => Option(() => token);

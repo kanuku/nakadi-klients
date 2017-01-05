@@ -54,10 +54,6 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   def getEventType(name: String): Future[Either[ClientError, Option[EventType]]] = {
     logFutureEither(
       connection.get(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap { in => 
-        logger.info("####")
-        logger.info("####")
-        logger.info("####")
-        logger.info("####")
         mapToEither(in)(deserializer(eventTypeTR)) })
   }
 
@@ -170,6 +166,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
     future recover {
       case e: Throwable =>
         val msg = s"An(2) unexpected error occured: ${e.getMessage}"
+        logger.error(msg)
         Option(ClientError(msg, None))
     }
   }
@@ -181,7 +178,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
       case HttpResponse(status, headers, entity, protocol) if (status.isSuccess()) =>
         try {
           Unmarshal(entity).to[String].map { body =>
-            logger.info(s"Payload: $body")
+            logger.debug(s"Payload: $body")
             Right(Some(deserializer.from(body)))
           }
         } catch {

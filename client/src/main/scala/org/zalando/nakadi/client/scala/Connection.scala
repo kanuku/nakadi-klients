@@ -164,7 +164,7 @@ sealed class ConnectionImpl(val host: String,
     val response: Future[HttpResponse] = Source.single(request).via(requestFlow).runWith(Sink.head)(materializer())
     response onComplete {
       case Failure(t) => 
-        logger.error(s"Failed to execute method:${request.method} URL: ${request._2} Error: {}", t.getMessage)
+        logger.error("Failed to execute method:{} URL: {} Error: {}",request.method,request._2, t.getMessage)
       case Success(_) =>
     }
     logError(response)

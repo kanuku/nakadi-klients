@@ -80,7 +80,7 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
       case HttpResponse(StatusCodes.NotFound, headers, entity, protocol) =>
         Future.successful(Optional.empty())
       case HttpResponse(status, headers, entity, protocol) if (status.isFailure()) =>{
-        logger.error("Failed with HTTP-status {} and reason: "+status.reason(),status.intValue())
+        logger.error("Failed with HTTP-status {} and reason {} ", status.reason(),status.intValue())
         throw new RuntimeException(status.reason())
       }
     }

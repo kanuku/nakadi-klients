@@ -1,8 +1,8 @@
 package org.zalando.nakadi.client.utils
 
 import org.zalando.nakadi.client.scala.Client
-import org.zalando.nakadi.client.java.{Client => JClient}
-import org.zalando.nakadi.client.java.{ClientImpl => JClientImpl}
+import org.zalando.nakadi.client.java.{ Client => JClient }
+import org.zalando.nakadi.client.java.{ ClientImpl => JClientImpl }
 import org.zalando.nakadi.client.scala.ClientImpl
 import org.zalando.nakadi.client.scala.Connection
 import java.util.function.Supplier
@@ -27,13 +27,12 @@ class ClientBuilder private (host: String = null, //
                              securedConnection: Boolean = true, //
                              verifySSlCertificate: Boolean = true) {
   private val log = LoggerFactory.getLogger(this.getClass)
-  def this() =
-    this(System.getProperty("NAKADI_HOST", "localhost")// Host
-        , System.getProperty("NAKADI_PORT", ClientBuilder.DEFAULT_PORT).toInt // Port
-        ,None // TokenProvider 
-        ,System.getProperty("NAKADI_VERIFY_SSL_CERTIFICATE", "false").toBoolean // verifySSLCertificate
-        ,  System.getProperty("NAKADI_SECURED_CONNECTION", "true").toBoolean) // securedConnection
-        
+  def this() = this(System.getProperty("NAKADI_HOST", "localhost") // Host
+  , System.getProperty("NAKADI_PORT", ClientBuilder.DEFAULT_PORT).toInt // Port
+  , None // TokenProvider 
+  , System.getProperty("NAKADI_VERIFY_SSL_CERTIFICATE", "false").toBoolean // verifySSLCertificate
+  , System.getProperty("NAKADI_SECURED_CONNECTION", "true").toBoolean) // securedConnection
+
   def withHost(host: String): ClientBuilder =
     new ClientBuilder(checkNotNull(host), port, tokenProvider, securedConnection, verifySSlCertificate)
 
@@ -58,9 +57,10 @@ class ClientBuilder private (host: String = null, //
   def withVerifiedSslCertificate(verifySSlCertificate: Boolean = true): ClientBuilder =
     new ClientBuilder(host, port, tokenProvider, securedConnection, checkNotNull(verifySSlCertificate))
 
-  def build(): Client ={
+  def build(): Client = {
     log.info(s"host:$host, port:$port, tokenProvider:$tokenProvider, securedConnection:$securedConnection, verifySSlCertificate:$verifySSlCertificate")
-    Connection.newClient(host, port, tokenProvider, securedConnection, verifySSlCertificate)}
+    Connection.newClient(host, port, tokenProvider, securedConnection, verifySSlCertificate)
+  }
 
   def buildJavaClient(): JClient = {
     log.info(s"host:$host, port:$port, tokenProvider:$tokenProvider, securedConnection:$securedConnection, verifySSlCertificate:$verifySSlCertificate")
