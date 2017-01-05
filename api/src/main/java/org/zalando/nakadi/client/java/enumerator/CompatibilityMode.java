@@ -2,6 +2,7 @@ package org.zalando.nakadi.client.java.enumerator;
 
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
@@ -36,22 +37,29 @@ public enum CompatibilityMode {
     NONE("none"), //
     COMPATIBLE("compatible");
 
-    private final String mode;
+    private final String value;
 
-    private CompatibilityMode(String mode) {
-        this.mode = mode;
+    private CompatibilityMode(String value) {
+        this.value = value;
+    }
+
+    /**
+     * Use the method {@link #getValue()}
+     * 
+     * @return
+     */
+    @Deprecated()
+    @JsonIgnore
+    public String getCompatibilityMode() {
+        return value;
     }
 
     @JsonValue
-    public String getCompatibilityMode() {
-        return mode;
+    public String getValue() {
+        return value;
     }
 
-    public static Optional<CompatibilityMode> withName(String code) {
-        for (CompatibilityMode e : CompatibilityMode.values()) {
-            if (e != null && e.name().equals(code))
-                return Optional.of(e);
-        }
-        return Optional.empty();
+    public static Optional<CompatibilityMode> withName(String name) {
+        return EnumUtil.withName(name, CompatibilityMode.class);
     }
 }
