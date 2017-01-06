@@ -84,7 +84,7 @@ public class EventCreationExample {
 		/**
 		 * Create client
 		 */
-		final Client client = ClientFactory.getJavaClient();
+		final Client client = ClientFactory.buildJavaClient();
 
 		/**
 		 * nakadi needs to know what kind of Json-schema you are going to send to

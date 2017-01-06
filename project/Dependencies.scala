@@ -29,7 +29,7 @@ object Dependencies {
 			"ch.qos.logback"               % "logback-core"         						  % "1.1.7"  % "test",
 			"com.typesafe.akka"            %% "akka-testkit"           						% akkaVersion  % "test",
 		  "org.scalatest"                %% "scalatest"              						% scalaTestVersion      % "test",
-		  "com.google.code.findbugs"     % "jsr305"                  						% "3.0.0"      % "test",
+		  "com.google.code.findbugs"     % "jsr305"                  						% "3.0.0",
 		  "junit"                        % "junit"                   						% junitVersion       % "test",
 			"org.mockito" 								 % "mockito-core" 											% "1.10.19"    % "test",
 			"com.novocode" 								 % "junit-interface"                    % "0.11"       % "test"

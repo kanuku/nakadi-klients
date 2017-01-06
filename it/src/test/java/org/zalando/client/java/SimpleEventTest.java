@@ -1,6 +1,9 @@
 package org.zalando.client.java;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +30,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 public class SimpleEventTest {
 
-    private Client client = ClientFactory.getJavaClient();;
+    private Client client = ClientFactory.buildJavaClient();
     private Integer nrOfEvents = 45;
 
     private TypeReference<EventStreamBatch<MySimpleEvent>> typeRef = new TypeReference<EventStreamBatch<MySimpleEvent>>() {

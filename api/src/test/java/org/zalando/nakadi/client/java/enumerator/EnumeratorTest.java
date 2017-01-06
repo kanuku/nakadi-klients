@@ -1,6 +1,5 @@
 package org.zalando.nakadi.client.java.enumerator;
 
-
 import static org.junit.Assert.assertEquals;
 
 import java.util.Optional;
@@ -56,6 +55,13 @@ public class EnumeratorTest {
     public void testSchemaType() {
         for (SchemaType e : SchemaType.values()) {
             assertEquals("SchemaType ", Optional.of(e), (e.withName(e.name())));
+        }
+    }
+
+    @Test
+    public void testCompatibilityMode() {
+        for (CompatibilityMode e : CompatibilityMode.values()) {
+            assertEquals("CompatibilityMode ", Optional.of(e), (e.withName(e.name())));
         }
     }
 

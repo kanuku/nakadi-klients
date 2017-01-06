@@ -2,27 +2,36 @@ package org.zalando.nakadi.client.java.enumerator;
 
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum SchemaType {
-	JSON("json_schema");
+    JSON("json_schema");
 
-	private final String schema;
+    private final String value;
 
-	private SchemaType(String schema) {
-		this.schema = schema;
-	}
-	@JsonValue
-	public String getSchema() {
-		return schema;
-	}
+    private SchemaType(String value) {
+        this.value = value;
+    }
 
-	public static Optional<SchemaType> withName(String code) {
-		for (SchemaType e : SchemaType.values()) {
-			if (e != null && e.name().equals(code))
-				return Optional.of(e);
-		}
-		return Optional.empty();
-	}
+    /**
+     * Use the method {@link #getValue()}
+     * 
+     * @return
+     */
+    @Deprecated()
+    @JsonIgnore
+    public String getSchema() {
+        return value;
+    }
+
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
+
+    public static Optional<SchemaType> withName(String name) {
+        return EnumUtil.withName(name, SchemaType.class);
+    }
 
 }

@@ -120,6 +120,10 @@ class ScalaJacksonJsonMarshallerTest extends WordSpec with Matchers {
     val expectedType = ScalaJacksonJsonMarshaller.eventTypeTR
     testMarshallingUnmarshalling(in, expectedType)
   }
-  
+  "Serialize/Deserialize CompatibilityMode" in {
+    val in = ModelFactory.newCompatibilityMode()
+    val expectedType = ScalaJacksonJsonMarshaller.compatibilityModeTR
+    testMarshallingUnmarshalling(in, expectedType)
+  }
 
 }

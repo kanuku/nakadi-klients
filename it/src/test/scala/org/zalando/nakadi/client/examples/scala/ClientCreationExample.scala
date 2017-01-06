@@ -7,13 +7,7 @@ import org.zalando.nakadi.client.utils.ClientBuilder
 
 object ClientCreationExample extends App {
   import ScalaJacksonJsonMarshaller._
-  val a = ClientBuilder()
-    .withHost("nakadi-sandbox.aruha-test.zalan.do")
-    .withSecuredConnection(true) //s
-    .withVerifiedSslCertificate(false) //s
-    .withTokenProvider(ClientFactory.OAuth2Token()) //
-    //    .build();
-    .build()
+  val a = ClientFactory.buildScalaClient()
   val eventTypeName =
     "test-client-integration-event-1936085527-148383828851369665"
   val url =

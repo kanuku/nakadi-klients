@@ -1,10 +1,9 @@
 package org.zalando.nakadi.client.java.enumerator;
 
-
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
-
 
 /**
  * Identifier for the type of operation to executed on the entity. <br>
@@ -15,22 +14,30 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * <br>
  */
 public enum DataOperation {
-	CREATE("C"), UPDATE("U"), DELETE("D"), SNAPSHOT("S");
-	private final String operation;
+    CREATE("C"), UPDATE("U"), DELETE("D"), SNAPSHOT("S");
+    private final String value;
 
-	private DataOperation(String operation) {
-		this.operation = operation;
-	}
-	@JsonValue
-	public String getOperation() {
-		return operation;
-	}
+    private DataOperation(String value) {
+        this.value = value;
+    }
 
-	public static Optional<DataOperation> withName(String code){
-        for(DataOperation e : DataOperation.values()){
-        	if (e != null && e.name().equals(code))
-        	return Optional.of(e);
-        }
-        return Optional.empty();
+    /**
+     * Use the method {@link #getValue()}
+     * 
+     * @return
+     */
+    @Deprecated()
+    @JsonIgnore
+    public String getOperation() {
+        return value;
+    }
+
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
+
+    public static Optional<DataOperation> withName(String name) {
+        return EnumUtil.withName(name, DataOperation.class);
     }
 }
