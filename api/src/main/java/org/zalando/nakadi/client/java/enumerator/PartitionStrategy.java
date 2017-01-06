@@ -2,12 +2,14 @@ package org.zalando.nakadi.client.java.enumerator;
 
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Defines a rule for the resolution of incoming Events into partitions. Rules might require additional parameters; see
- * the `doc` field of the existing rules for details. See `GET /registry/partition-strategies` for a list of available
- * rules.
+ * Defines a rule for the resolution of incoming Events into partitions. Rules
+ * might require additional parameters; see the `doc` field of the existing
+ * rules for details. See `GET /registry/partition-strategies` for a list of
+ * available rules.
  */
 
 public enum PartitionStrategy {
@@ -15,22 +17,29 @@ public enum PartitionStrategy {
     USER_DEFINED("user_defined"), //
     RANDOM("random");
 
-    private final String strategy;
+    private final String value;
 
-    private PartitionStrategy(String strategy) {
-        this.strategy = strategy;
+    private PartitionStrategy(String value) {
+        this.value = value;
+    }
+
+    /**
+     * Use the method {@link #getValue()}
+     * 
+     * @return
+     */
+    @Deprecated()
+    @JsonIgnore
+    public String getStrategy() {
+        return value;
     }
 
     @JsonValue
-    public String getStrategy() {
-        return strategy;
+    public String getValue() {
+        return value;
     }
 
-    public static Optional<PartitionStrategy> withName(String code) {
-        for (PartitionStrategy e : PartitionStrategy.values()) {
-            if (e != null && e.name().equals(code))
-                return Optional.of(e);
-        }
-        return Optional.empty();
+    public static Optional<PartitionStrategy> withName(String name) {
+        return EnumUtil.withName(name, PartitionStrategy.class);
     }
 }

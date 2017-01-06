@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang.RandomStringUtils;
+import org.zalando.nakadi.client.java.enumerator.CompatibilityMode;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
@@ -27,6 +28,7 @@ public abstract class EventGeneratorBuilder {
     private List<String> dataKeyFields = Collections.emptyList();
     private List<String> partitionKeyFields = Collections.emptyList();
     private EventTypeStatistics statistics = null;
+    private CompatibilityMode compatibilityMode = CompatibilityMode.FORWARD;
 
     public EventGeneratorBuilder withEventTypeId(String eventTypeId) {
         this.eventTypeId = eventTypeId;
@@ -89,6 +91,12 @@ public abstract class EventGeneratorBuilder {
         this.partitionKeyFields = partitionKeyFields;
         return this;
     }
+    
+    public EventGeneratorBuilder withCcompatibilityMode(CompatibilityMode compatibilityMode){
+    	this.compatibilityMode=compatibilityMode;
+    	return this;
+    			
+    }
 
     public EventGeneratorBuilder withStatistics(EventTypeStatistics statistics) {
         this.statistics = statistics;
@@ -134,7 +142,8 @@ public abstract class EventGeneratorBuilder {
                         gen.getSchemaType(), //
                         gen.getDataKeyFields(), //
                         gen.getPartitionKeyFields(), //
-                        gen.getStatistics());
+                        gen.getStatistics(),
+                        gen.getCompatibilityMode());
             }
 
             @Override
@@ -175,6 +184,10 @@ public abstract class EventGeneratorBuilder {
             @Override
             public EventTypeStatistics getStatistics() {
                 return statistics;
+            }
+            @Override
+            public CompatibilityMode getCompatibilityMode() {
+            	return compatibilityMode;
             }
 
         };
@@ -242,6 +255,9 @@ public abstract class EventGeneratorBuilder {
 
     protected EventTypeStatistics getStatistics() {
         return statistics;
+    }
+    protected CompatibilityMode getCompatibilityMode() {
+    	return compatibilityMode;
     }
     
     public String randomNumeric(int size) {

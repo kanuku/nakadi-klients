@@ -43,6 +43,8 @@ object ScalaJacksonJsonMarshaller {
     new TypeReference[EventTypeStatistics] {}
   implicit def eventTypeTR: TypeReference[EventType] =
     new TypeReference[EventType] {}
+  implicit def compatibilityModeTR: TypeReference[CompatibilityMode.Value] =
+    new TypeReference[CompatibilityMode.Value] {}
   implicit def eventTR: TypeReference[Event] =
     new TypeReference[Event] {}
   implicit def eventStreamBatchTR: TypeReference[EventStreamBatch[_]] =

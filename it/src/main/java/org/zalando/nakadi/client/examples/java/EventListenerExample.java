@@ -23,7 +23,7 @@ public class EventListenerExample {
 		/**
 		 * Create client
 		 */
-		final Client client = ClientFactory.getJavaClient();
+		final Client client = ClientFactory.buildJavaClient();
 
 		/**
 		 * Initialize our Listener

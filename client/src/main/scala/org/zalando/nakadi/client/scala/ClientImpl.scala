@@ -37,7 +37,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   import HttpFactory._
   implicit val materializer = connection.materializer()
 
-  private val logger = LoggerFactory.getLogger(this.getClass)
+  private val logger = LoggerFactory.getLogger(ClientImpl.getClass)
 
   def getMetrics(): Future[Either[ClientError, Option[Metrics]]] = {
     logFutureEither(connection.get(URI_METRICS).flatMap(mapToEither(_)(deserializer(metricsTR))))
@@ -53,7 +53,8 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
 
   def getEventType(name: String): Future[Either[ClientError, Option[EventType]]] = {
     logFutureEither(
-      connection.get(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap(in => mapToEither(in)(deserializer(eventTypeTR))))
+      connection.get(URI_EVENT_TYPE_BY_NAME.format(name)).flatMap { in => 
+        mapToEither(in)(deserializer(eventTypeTR)) })
   }
 
   def updateEventType(name: String, eventType: EventType): Future[Option[ClientError]] = {
@@ -83,20 +84,19 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         .flatMap(in => mapToEither(in)(deserializer(listOfPartitionTR))))
   }
 
-
-  def getPartitioningStrategies(): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]] ={
-     val transformer = getTranformer(PartitionStrategy)
+  def getPartitioningStrategies(): Future[Either[ClientError, Option[Seq[PartitionStrategy.Value]]]] = {
+    val transformer = getTranformer(PartitionStrategy)
     logFutureEither(
-      connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfStringsTR,transformer))))
+      connection.get(URI_PARTITIONING_STRATEGIES).flatMap(mapToEither(_)(deserializer(listOfStringsTR, transformer))))
   }
 
-  
-  private def getTranformer(enum:Enumeration)={
-    (in:Seq[String]) =>  {
-      in.map { x => enum.withName(x) }
-    }
+  private def getTranformer(enum: Enumeration) = {
+    (in: Seq[String]) =>
+      {
+        in.map { x => enum.withName(x) }
+      }
   }
-  
+
   def getEnrichmentStrategies(): Future[Either[ClientError, Option[Seq[EventEnrichmentStrategy.EventEnrichmentStrategy]]]] = {
     val tranformer = getTranformer(EventEnrichmentStrategy)
     logFutureEither(
@@ -105,9 +105,8 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         .flatMap(mapToEither(_)(deserializer(listOfStringsTR, tranformer))))
   }
 
-  
-
   def stop(): Option[ClientError] = {
+    logger.info("Shutting down the client")
     materializer.shutdown()
     val result = Await.ready(connection.actorSystem().terminate(), Duration.Inf)
     None
@@ -155,10 +154,10 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   //#  HELPER METHODS  #
   //####################
 
-  private def logFutureEither[A, T](future: Future[Either[ClientError, T]]): Future[Either[ClientError, T]] = {
+  private def logFutureEither[TA, TB](future: Future[Either[ClientError, TB]]): Future[Either[ClientError, TB]] = {
     future recover {
       case e: Throwable =>
-        val msg = s"An unexpected error occured: ${e.getMessage}"
+        val msg = s"An(1) unexpected error occured: ${e.getMessage}"
         logger.error(msg)
         Left(ClientError(msg, None))
     }
@@ -166,7 +165,8 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
   private def logFutureOption(future: Future[Option[ClientError]]): Future[Option[ClientError]] = {
     future recover {
       case e: Throwable =>
-        val msg = s"An unexpected error occured: ${e.getMessage}"
+        val msg = s"An(2) unexpected error occured: ${e.getMessage}"
+        logger.error(msg)
         Option(ClientError(msg, None))
     }
   }

@@ -24,7 +24,7 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client)
 
   def createEventType(): Boolean = {
     wasItsuccessfull(executeCall(client.createEventType(eventType)),
-                     "createEventType")
+      "createEventType")
   }
 
   def getEventType(eventTypeName: String = eventType.name): Option[EventType] =
@@ -35,29 +35,38 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client)
       case Right(result) => result
     }
 
-  def deleteEventType() =
-    wasItsuccessfull(executeCall(client.deleteEventType(eventType.name)),
-                     "deleteEventType")
+  def deleteEventType() = {
+    log.warn("deleting event:"+ eventType.name)
+      (wasItsuccessfull(executeCall(client.deleteEventType(eventType.name)),
+        "deleteEventType")) match {
+          case true =>
+            log.info("Managed to delete eventType:" + eventType.name)
+            true
+          case false =>
+            log.info("Failedto delete eventType:" + eventType.name)
+            false
+        }
+  }
 
   def publishEvents(nrOfEvents: Int): Seq[Event] = {
     val events = for {
       a <- 1 to nrOfEvents
     } yield generator.newEvent()
     wasItsuccessfull(executeCall(client.publishEvents(eventType.name, events)),
-                     "publishEvents")
+      "publishEvents")
     log.info(s"EVENTS published: $events")
     events
   }
 
   def updateEventType(eType: EventType): Boolean = {
     wasItsuccessfull(
-        executeCall(client.updateEventType(eventType.name, eType)),
-        "updateEventType")
+      executeCall(client.updateEventType(eventType.name, eType)),
+      "updateEventType")
   }
 
   def eventTypeExist(eventTypeName: String = eventType.name): Boolean = {
     getEventType(eventTypeName) match {
-      case None => false
+      case None    => false
       case Some(_) => true
     }
   }
@@ -66,12 +75,12 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client)
     extractFromRightOptional(() => client.getPartitions(eventType.name)).size
 
   private def extractFromRightOptional[T](
-      function: () => Future[Either[ClientError, Option[T]]]) = {
+    function: () => Future[Either[ClientError, Option[T]]]) = {
     val received = executeCall(function())
     assert(received.isRight == true, s"ClientErrror ${received}")
     val Right(opt) = received
     assert(opt.isDefined == true,
-           "because it expected Some, but received None")
+      "because it expected Some, but received None")
     val Some(eventTypes) = opt
     eventTypes
   }
@@ -86,14 +95,14 @@ class EventIntegrationHelper(generator: EventGenerator, client: Client)
     in match {
       case Some(clientError) =>
         log.error(
-            s"${generator.eventTypeId} - ${msg} => ClientError: $clientError")
+          s"${generator.eventTypeId} - ${msg} => ClientError: $clientError")
         false
       case None =>
         true
     }
 
   private def executeCall[T](call: => Future[T]): T = {
-    Await.result(call, 10.second)
+    Await.result(call, 15.second)
   }
 
 }

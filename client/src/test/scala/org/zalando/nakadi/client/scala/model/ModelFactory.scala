@@ -31,6 +31,11 @@ object ModelFactory {
     EventTypeSchema(SchemaType.JSON, schema);
   }
   def newEventTypeStatistics(): EventTypeStatistics = EventTypeStatistics(randomInt(), randomInt(), randomInt(), randomInt())
+  
+  def newCompatibilityMode(): CompatibilityMode.Value  = {
+    val values = CompatibilityMode.values.toArray
+    values(Random.nextInt(values.length))
+  }
   def newMetrics(): Metrics = {
     val depth = 5
     val gauges: Map[String, Any] = Map[String, Any](

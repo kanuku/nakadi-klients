@@ -2,6 +2,7 @@ package org.zalando.nakadi.client.java.test.event.generator;
 
 import java.util.List;
 
+import org.zalando.nakadi.client.java.enumerator.CompatibilityMode;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
@@ -42,5 +43,7 @@ public interface EventGenerator {
     List<String> getPartitionKeyFields();
 
     EventTypeStatistics getStatistics();
+    
+    CompatibilityMode getCompatibilityMode();
 
 }

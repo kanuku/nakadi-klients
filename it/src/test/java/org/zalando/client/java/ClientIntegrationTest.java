@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutionException;
 import org.junit.After;
 import org.junit.Test;
 import org.zalando.nakadi.client.java.Client;
+import org.zalando.nakadi.client.java.enumerator.CompatibilityMode;
 import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
 import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
 import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
@@ -24,7 +25,7 @@ import org.zalando.nakadi.client.java.test.event.simple.MySimpleEventGenerator;
 import org.zalando.nakadi.client.scala.ClientFactory;
 
 public class ClientIntegrationTest {
-    private Client client = ClientFactory.getJavaClient();
+    private Client client = ClientFactory.buildJavaClient();
 
     @After
     public void shutdown() throws InterruptedException, ExecutionException {
@@ -54,6 +55,7 @@ public class ClientIntegrationTest {
         assertEquals(eventType.getSchema().getSchema(), originalEventType.getSchema().getSchema());
         assertEquals(eventType.getSchema().getType(), originalEventType.getSchema().getType());
         assertEquals(eventType.getStatistics(), originalEventType.getStatistics());
+        assertEquals(eventType.getCompatibilityMode(), originalEventType.getCompatibilityMode());
 
     }
 
@@ -80,6 +82,7 @@ public class ClientIntegrationTest {
         assertEquals(eventType.getSchema().getSchema(), originalEventType.getSchema().getSchema());
         assertEquals(eventType.getSchema().getType(), originalEventType.getSchema().getType());
         assertEquals(eventType.getStatistics(), originalEventType.getStatistics());
+        assertEquals(eventType.getCompatibilityMode(), originalEventType.getCompatibilityMode());
 
         String name = eventType.getName();
         String owningApplication = "owningApplication";
@@ -90,8 +93,9 @@ public class ClientIntegrationTest {
         List<String> dataKeyFields = eventType.getDataKeyFields();
         List<String> partitionKeyFields = eventType.getPartitionKeyFields();
         EventTypeStatistics statistics = eventType.getStatistics();
+        CompatibilityMode compatibilityMode = eventType.getCompatibilityMode();
         EventType changedEventType = new EventType(name, owningApplication, category, enrichmentStrategies,
-                partitionStrategy, schema, dataKeyFields, partitionKeyFields, statistics);
+                partitionStrategy, schema, dataKeyFields, partitionKeyFields, statistics, compatibilityMode);
 
         // Update
         client.updateEventType(originalEventType.getName(), changedEventType).get();
@@ -108,6 +112,7 @@ public class ClientIntegrationTest {
         assertEquals(eventTypeResult.get().getSchema().getSchema(), originalEventType.getSchema().getSchema());
         assertEquals(eventTypeResult.get().getSchema().getType(), originalEventType.getSchema().getType());
         assertEquals(eventTypeResult.get().getStatistics(), originalEventType.getStatistics());
+        assertEquals(eventTypeResult.get().getCompatibilityMode(), originalEventType.getCompatibilityMode());
 
     }
 
@@ -136,7 +141,7 @@ public class ClientIntegrationTest {
         assertEquals(eventType.getStatistics(), originalEventType.getStatistics());
 
         // DELETE
-        Void result = client.deleteEventType(originalEventType.getName()).get();
+        client.deleteEventType(originalEventType.getName()).get();
 
         // GET
         eventTypeResult = client.getEventType(originalEventType.getName()).get();
@@ -160,6 +165,7 @@ public class ClientIntegrationTest {
         assertTrue(events.size() >= 0);
     }
 
+    
     @Test
     public void getEnrichmentStrategies() throws InterruptedException, ExecutionException {
         Optional<List<EventEnrichmentStrategy>> result = client.getEnrichmentStrategies().get();
@@ -175,5 +181,5 @@ public class ClientIntegrationTest {
         List<PartitionStrategy> partitioningStrategies = result.get();
         assertTrue("PartitionStrategy", partitioningStrategies.size() == 3);
     }
-
+    
 }
