@@ -114,7 +114,7 @@ class SupervisingActor(val connection: Connection, val subscriptionHandler: Subs
 
     //Create the Consumer
     val consumingActor = context
-      .actorOf(Props(classOf[ConsumingActor], subscriptionKey, eventHandler), "ConsumingActor-" + subscriptionCounter)
+      .actorOf(Props(classOf[ConsumingActor], subscriptionKey, eventHandler).withMailbox("bounded-mailbox"), "ConsumingActor-" + subscriptionCounter)
 
     context.watch(consumingActor)
 
