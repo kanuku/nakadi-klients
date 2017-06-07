@@ -150,7 +150,7 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
     val params: Option[ScalaStreamParameters] = toScalaStreamParameters(parameters)
     val eventHandler: EventHandler = new JavaEventHandlerImpl(des, listener)
     val finalUrl = withUrl(endpoint, params)
-    val res = subscriber.subscribe(eventTypeName, finalUrl, getCursor(params), eventHandler)
+    val res = subscriber.subscribe(eventTypeName, finalUrl, getCursor(params), eventHandler, params.get)
     toJavaClientError(res)
   }
 
@@ -172,7 +172,9 @@ class JavaClientHandlerImpl(val connection: Connection, subscriber: Subscription
           batchFlushTimeout,
           streamTimeout,
           streamKeepAliveLimit,
-          flowId)) =>
+          flowId,
+          rate,
+          maxBurstSize)) =>
         cursor
       case None => None
     }

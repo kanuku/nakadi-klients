@@ -77,7 +77,7 @@ object HttpFactory {
   private def withQueryParams(params: Option[StreamParameters]): Seq[String] = {
     params match {
       case Some(
-        StreamParameters(_, batchLimit, streamLimit, batchFlushTimeout, streamTimeout, streamKeepAliveLimit, _)) =>
+        StreamParameters(_, batchLimit, streamLimit, batchFlushTimeout, streamTimeout, streamKeepAliveLimit, _, _, _)) =>
         val parameters = List(("batch_limit", batchLimit),
           ("stream_limit", streamLimit), //
           ("batch_flush_timeout", batchFlushTimeout),

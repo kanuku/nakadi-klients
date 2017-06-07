@@ -131,7 +131,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
         logger.info("eventType is null")
         Some(ClientError("Eventype may not be empty(null)!", None))
 
-      case (eventType, StreamParameters(cursor, _, _, _, _, _, _), listener) if Option(eventType).isDefined =>
+      case (eventType, StreamParameters(cursor, _, _, _, _, _, _, _, _), listener) if Option(eventType).isDefined =>
         val url = URI_EVENTS_OF_EVENT_TYPE.format(eventType)
         logger.debug("Subscribing listener {} - cursor {} - parameters {} - eventType {} - url {}",
           listener.id,
@@ -141,7 +141,7 @@ class ClientImpl(connection: Connection, subscriber: SubscriptionHandler, charSe
           url)
         val finalUrl = withUrl(url, Some(params))
         val eventHandler: EventHandler = new ScalaEventHandlerImpl(des, listener)
-        subscriber.subscribe(eventTypeName, finalUrl, cursor, eventHandler)
+        subscriber.subscribe(eventTypeName, finalUrl, cursor, eventHandler,params)
     }
 
   def unsubscribe[T <: Event](eventTypeName: String,

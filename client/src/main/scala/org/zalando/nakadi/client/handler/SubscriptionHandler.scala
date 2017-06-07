@@ -9,10 +9,7 @@ import org.slf4j.LoggerFactory
 import org.zalando.nakadi.client.actor.SupervisingActor
 import org.zalando.nakadi.client.actor.SupervisingActor.SubscribeMsg
 import org.zalando.nakadi.client.actor.SupervisingActor.UnsubscribeMsg
-import org.zalando.nakadi.client.scala.ClientError
-import org.zalando.nakadi.client.scala.Connection
-import org.zalando.nakadi.client.scala.EventHandler
-import org.zalando.nakadi.client.scala.HttpFactory
+import org.zalando.nakadi.client.scala._
 import org.zalando.nakadi.client.scala.model.Cursor
 
 import akka.NotUsed
@@ -22,9 +19,7 @@ import akka.actor.Props
 import akka.actor.actorRef2Scala
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.HttpResponse
-import akka.stream.ActorAttributes
-import akka.stream.OverflowStrategy
-import akka.stream.Supervision
+import akka.stream.{ThrottleMode, ActorAttributes, OverflowStrategy, Supervision}
 import akka.stream.actor.ActorSubscriber
 import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Framing
@@ -41,9 +36,10 @@ trait SubscriptionHandler {
   def subscribe(eventTypeName: String,
                 endpoint: String,
                 cursor: Option[Cursor],
-                eventHandler: EventHandler): Option[ClientError]
+                eventHandler: EventHandler,
+                streamParams: StreamParameters): Option[ClientError]
   def unsubscribe(eventTypeName: String, partition: Option[String], listenerId: String): Option[ClientError]
-  def createPipeline(cursor: Option[Cursor], consumingActor: ActorRef, url: String, eventHandler: EventHandler)
+  def createPipeline(cursor: Option[Cursor], consumingActor: ActorRef, url: String, eventHandler: EventHandler, streamParams : StreamParameters)
 }
 
 class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHandler {
@@ -59,8 +55,8 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  def subscribe(eventTypeName: String, endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler) = {
-    supervisingActor ! SubscribeMsg(eventTypeName, endpoint, cursor, eventHandler)
+  def subscribe(eventTypeName: String, endpoint: String, cursor: Option[Cursor], eventHandler: EventHandler, streamParams: StreamParameters) = {
+    supervisingActor ! SubscribeMsg(eventTypeName, endpoint, cursor, eventHandler, streamParams: StreamParameters)
     None
   }
   def unsubscribe(eventTypeName: String, partition: Option[String], listenerId: String) = {
@@ -72,7 +68,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
     case _ => Supervision.Stop
   }
 
-  def createPipeline(cursor: Option[Cursor], consumingActor: ActorRef, url: String, eventHandler: EventHandler) = {
+  def createPipeline(cursor: Option[Cursor], consumingActor: ActorRef, url: String, eventHandler: EventHandler , streamParams : StreamParameters) = {
 
     val subscriber = ActorSubscriber[ByteString](consumingActor)
 
@@ -88,7 +84,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
     val result = Source(List(cursor))
       .via(requestFlow)
       .withAttributes(ActorAttributes.supervisionStrategy(decider()))
-      .runForeach(_.runWith(Sink.fromSubscriber(subscriber)))
+      .runForeach(_.throttle(streamParams.rate.get,1.second,streamParams.burstMaxSize.get,ThrottleMode.shaping).runWith(Sink.fromSubscriber(subscriber)))
 
     result.onComplete {
       case Success(requestSource) ⇒
