@@ -1,9 +1,7 @@
 package org.zalando.nakadi.client.examples.java;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 import org.zalando.nakadi.client.java.Client;

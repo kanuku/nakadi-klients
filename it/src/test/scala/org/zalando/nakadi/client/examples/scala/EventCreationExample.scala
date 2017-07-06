@@ -13,6 +13,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.collection.mutable.ListBuffer
 import org.zalando.nakadi.client.scala.ClientFactory
+import org.zalando.nakadi.client.scala.model.EventEnrichmentStrategy
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object EventCreationExample extends App {
 
@@ -44,43 +46,43 @@ object EventCreationExample extends App {
   //See the API for more information on the EventType model
   //https://github.com/zalando/nakadi/blob/nakadi-jvm/api/nakadi-event-bus-api.yaml#L1240
   //  val eventTypeName = "Example-unique-million-messages"
-  val eventTypeName = "Example-2000"
-//  val eventTypeName = "Example-unique-hundred-messages-3"
+  val eventTypeName = "idakan-test-event"
+  //  val eventTypeName = "Example-unique-hundred-messages-3"
 
   val owner = "team-laas"
   val category = EventTypeCategory.UNDEFINED // We want just to pass data without through Nakadi, simple schema-validation is enough!
-  val enrichmentStrategies = Nil
+  val enrichmentStrategies = Nil //Seq(EventEnrichmentStrategy.METADATA)
   val partitionStrategy = Some(PartitionStrategy.RANDOM)
   val dataKeyFields = Nil
   val paritionKeyFields = List("date", "topic")
 
   val eventType = new EventType(eventTypeName,
-                                owner,
-                                category,
-                                enrichmentStrategies,
-                                partitionStrategy,
-                                eventTypeSchema,
-                                dataKeyFields,
-                                paritionKeyFields,
-                                None)
+    owner,
+    category,
+    enrichmentStrategies,
+    partitionStrategy,
+    eventTypeSchema,
+    dataKeyFields,
+    paritionKeyFields,
+    None)
 
   //You need to import the default Serializer if you don't sepecify your own!
   import ScalaJacksonJsonMarshaller._
 
   client.createEventType(eventType)
-  Thread.sleep(3000)
+  Thread.sleep(10000)
   // 4. Publish the EventType
-//  System.exit(0)
+  //  System.exit(0)
   var counter = 0
-  for (n <- 1 to 5000) {
-    val event = new MeetingsEvent("2016-04-28T13:28:15+00:00", "Hackaton")
+  for (n <- 1 to 50) {
+    val event = new MeetingsEvent("" + System.currentTimeMillis(), "Hackaton")
     var events = ListBuffer[MeetingsEvent]()
     for (a <- 1 to 10) {
       counter += 1
-      events += MeetingsEvent("2016-04-28T13:28:15+00:00",
-                              "Hackaton" + counter)
+      events += MeetingsEvent("" + System.currentTimeMillis(),
+        "Hackaton" + counter)
     }
-    Await.result(client.publishEvents(eventTypeName, events), 120.seconds)
+    Await.result(client.publishEvents(eventTypeName, events), 10.seconds)
   }
   client.stop()
 

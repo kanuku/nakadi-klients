@@ -2,8 +2,7 @@ package org.zalando.nakadi.client.examples.java;
 
 import org.zalando.nakadi.client.java.model.Event;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 public class MeetingsEvent  implements Event {
     private final String date;

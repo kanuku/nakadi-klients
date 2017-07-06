@@ -7,26 +7,8 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
-import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
-import org.zalando.nakadi.client.java.model.BatchItemResponse;
-import org.zalando.nakadi.client.java.model.BusinessEvent;
-import org.zalando.nakadi.client.java.model.Cursor;
-import org.zalando.nakadi.client.java.model.DataChangeEvent;
-import org.zalando.nakadi.client.java.model.DataChangeEventQualifier;
-import org.zalando.nakadi.client.java.model.Event;
-import org.zalando.nakadi.client.java.model.EventMetadata;
-import org.zalando.nakadi.client.java.model.EventStreamBatch;
-import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.model.EventTypeSchema;
-import org.zalando.nakadi.client.java.model.EventTypeStatistics;
-import org.zalando.nakadi.client.java.model.JavaJacksonJsonMarshaller;
-import org.zalando.nakadi.client.java.model.Metrics;
-import org.zalando.nakadi.client.java.model.Partition;
-import org.zalando.nakadi.client.java.model.Problem;
+import org.slf4j.*;
+import org.zalando.nakadi.client.java.enumerator.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;

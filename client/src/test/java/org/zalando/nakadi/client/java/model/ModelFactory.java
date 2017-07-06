@@ -1,35 +1,10 @@
 package org.zalando.nakadi.client.java.model;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.*;
+import java.util.stream.*;
 
 import org.zalando.nakadi.client.java.ClientError;
-import org.zalando.nakadi.client.java.enumerator.BatchItemPublishingStatus;
-import org.zalando.nakadi.client.java.enumerator.BatchItemStep;
-import org.zalando.nakadi.client.java.enumerator.DataOperation;
-import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
-import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
-import org.zalando.nakadi.client.java.enumerator.SchemaType;
-import org.zalando.nakadi.client.java.model.BatchItemResponse;
-import org.zalando.nakadi.client.java.model.BusinessEvent;
-import org.zalando.nakadi.client.java.model.Cursor;
-import org.zalando.nakadi.client.java.model.DataChangeEvent;
-import org.zalando.nakadi.client.java.model.Event;
-import org.zalando.nakadi.client.java.model.EventMetadata;
-import org.zalando.nakadi.client.java.model.EventStreamBatch;
-import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.model.EventTypeSchema;
-import org.zalando.nakadi.client.java.model.EventTypeStatistics;
-import org.zalando.nakadi.client.java.model.Metrics;
-import org.zalando.nakadi.client.java.model.Partition;
-import org.zalando.nakadi.client.java.model.Problem;
+import org.zalando.nakadi.client.java.enumerator.*;
 
 import com.google.common.collect.Lists;
 

@@ -2,8 +2,7 @@ package org.zalando.nakadi.client.java.model;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 /**
  * Metadata for this Event. Contains commons fields for both Business and

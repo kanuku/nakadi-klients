@@ -77,7 +77,7 @@ class SubscriptionHandlerImpl(val connection: Connection) extends SubscriptionHa
     val subscriber = ActorSubscriber[ByteString](consumingActor)
 
     //Setup a flow for the request
-    val requestFlow = Flow[Option[Cursor]]
+    val requestFlow: Flow[Option[Cursor], Source[ByteString, Any], NotUsed] = Flow[Option[Cursor]]
       .via(requestCreator(url))
       .via(connection.requestFlow())
       .buffer(Conf.receiveBufferSize, OverflowStrategy.backpressure)

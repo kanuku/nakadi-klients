@@ -2,8 +2,7 @@ package org.zalando.nakadi.client.java.enumerator;
 
 import java.util.Optional;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.*;
 
 /**
  * Determines the enrichment to be performed on an Event upon reception(server

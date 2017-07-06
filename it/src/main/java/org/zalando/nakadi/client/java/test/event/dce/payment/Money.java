@@ -1,7 +1,6 @@
 package org.zalando.nakadi.client.java.test.event.dce.payment;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 public class Money {
 

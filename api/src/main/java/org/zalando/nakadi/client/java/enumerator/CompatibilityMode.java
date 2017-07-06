@@ -2,8 +2,7 @@ package org.zalando.nakadi.client.java.enumerator;
 
 import java.util.Optional;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.*;
 
 /**
  * Compatibility mode provides a mean for event owners to evolve their schema,

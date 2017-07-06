@@ -1,18 +1,15 @@
 package org.zalando.client.java;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.*;
 import org.zalando.nakadi.client.java.Client;
 import org.zalando.nakadi.client.java.model.EventType;
 import org.zalando.nakadi.client.java.test.event.dce.payment.PaymentEventGenerator;
-import org.zalando.nakadi.client.java.test.event.generator.EventGenerator;
-import org.zalando.nakadi.client.java.test.event.generator.EventIntegrationHelper;
+import org.zalando.nakadi.client.java.test.event.generator.*;
 import org.zalando.nakadi.client.scala.ClientFactory;
 
 public class PaymentCreatedDataChangeEventTest {

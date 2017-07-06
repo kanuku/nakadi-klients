@@ -2,8 +2,7 @@ package org.zalando.nakadi.client.java.test.event.simple;
 
 import org.zalando.nakadi.client.java.model.Event;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 public class MySimpleEvent implements Event {
 

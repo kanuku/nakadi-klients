@@ -2,8 +2,7 @@ package org.zalando.nakadi.client.java.model;
 
 import org.zalando.nakadi.client.java.enumerator.SchemaType;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 /**
  * The schema for an EventType, expected to be a json schema in yaml

@@ -1,15 +1,10 @@
 package org.zalando.nakadi.client.java.model;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
-import org.zalando.nakadi.client.java.enumerator.CompatibilityMode;
-import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
-import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
+import org.zalando.nakadi.client.java.enumerator.*;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 /**
  * An event type defines the schema and its runtime properties.

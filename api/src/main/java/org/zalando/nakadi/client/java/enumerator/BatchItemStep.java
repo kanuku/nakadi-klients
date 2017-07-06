@@ -2,8 +2,7 @@ package org.zalando.nakadi.client.java.enumerator;
 
 import java.util.Optional;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.*;
 
 /**
  * Indicator of the step in the pulbishing process this Event reached. In Items

@@ -2,14 +2,9 @@ package org.zalando.nakadi.client.java.utils;
 
 import java.util.List;
 
-import org.zalando.nakadi.client.Deserializer;
-import org.zalando.nakadi.client.Serializer;
-import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
-import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.model.JavaJacksonJsonMarshaller;
-import org.zalando.nakadi.client.java.model.Metrics;
-import org.zalando.nakadi.client.java.model.Partition;
+import org.zalando.nakadi.client.*;
+import org.zalando.nakadi.client.java.enumerator.*;
+import org.zalando.nakadi.client.java.model.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 

@@ -1,18 +1,10 @@
 package org.zalando.nakadi.client.java.test.event.generator;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import org.apache.commons.lang.RandomStringUtils;
-import org.zalando.nakadi.client.java.enumerator.CompatibilityMode;
-import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
-import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
-import org.zalando.nakadi.client.java.enumerator.SchemaType;
-import org.zalando.nakadi.client.java.model.Event;
-import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.model.EventTypeSchema;
-import org.zalando.nakadi.client.java.model.EventTypeStatistics;
+import org.zalando.nakadi.client.java.enumerator.*;
+import org.zalando.nakadi.client.java.model.*;
 
 public abstract class EventGeneratorBuilder {
     private String eventTypeId;

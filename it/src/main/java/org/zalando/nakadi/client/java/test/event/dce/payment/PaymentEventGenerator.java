@@ -1,7 +1,6 @@
 package org.zalando.nakadi.client.java.test.event.dce.payment;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -9,9 +8,7 @@ import java.util.UUID;
 import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.LoggerFactory;
 import org.zalando.nakadi.client.java.enumerator.DataOperation;
-import org.zalando.nakadi.client.java.model.DataChangeEvent;
-import org.zalando.nakadi.client.java.model.Event;
-import org.zalando.nakadi.client.java.model.EventMetadata;
+import org.zalando.nakadi.client.java.model.*;
 import org.zalando.nakadi.client.java.test.event.generator.EventGeneratorBuilder;
 
 public class PaymentEventGenerator extends EventGeneratorBuilder {

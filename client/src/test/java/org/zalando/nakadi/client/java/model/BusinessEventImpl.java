@@ -1,10 +1,6 @@
 package org.zalando.nakadi.client.java.model;
 
-import org.zalando.nakadi.client.java.model.BusinessEvent;
-import org.zalando.nakadi.client.java.model.EventMetadata;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 public class BusinessEventImpl   implements BusinessEvent {
     private EventMetadata metadata;

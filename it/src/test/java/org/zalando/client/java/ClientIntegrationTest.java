@@ -1,25 +1,14 @@
 package org.zalando.client.java;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.*;
 import org.zalando.nakadi.client.java.Client;
-import org.zalando.nakadi.client.java.enumerator.CompatibilityMode;
-import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
-import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
-import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.model.EventTypeSchema;
-import org.zalando.nakadi.client.java.model.EventTypeStatistics;
-import org.zalando.nakadi.client.java.model.Metrics;
+import org.zalando.nakadi.client.java.enumerator.*;
+import org.zalando.nakadi.client.java.model.*;
 import org.zalando.nakadi.client.java.test.event.generator.EventGenerator;
 import org.zalando.nakadi.client.java.test.event.simple.MySimpleEventGenerator;
 import org.zalando.nakadi.client.scala.ClientFactory;

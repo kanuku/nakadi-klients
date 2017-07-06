@@ -1,12 +1,9 @@
 package org.zalando.nakadi.client.java.test.event.generator;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
-import org.zalando.nakadi.client.java.ClientError;
-import org.zalando.nakadi.client.java.Listener;
-import org.zalando.nakadi.client.java.model.Cursor;
-import org.zalando.nakadi.client.java.model.Event;
+import org.zalando.nakadi.client.java.*;
+import org.zalando.nakadi.client.java.model.*;
 
 public class SimpleEventListener   implements Listener<Event>{
 

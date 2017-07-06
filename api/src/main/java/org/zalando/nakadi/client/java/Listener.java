@@ -1,10 +1,8 @@
 package org.zalando.nakadi.client.java;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
-import org.zalando.nakadi.client.java.model.Cursor;
-import org.zalando.nakadi.client.java.model.Event;
+import org.zalando.nakadi.client.java.model.*;
 
 public interface Listener<T extends Event> {
 	

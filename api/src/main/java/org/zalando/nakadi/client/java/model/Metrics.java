@@ -2,8 +2,7 @@ package org.zalando.nakadi.client.java.model;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 public class Metrics {
     private final String version;

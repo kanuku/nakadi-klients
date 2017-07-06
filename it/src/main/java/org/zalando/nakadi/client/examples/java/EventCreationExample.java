@@ -1,19 +1,11 @@
 package org.zalando.nakadi.client.examples.java;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.*;
+import java.util.concurrent.*;
 
 import org.zalando.nakadi.client.java.Client;
-import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.EventTypeCategory;
-import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
-import org.zalando.nakadi.client.java.enumerator.SchemaType;
-import org.zalando.nakadi.client.java.model.Event;
-import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.model.EventTypeSchema;
-import org.zalando.nakadi.client.java.model.EventTypeStatistics;
+import org.zalando.nakadi.client.java.enumerator.*;
+import org.zalando.nakadi.client.java.model.*;
 import org.zalando.nakadi.client.java.utils.SerializationUtils;
 import org.zalando.nakadi.client.scala.ClientFactory;
 

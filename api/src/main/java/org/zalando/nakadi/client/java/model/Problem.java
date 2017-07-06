@@ -1,7 +1,6 @@
 package org.zalando.nakadi.client.java.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 /**
  * Represents a Poblem Type.

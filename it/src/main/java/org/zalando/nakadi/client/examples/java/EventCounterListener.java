@@ -1,13 +1,9 @@
 package org.zalando.nakadi.client.examples.java;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 import org.zalando.nakadi.client.java.ClientError;
 import org.zalando.nakadi.client.java.model.Cursor;
 

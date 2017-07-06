@@ -1,7 +1,6 @@
 package org.zalando.nakadi.client.java.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 /**
  * Partition information. Can be helpful when trying to start a stream using an unmanaged API. This information is not

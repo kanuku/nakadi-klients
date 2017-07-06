@@ -2,8 +2,7 @@ package org.zalando.nakadi.client.java.model;
 
 import org.zalando.nakadi.client.java.enumerator.DataOperation;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 public class DataChangeEvent<T> implements DataChangeEventQualifier, Event {
     private final T data;

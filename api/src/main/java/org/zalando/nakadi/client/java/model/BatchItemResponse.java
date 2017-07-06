@@ -1,10 +1,8 @@
 package org.zalando.nakadi.client.java.model;
 
-import org.zalando.nakadi.client.java.enumerator.BatchItemPublishingStatus;
-import org.zalando.nakadi.client.java.enumerator.BatchItemStep;
+import org.zalando.nakadi.client.java.enumerator.*;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 
 /**
  * A status corresponding to one individual Event's publishing attempt.

@@ -3,11 +3,8 @@ package org.zalando.nakadi.client.examples.java;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
-import org.zalando.nakadi.client.java.Client;
-import org.zalando.nakadi.client.java.Listener;
-import org.zalando.nakadi.client.java.StreamParameters;
-import org.zalando.nakadi.client.java.model.Cursor;
-import org.zalando.nakadi.client.java.model.EventStreamBatch;
+import org.zalando.nakadi.client.java.*;
+import org.zalando.nakadi.client.java.model.*;
 import org.zalando.nakadi.client.scala.ClientFactory;
 
 import com.fasterxml.jackson.core.type.TypeReference;

@@ -1,24 +1,17 @@
 package org.zalando.nakadi.client.java;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
-import org.zalando.nakadi.client.Deserializer;
-import org.zalando.nakadi.client.Serializer;
-import org.zalando.nakadi.client.java.enumerator.EventEnrichmentStrategy;
-import org.zalando.nakadi.client.java.enumerator.PartitionStrategy;
-import org.zalando.nakadi.client.java.model.Event;
-import org.zalando.nakadi.client.java.model.EventStreamBatch;
-import org.zalando.nakadi.client.java.model.EventType;
-import org.zalando.nakadi.client.java.model.Metrics;
-import org.zalando.nakadi.client.java.model.Partition;
+import org.zalando.nakadi.client.*;
+import org.zalando.nakadi.client.java.enumerator.*;
+import org.zalando.nakadi.client.java.model.*;
 import org.zalando.nakadi.client.java.utils.SerializationUtils;
 import org.zalando.nakadi.client.utils.Uri;
+
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
+import com.google.common.base.*;
 
 public class ClientImpl implements Client {
     private final JavaClientHandler handler;
